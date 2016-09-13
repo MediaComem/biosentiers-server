@@ -7,12 +7,36 @@
   },
   "dependencies": {
     "body-parser": "~1.15.1",
-    "cookie-parser": "~1.4.3",
     "debug": "~2.2.0",
     "express": "~4.13.4",
+    "lodash": "^4.15.0",
     "morgan": "~1.7.0",
     "pug": "^2.0.0-beta6",
-    "serve-favicon": "~2.3.0",
-    "stylus": "0.54.5"
+    "serve-favicon": "~2.3.0"
+  },
+  "devDependencies": {
+    "bootstrap": "^3.3.7",
+    "get-folder-size": "^1.0.0",
+    "gulp": "^3.9.1",
+    "gulp-add-src": "^0.2.0",
+    "gulp-autoprefixer": "^3.1.0",
+    "gulp-clean": "^0.3.2",
+    "gulp-concat": "^2.6.0",
+    "gulp-cssmin": "^0.1.7",
+    "gulp-env": "^0.4.0",
+    "gulp-inject": "^4.1.0",
+    "gulp-livereload": "^3.8.1",
+    "gulp-nodemon": "^2.1.0",
+    "gulp-pug": "^3.0.4",
+    "gulp-remove-html-comments": "^1.0.1",
+    "gulp-rev": "^7.1.0",
+    "gulp-stylus": "^2.5.0",
+    "gulp-uglify": "^2.0.0",
+    "gulp-util": "^3.0.7",
+    "gulp-watch": "^4.3.9",
+    "pretty-bytes": "^3.0.1",
+    "run-sequence": "^1.2.2",
+    "stylus": "^0.54.5",
+    "through2": "^2.0.1"
   }
 }

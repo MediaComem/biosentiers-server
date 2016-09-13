@@ -1,12 +1,9 @@
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
-
-var routes = require('./routes/index');
-var users = require('./routes/users');
+var bodyParser = require('body-parser'),
+    config = require('../config'),
+    express = require('express'),
+    favicon = require('serve-favicon'),
+    logger = require('morgan'),
+    path = require('path');
 
 var app = express();
 
@@ -19,12 +16,17 @@ app.set('view engine', 'pug');
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(require('stylus').middleware(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(config.path('build', 'development')));
+app.use('/node_modules', express.static(config.path('node_modules')));
 
-app.use('/', routes);
-app.use('/users', users);
+function serveIndex(req, res) {
+  res.sendFile('index.html', { root: config.path('build/development') });
+}
+
+var router = express.Router();
+router.get('/', serveIndex);
+router.get('/*', serveIndex);
+app.use('/', router);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
