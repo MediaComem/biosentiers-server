@@ -171,7 +171,7 @@ gulp.task('dev:watch:lint', function() {
 gulp.task('dev:watch:pug:templates', function() {
   return watchSrc(src.templates, function(file) {
     return watchTaskBuilder(file, 'client')
-      .pipe(logFactory('dev', 'pug', 'html'))
+      .pipe(logFactory('build/development', 'pug', 'html'))
       .add(pipeCompilePug)
       .add(pipeDevFiles)
       .end();
@@ -181,9 +181,9 @@ gulp.task('dev:watch:pug:templates', function() {
 gulp.task('dev:watch:pug:index', function() {
   return watchSrc(src.index, function(file) {
     return watchTaskBuilder(file, 'client')
-      .pipe(logFactory('dev', 'pug', 'html'))
+      .pipe(logFactory('build/development', 'pug', 'html'))
       .add(pipeCompilePug)
-      .add(pipeAutoInjectFactory('dev'))
+      .add(pipeAutoInjectFactory('build/development'))
       .add(pipeDevFiles)
       .end();
   });
@@ -330,6 +330,7 @@ function pipeCompilePug(src) {
 
   return src
     .pipe(pug({
+      locals: config,
       pretty: config.env != 'production'
     }))
     .on('error', util.log);

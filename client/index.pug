@@ -5,7 +5,13 @@ html
     // inject:css
     // endinject
   body
-    h1 BioSentiers
-    p Welcome to BioSentiers
+    .navbar.navbar-default.navbar-fixed-top
+      .container
+        .navbar-header
+          a.navbar-brand(href='#') BioSentiers
+    .container
+      p Welcome to BioSentiers
     // inject:js
     // endinject
+    if liveReloadUrl
+      script(src=liveReloadUrl)
