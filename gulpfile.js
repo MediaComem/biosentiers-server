@@ -9,6 +9,7 @@ var _ = require('lodash'),
     getFolderSize = require('get-folder-size'),
     gulp = require('gulp'),
     inject = require('gulp-inject'),
+    jshint = require('gulp-jshint'),
     livereload = require('gulp-livereload'),
     nodemon = require('gulp-nodemon'),
     path = require('path'),
@@ -45,7 +46,8 @@ var src = {
   templates: { files: [ '*/**/*.pug' ], cwd: 'client' },
   favicon: { files: 'client/favicon.ico' },
   styl: { files: '**/*.styl', cwd: 'client' },
-  prodJs: { files: assetsListFactory('js', files.js) }
+  js: { files: assetsListFactory('js', files.js) },
+  allCustomJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js' ].concat(files.js) }
 };
 
 var injections = {
@@ -83,13 +85,19 @@ gulp.task('clean', [ 'clean:dev', 'clean:prod', 'clean:tmp' ]);
 // -----------------
 
 gulp.task('dev:copy:favicon', function() {
-  return task(src.favicon)
+  return taskBuilder(src.favicon)
     .pipe(logFactory('build/development'))
     .add(pipeDevFiles)
     .end();
 });
 
 gulp.task('dev:copy', [ 'dev:copy:favicon' ]);
+
+gulp.task('dev:lint', function() {
+  return taskBuilder(src.allCustomJs)
+    .add(pipeLint)
+    .end();
+});
 
 gulp.task('dev:nodemon', function() {
   livereload.listen();
@@ -113,7 +121,7 @@ gulp.task('dev:nodemon', function() {
 });
 
 gulp.task('dev:pug:templates', function() {
-  return task(src.templates)
+  return taskBuilder(src.templates)
     .pipe(logFactory('build/development', 'pug', 'html'))
     .add(pipeCompilePug)
     .add(pipeDevFiles)
@@ -121,7 +129,7 @@ gulp.task('dev:pug:templates', function() {
 });
 
 gulp.task('dev:pug:index', function() {
-  return task(src.index)
+  return taskBuilder(src.index)
     .pipe(logFactory('build/development', 'pug', 'html'))
     .add(pipeCompilePug)
     .add(pipeAutoInjectFactory('build/development'))
@@ -132,7 +140,7 @@ gulp.task('dev:pug:index', function() {
 gulp.task('dev:pug', [ 'dev:pug:templates', 'dev:pug:index' ]);
 
 gulp.task('dev:stylus', function() {
-  return task(src.styl)
+  return taskBuilder(src.styl)
     .pipe(logFactory('build/development/assets', 'styl', 'css'))
     .add(pipeCompileStylus)
     .add(pipeDevAssets)
@@ -144,16 +152,25 @@ gulp.task('dev:compile', sequence('clean:dev', [ 'dev:copy', 'dev:pug:templates'
 gulp.task('dev:watch:assets', function() {
   return watchSrc(src.assets, function(file) {
     clearAssetsCache();
-    return task(src.compiledIndex)
+    return taskBuilder(src.compiledIndex)
       .add(pipeAutoInjectFactory('build/development'))
       .add(pipeDevFiles)
       .end();
   });
 });
 
+gulp.task('dev:watch:lint', function() {
+  return watchSrc(src.allCustomJs, function(file) {
+    return taskBuilder(file.path)
+      .add(pipeLint)
+      .on('error', _.noop)
+      .end();
+  });
+});
+
 gulp.task('dev:watch:pug:templates', function() {
   return watchSrc(src.templates, function(file) {
-    return watchTask(file, 'client')
+    return watchTaskBuilder(file, 'client')
       .pipe(logFactory('dev', 'pug', 'html'))
       .add(pipeCompilePug)
       .add(pipeDevFiles)
@@ -163,7 +180,7 @@ gulp.task('dev:watch:pug:templates', function() {
 
 gulp.task('dev:watch:pug:index', function() {
   return watchSrc(src.index, function(file) {
-    return watchTask(file, 'client')
+    return watchTaskBuilder(file, 'client')
       .pipe(logFactory('dev', 'pug', 'html'))
       .add(pipeCompilePug)
       .add(pipeAutoInjectFactory('dev'))
@@ -174,7 +191,7 @@ gulp.task('dev:watch:pug:index', function() {
 
 gulp.task('dev:watch:stylus', function() {
   return watchSrc(src.styl, function(file) {
-    return watchTask(file, 'client')
+    return watchTaskBuilder(file, 'client')
       .pipe(logFactory('build/development/assets', 'styl', 'css'))
       .add(pipeCompileStylus)
       .add(pipeDevAssets)
@@ -182,7 +199,7 @@ gulp.task('dev:watch:stylus', function() {
   });
 });
 
-gulp.task('dev:watch', [ 'dev:watch:assets', 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
+gulp.task('dev:watch', [ 'dev:watch:assets', 'dev:watch:lint', 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
 
 gulp.task('dev', sequence('clean:dev', 'dev:compile', [ 'dev:nodemon', 'dev:watch' ]));
 
@@ -196,7 +213,7 @@ gulp.task('prod:env', function() {
 });
 
 gulp.task('prod:css', function() {
-  return task(src.styl)
+  return taskBuilder(src.styl)
     .add(pipeCompileStylus)
     .pipe(addSrc.prepend(getAssets('css')))
     .pipe(concat('app.css'))
@@ -207,7 +224,7 @@ gulp.task('prod:css', function() {
 });
 
 gulp.task('prod:js', function() {
-  return task(src.prodJs)
+  return taskBuilder(src.js)
     .pipe(concat('app.js'))
     .pipe(storeProdInitialSizeFactory('js'))
     .pipe(uglify())
@@ -216,7 +233,7 @@ gulp.task('prod:js', function() {
 });
 
 gulp.task('prod:index', function() {
-  return task(src.index)
+  return taskBuilder(src.index)
     .add(pipeCompilePug)
     .add(pipeAutoInjectFactory('build/production'))
     .pipe(storeProdInitialSizeFactory('html'))
@@ -226,7 +243,7 @@ gulp.task('prod:index', function() {
 });
 
 gulp.task('prod:favicon', function() {
-  return task(src.favicon)
+  return taskBuilder(src.favicon)
     .add(pipeProdFiles)
     .end();
 });
@@ -255,14 +272,14 @@ gulp.task('default', [ 'dev' ]);
 function pipeAutoInjectFactory(dest) {
   return function(src) {
 
-    var config = getConfig()
+    var config = getConfig();
 
     function autoInject(files) {
       var actualFiles = _.isFunction(files) ? files() : files;
       return inject(gulp.src(actualFiles, { read: false }), { ignorePath: dest });
     }
 
-    return task(src)
+    return taskBuilder(src)
       .pipe(autoInject(injections[config.env].js))
       .pipe(autoInject(injections[config.env].css))
       .end();
@@ -273,6 +290,13 @@ function pipeCompileStylus(src) {
   return src
     .pipe(stylus())
     .pipe(autoPrefixer());
+}
+
+function pipeLint(src) {
+  return src
+    .pipe(jshint())
+    .pipe(jshint.reporter('jshint-stylish'))
+    .pipe(jshint.reporter('fail'));
 }
 
 function pipeDevFiles(src, dir) {
@@ -361,7 +385,7 @@ function logFactory(to, fromExt, toExt, from) {
         toPath = path.join(to, relativePath);
 
     if (fromExt && toExt) {
-      toPath = toPath.replace(new RegExp('\\.' + fromExt + '$'), '.' + toExt)
+      toPath = toPath.replace(new RegExp('\\.' + fromExt + '$'), '.' + toExt);
     }
 
     util.log(util.colors.cyan(fromPath) + ' -> ' + util.colors.cyan(toPath));
@@ -416,7 +440,7 @@ function getSrcOptions(src) {
   return _.pick(src, 'base', 'cwd');
 }
 
-function task(src) {
+function taskBuilder(src) {
   return new TaskBuilder(src);
 }
 
@@ -440,6 +464,12 @@ TaskBuilder.prototype.pipe = function(func) {
   return this;
 };
 
+TaskBuilder.prototype.on = function() {
+  var args = Array.prototype.slice.call(arguments);
+  this.src = this.src.on.apply(this.src, args);
+  return this;
+};
+
 TaskBuilder.prototype.end = function() {
   return this.src;
 };
@@ -448,6 +478,6 @@ function watchSrc(src, callback) {
   return watch(src.files, getSrcOptions(src), callback);
 }
 
-function watchTask(file, base) {
-  return task({ files: file.path, base: base });
+function watchTaskBuilder(file, base) {
+  return taskBuilder({ files: file.path, base: base });
 }
