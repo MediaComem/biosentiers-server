@@ -18,6 +18,8 @@ var _ = require('lodash'),
     rev = require('gulp-rev'),
     removeHtmlComments = require('gulp-remove-html-comments'),
     runSequence = require('run-sequence'),
+    sort = require('gulp-sort'),
+    stable = require('stable'),
     stylus = require('gulp-stylus'),
     through = require('through2'),
     uglify = require('gulp-uglify'),
@@ -275,8 +277,16 @@ function pipeAutoInjectFactory(dest) {
     var config = getConfig();
 
     function autoInject(files) {
+
       var actualFiles = _.isFunction(files) ? files() : files;
-      return inject(gulp.src(actualFiles, { read: false }), { ignorePath: dest });
+
+      var sources = gulp.src(actualFiles, { read: false });/*.pipe(sort({
+        customSortFn: function(files) {
+          return stable(files, compareAngularFiles);
+        }
+      }));*/
+
+      return inject(sources, { ignorePath: dest });
     }
 
     return taskBuilder(src)
@@ -481,4 +491,46 @@ function watchSrc(src, callback) {
 
 function watchTaskBuilder(file, base) {
   return taskBuilder({ files: file.path, base: base });
+}
+
+/**
+ * Compares JavaScript files so that `.module.js` files appear first in a directory.
+ */
+function compareAngularFiles(f1, f2) {
+
+  // Perform a standard comparison if one or both files are not JavaScript.
+  if (!isJs(f1) || !isJs(f2)) {
+    return f1.path.localeCompare(f2.path);
+  }
+
+  var f1Dir = path.dirname(f1.path),
+      f1Module = isAngularModule(f1),
+      f2Dir = path.dirname(f2.path),
+      f2Module = isAngularModule(f2);
+
+  if (f1Dir.indexOf(f2Dir + path.sep) === 0) {
+    // If f1 is in a subdirectory of f2's directory, place f1 last.
+    return 1;
+  } else if (f2Dir.indexOf(f1Dir + path.sep) === 0) {
+    // If f2 is in a subdirectory of f1's directory, place f1 first.
+    return -1;
+  } else if (f1Dir != f2Dir || f1Module == f2Module) {
+    // Perform a standard comparison if the files are not in the same directory,
+    // if both are Angular modules, or if both are not Angular modules.
+    return f1.path.localeCompare(f2.path);
+  } else if (f1Module) {
+    // If f1 is an Angular module and f2 is not, place f1 first.
+    return -1;
+  } else {
+    // If f1 is not an Angular module and f2 is, place f1 last.
+    return 1;
+  }
+}
+
+function isJs(file) {
+  return !!file.path.match(/\.js$/);
+}
+
+function isAngularModule(file) {
+  return !!file.path.match(/\.module\.js$/);
 }
