@@ -21,7 +21,8 @@ var _ = require('lodash'),
     through = require('through2'),
     uglify = require('gulp-uglify'),
     util = require('gulp-util'),
-    watch = require('gulp-watch');
+    watch = require('gulp-watch'),
+    yaml = require('js-yaml');
 
 var PluginError = util.PluginError;
 
@@ -30,52 +31,44 @@ var PluginError = util.PluginError;
 
 var files = {
   js: [
-    'node_modules/lodash/lodash.js'
-  ],
-  devJs: [
     'client/**/*.js'
   ],
-  prodJs: [
-    'tmp/production/assets/bundle.js'
-  ],
   css: [
-    'node_modules/bootstrap/dist/css/bootstrap.css',
-    'node_modules/bootstrap/dist/css/bootstrap-theme.css'
-  ],
-  devCss: [
     'build/development/assets/**/*.css'
   ]
 };
 
 var src = {
+  assets: { files: 'assets.yml', cwd: 'client' },
   index: { files: 'index.pug', cwd: 'client' },
+  compiledIndex: { files: 'index.html', cwd: 'build/development' },
   templates: { files: [ '*/**/*.pug' ], cwd: 'client' },
   favicon: { files: 'client/favicon.ico' },
   styl: { files: '**/*.styl', cwd: 'client' },
-  prodJs: { files: [].concat(files.js).concat(files.prodJs) }
+  prodJs: { files: assetsListFactory('js', files.js) }
 };
 
 var injections = {
   development: {
-    js: [].concat(files.js).concat(files.devJs),
-    css: [].concat(files.css).concat(files.devCss)
+    js: assetsListFactory('js', files.js),
+    css: assetsListFactory('css', files.css)
   },
   production: {
-    js: [ 'dist/assets/**/*.js' ],
-    css: [ 'dist/assets/**/*.css' ]
+    js: [ 'build/production/assets/**/*.js' ],
+    css: [ 'build/production/assets/**/*.css' ]
   }
 };
 
 // Cleanup Tasks
 // -------------
 
-gulp.task('clean:dist', function() {
-  return gulp.src('dist/*', { read: false })
+gulp.task('clean:dev', function() {
+  return gulp.src('build/development/*', { read: false })
     .pipe(clean());
 });
 
-gulp.task('clean:dev', function() {
-  return gulp.src('build/development/*', { read: false })
+gulp.task('clean:prod', function() {
+  return gulp.src('build/production/*', { read: false })
     .pipe(clean());
 });
 
@@ -84,7 +77,7 @@ gulp.task('clean:tmp', function() {
     .pipe(clean());
 });
 
-gulp.task('clean', [ 'clean:dist', 'clean:dev', 'clean:tmp' ]);
+gulp.task('clean', [ 'clean:dev', 'clean:prod', 'clean:tmp' ]);
 
 // Development Tasks
 // -----------------
@@ -148,6 +141,16 @@ gulp.task('dev:stylus', function() {
 
 gulp.task('dev:compile', sequence('clean:dev', [ 'dev:copy', 'dev:pug:templates', 'dev:stylus' ], 'dev:pug:index'));
 
+gulp.task('dev:watch:assets', function() {
+  return watchSrc(src.assets, function(file) {
+    clearAssetsCache();
+    return task(src.compiledIndex)
+      .add(pipeAutoInjectFactory('build/development'))
+      .add(pipeDevFiles)
+      .end();
+  });
+});
+
 gulp.task('dev:watch:pug:templates', function() {
   return watchSrc(src.templates, function(file) {
     return watchTask(file, 'client')
@@ -179,67 +182,67 @@ gulp.task('dev:watch:stylus', function() {
   });
 });
 
-gulp.task('dev:watch', [ 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
+gulp.task('dev:watch', [ 'dev:watch:assets', 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
 
 gulp.task('dev', sequence('clean:dev', 'dev:compile', [ 'dev:nodemon', 'dev:watch' ]));
 
 // Production Tasks
 // ----------------
 
-gulp.task('env:prod', function() {
+gulp.task('prod:env', function() {
   env.set({
     NODE_ENV: 'production'
   });
 });
 
-gulp.task('dist:css', function() {
+gulp.task('prod:css', function() {
   return task(src.styl)
     .add(pipeCompileStylus)
-    .pipe(addSrc.prepend(files.css))
+    .pipe(addSrc.prepend(getAssets('css')))
     .pipe(concat('app.css'))
-    .pipe(storeDistInitialSizeFactory('css'))
+    .pipe(storeProdInitialSizeFactory('css'))
     .pipe(cssmin())
     .add(pipeProdAssets)
     .end();
 });
 
-gulp.task('dist:js', [ 'webpack' ], function() {
+gulp.task('prod:js', function() {
   return task(src.prodJs)
     .pipe(concat('app.js'))
-    .pipe(storeDistInitialSizeFactory('js'))
+    .pipe(storeProdInitialSizeFactory('js'))
     .pipe(uglify())
     .add(pipeProdAssets)
     .end();
 });
 
-gulp.task('dist:index', function() {
+gulp.task('prod:index', function() {
   return task(src.index)
     .add(pipeCompilePug)
-    .add(pipeAutoInjectFactory('dist'))
-    .pipe(storeDistInitialSizeFactory('html'))
+    .add(pipeAutoInjectFactory('build/production'))
+    .pipe(storeProdInitialSizeFactory('html'))
     .pipe(removeHtmlComments())
     .add(pipeProdFiles)
     .end();
 });
 
-gulp.task('dist:favicon', function() {
+gulp.task('prod:favicon', function() {
   return task(src.favicon)
     .add(pipeProdFiles)
     .end();
 });
 
-gulp.task('dist:size', function(callback) {
-  getFolderSize('dist', function(err, size) {
+gulp.task('prod:size', function(callback) {
+  getFolderSize('build/production', function(err, size) {
     if (err) {
       return callback(err);
     }
 
-    util.log(util.colors.blue('dist - ' + prettyBytes(size)));
+    util.log(util.colors.blue('prod - ' + prettyBytes(size)));
     callback();
   });
 });
 
-gulp.task('dist', sequence('env:prod', [ 'clean:dist', 'clean:tmp' ], [ 'dist:css', 'dist:favicon', 'dist:js' ], 'dist:index', 'dist:size'));
+gulp.task('prod', sequence('prod:env', [ 'clean:prod', 'clean:tmp' ], [ 'prod:css', 'prod:favicon', 'prod:js' ], 'prod:index', 'prod:size'));
 
 // Default Task
 // ------------
@@ -255,7 +258,8 @@ function pipeAutoInjectFactory(dest) {
     var config = getConfig()
 
     function autoInject(files) {
-      return inject(gulp.src(files, { read: false }), { ignorePath: dest });
+      var actualFiles = _.isFunction(files) ? files() : files;
+      return inject(gulp.src(actualFiles, { read: false }), { ignorePath: dest });
     }
 
     return task(src)
@@ -285,20 +289,25 @@ function pipeDevAssets(src) {
 
 function pipeProdFiles(src) {
   return src
-    .pipe(gulp.dest('dist'))
-    .pipe(logDistFactory());
+    .pipe(gulp.dest('build/production'))
+    .pipe(logProdFactory());
 }
 
 function pipeProdAssets(src) {
   return src
     .pipe(rev())
-    .pipe(gulp.dest('dist/assets'))
-    .pipe(logDistFactory());
+    .pipe(gulp.dest('build/production/assets'))
+    .pipe(logProdFactory());
 }
 
 function pipeCompilePug(src) {
+
+  var config = getConfig();
+
   return src
-    .pipe(pug({}))
+    .pipe(pug({
+      pretty: config.env != 'production'
+    }))
     .on('error', util.log);
 }
 
@@ -312,6 +321,32 @@ function getConfig() {
   }
 
   return _config;
+}
+
+var _assets;
+function getAssets(type) {
+  if (!_assets) {
+    var config = getConfig();
+    _assets = yaml.safeLoad(fs.readFileSync('client/assets.yml', 'utf-8'));
+  }
+
+  return type ? _assets[type] : _assets;
+}
+
+function clearAssetsCache() {
+  _assets = null;
+}
+
+function assetsList(type) {
+  var additionalFiles = Array.prototype.slice.call(arguments, 1);
+  return [].concat(getAssets(type)).concat(_.flatten(additionalFiles));
+}
+
+function assetsListFactory(type) {
+  var additionalFiles = _.flatten(Array.prototype.slice.call(arguments, 1));
+  return function() {
+    return assetsList(type, additionalFiles);
+  };
 }
 
 function logFactory(to, fromExt, toExt, from) {
@@ -337,7 +372,7 @@ function logFactory(to, fromExt, toExt, from) {
 
 var sizes = {};
 
-function storeDistInitialSizeFactory(name) {
+function storeProdInitialSizeFactory(name) {
   sizes[name] = 0;
 
   return through.obj(function(file, enc, callback) {
@@ -346,11 +381,11 @@ function storeDistInitialSizeFactory(name) {
   });
 }
 
-function logDistFactory(name) {
+function logProdFactory(name) {
   return through.obj(function(file, enc, callback) {
 
-    var relativePath = path.relative('dist', file.path),
-        toPath = path.join('dist', relativePath);
+    var relativePath = path.relative('build/production', file.path),
+        toPath = path.join('build/production', relativePath);
 
     var size = prettyBytes(file.contents.length);
 
@@ -373,7 +408,8 @@ function sequence() {
 }
 
 function gulpifySrc(src) {
-  return gulp.src(src.files, getSrcOptions(src));
+  var files = _.isFunction(src.files) ? src.files() : src.files;
+  return gulp.src(files, getSrcOptions(src));
 }
 
 function getSrcOptions(src) {

@@ -1,0 +1,5 @@
+js:
+  - node_modules/lodash/lodash.js
+css:
+  - node_modules/bootstrap/dist/css/bootstrap.css
+  - node_modules/bootstrap/dist/css/bootstrap-theme.css
