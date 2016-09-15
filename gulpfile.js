@@ -12,6 +12,7 @@ var _ = require('lodash'),
     jshint = require('gulp-jshint'),
     livereload = require('gulp-livereload'),
     nodemon = require('gulp-nodemon'),
+    open = require('gulp-open'),
     path = require('path'),
     prettyBytes = require('pretty-bytes'),
     pug = require('gulp-pug'),
@@ -48,18 +49,19 @@ var src = {
   templates: { files: [ '*/**/*.pug' ], cwd: 'client' },
   favicon: { files: 'client/favicon.ico' },
   styl: { files: '**/*.styl', cwd: 'client' },
-  js: { files: assetsListFactory('js', files.js) },
-  allCustomJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js' ].concat(files.js) }
+  js: assetsSrcFactory('js', { files: files.js, compare: compareAngularFiles }),
+  allCustomJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js' ].concat(files.js) },
+  css: assetsSrcFactory('css', files.css)
 };
 
 var injections = {
   development: {
-    js: assetsListFactory('js', files.js),
-    css: assetsListFactory('css', files.css)
+    js: src.js,
+    css: src.css
   },
   production: {
-    js: [ 'build/production/assets/**/*.js' ],
-    css: [ 'build/production/assets/**/*.css' ]
+    js: { files: [ 'build/production/assets/**/*.js' ] },
+    css: { files: [ 'build/production/assets/**/*.css' ] }
   }
 };
 
@@ -95,6 +97,18 @@ gulp.task('dev:copy:favicon', function() {
 
 gulp.task('dev:copy', [ 'dev:copy:favicon' ]);
 
+gulp.task('dev:env', function() {
+
+  var localEnv;
+  try {
+    localEnv = require('./config/local.env');
+  } catch (err) {
+    localEnv = {};
+  }
+
+  env.set(localEnv);
+});
+
 gulp.task('dev:lint', function() {
   return taskBuilder(src.allCustomJs)
     .add(pipeLint)
@@ -120,6 +134,25 @@ gulp.task('dev:nodemon', function() {
     this.stdout.pipe(process.stdout);
     this.stderr.pipe(process.stderr);
   });
+});
+
+gulp.task('dev:open', function() {
+
+  var config = getConfig();
+  if (!config.open) {
+    return;
+  }
+
+  var openOptions = {
+    uri: config.url
+  };
+
+  if (config.openBrowser) {
+    openOptions.app = config.openBrowser;
+  }
+
+  return gulp.src(__filename)
+    .pipe(open(openOptions));
 });
 
 gulp.task('dev:pug:templates', function() {
@@ -203,7 +236,7 @@ gulp.task('dev:watch:stylus', function() {
 
 gulp.task('dev:watch', [ 'dev:watch:assets', 'dev:watch:lint', 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
 
-gulp.task('dev', sequence('clean:dev', 'dev:compile', [ 'dev:nodemon', 'dev:watch' ]));
+gulp.task('dev', sequence('dev:env', 'clean:dev', 'dev:compile', [ 'dev:nodemon', 'dev:watch', 'dev:open' ]));
 
 // Production Tasks
 // ----------------
@@ -256,7 +289,7 @@ gulp.task('prod:size', function(callback) {
       return callback(err);
     }
 
-    util.log(util.colors.blue('prod - ' + prettyBytes(size)));
+    util.log(util.colors.blue('build/production - ' + prettyBytes(size)));
     callback();
   });
 });
@@ -277,16 +310,7 @@ function pipeAutoInjectFactory(dest) {
     var config = getConfig();
 
     function autoInject(files) {
-
-      var actualFiles = _.isFunction(files) ? files() : files;
-
-      var sources = gulp.src(actualFiles, { read: false });/*.pipe(sort({
-        customSortFn: function(files) {
-          return stable(files, compareAngularFiles);
-        }
-      }));*/
-
-      return inject(sources, { ignorePath: dest });
+      return inject(gulpifySrc(files, { read: false }), { ignorePath: dest });
     }
 
     return taskBuilder(src)
@@ -372,15 +396,10 @@ function clearAssetsCache() {
   _assets = null;
 }
 
-function assetsList(type) {
-  var additionalFiles = Array.prototype.slice.call(arguments, 1);
-  return [].concat(getAssets(type)).concat(_.flatten(additionalFiles));
-}
-
-function assetsListFactory(type) {
-  var additionalFiles = _.flatten(Array.prototype.slice.call(arguments, 1));
-  return function() {
-    return assetsList(type, additionalFiles);
+function assetsSrcFactory(type, src, options) {
+  return function(additionalOptions) {
+    return gulpifySrc(src, _.extend({}, src, options, additionalOptions))
+      .pipe(addSrc.prepend(getAssets(type)));
   };
 }
 
@@ -442,9 +461,34 @@ function sequence() {
   };
 }
 
-function gulpifySrc(src) {
-  var files = _.isFunction(src.files) ? src.files() : src.files;
-  return gulp.src(files, getSrcOptions(src));
+function gulpifySrc(src, options) {
+  if (_.isFunction(src)) {
+    return src(options);
+  }
+
+  var files;
+  if (_.isString(src) || _.isArray(src)) {
+    files = src;
+  } else if (_.isFunction(src)) {
+    files = src();
+  } else if (_.has(src, 'files')) {
+    files = src.files;
+  } else {
+    throw new Error('Source of type ' + typeof(src) + ' cannot be gulpified');
+  }
+
+  var gulpOptions = _.extend({}, src, options),
+      gulpSrc = gulp.src(files, getSrcOptions(gulpOptions));
+
+  if (_.isFunction(gulpOptions.compare)) {
+    gulpSrc = gulpSrc.pipe(sort({
+      customSortFn: function(files) {
+        return stable(files, gulpOptions.compare);
+      }
+    }));
+  }
+
+  return gulpSrc;
 }
 
 function getSrcOptions(src) {
@@ -456,12 +500,10 @@ function taskBuilder(src) {
 }
 
 function TaskBuilder(src) {
-  if (typeof(src.pipe) == 'function') {
+  if (_.isFunction(src.pipe)) {
     this.src = src;
-  } else if (src.files) {
-    this.src = gulpifySrc(src);
   } else {
-    this.src = gulp.src(src);
+    this.src = gulpifySrc(src);
   }
 }
 
