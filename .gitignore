@@ -1,4 +1,5 @@
 /*.log
 /.screenrc
 /build
+/config/local.env.js
 /node_modules
