@@ -43,15 +43,21 @@ var files = {
 };
 
 var src = {
-  assets: { files: 'assets.yml', cwd: 'client' },
+  // Dependencies manifest.
+  dependencies: { files: 'dependencies.yml', cwd: 'client' },
+  // Pug templates.
   index: { files: 'index.pug', cwd: 'client' },
   compiledIndex: { files: 'index.html', cwd: 'build/development' },
   templates: { files: [ '*/**/*.pug' ], cwd: 'client' },
+  // Favicon.
   favicon: { files: 'client/favicon.ico' },
+  // Stylus files to compile to CSS.
   styl: { files: '**/*.styl', cwd: 'client' },
-  js: assetsSrcFactory('js', { files: files.js, compare: compareAngularFiles }),
-  allCustomJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js' ].concat(files.js) },
-  css: assetsSrcFactory('css', files.css)
+  // Client assets.
+  js: assetsWithDependenciesFactory('js', { files: files.js, compare: compareAngularFiles }),
+  css: assetsWithDependenciesFactory('css', files.css),
+  // JavaScript to check with JSHint.
+  lintJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js' ].concat(files.js) }
 };
 
 var injections = {
@@ -110,7 +116,7 @@ gulp.task('dev:env', function() {
 });
 
 gulp.task('dev:lint', function() {
-  return taskBuilder(src.allCustomJs)
+  return taskBuilder(src.lintJs)
     .add(pipeLint)
     .end();
 });
@@ -184,9 +190,9 @@ gulp.task('dev:stylus', function() {
 
 gulp.task('dev:compile', sequence('clean:dev', [ 'dev:copy', 'dev:pug:templates', 'dev:stylus' ], 'dev:pug:index'));
 
-gulp.task('dev:watch:assets', function() {
-  return watchSrc(src.assets, function(file) {
-    clearAssetsCache();
+gulp.task('dev:watch:dependencies', function() {
+  return watchSrc(src.dependencies, function(file) {
+    clearDependenciesCache();
     return taskBuilder(src.compiledIndex)
       .add(pipeAutoInjectFactory('build/development'))
       .add(pipeDevFiles)
@@ -195,7 +201,7 @@ gulp.task('dev:watch:assets', function() {
 });
 
 gulp.task('dev:watch:lint', function() {
-  return watchSrc(src.allCustomJs, function(file) {
+  return watchSrc(src.lintJs, function(file) {
     return taskBuilder(file.path)
       .add(pipeLint)
       .on('error', _.noop)
@@ -234,7 +240,7 @@ gulp.task('dev:watch:stylus', function() {
   });
 });
 
-gulp.task('dev:watch', [ 'dev:watch:assets', 'dev:watch:lint', 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
+gulp.task('dev:watch', [ 'dev:watch:dependencies', 'dev:watch:lint', 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
 
 gulp.task('dev', sequence('dev:env', 'clean:dev', 'dev:compile', [ 'dev:nodemon', 'dev:watch', 'dev:open' ]));
 
@@ -250,7 +256,7 @@ gulp.task('prod:env', function() {
 gulp.task('prod:css', function() {
   return taskBuilder(src.styl)
     .add(pipeCompileStylus)
-    .pipe(addSrc.prepend(getAssets('css')))
+    .pipe(addSrc.prepend(getDependencies('css')))
     .pipe(concat('app.css'))
     .pipe(storeProdInitialSizeFactory('css'))
     .pipe(cssmin())
@@ -382,24 +388,24 @@ function getConfig() {
   return _config;
 }
 
-var _assets;
-function getAssets(type) {
-  if (!_assets) {
+var _dependencies;
+function getDependencies(type) {
+  if (!_dependencies) {
     var config = getConfig();
-    _assets = yaml.safeLoad(fs.readFileSync('client/assets.yml', 'utf-8'));
+    _dependencies = yaml.safeLoad(fs.readFileSync('client/dependencies.yml', 'utf-8'));
   }
 
-  return type ? _assets[type] : _assets;
+  return type ? _dependencies[type] : _dependencies;
 }
 
-function clearAssetsCache() {
-  _assets = null;
+function clearDependenciesCache() {
+  _dependencies = null;
 }
 
-function assetsSrcFactory(type, src, options) {
+function assetsWithDependenciesFactory(type, src, options) {
   return function(additionalOptions) {
     return gulpifySrc(src, _.extend({}, src, options, additionalOptions))
-      .pipe(addSrc.prepend(getAssets(type)));
+      .pipe(addSrc.prepend(getDependencies(type)));
   };
 }
 
