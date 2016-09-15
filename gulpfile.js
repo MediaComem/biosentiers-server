@@ -5,22 +5,30 @@ var _ = require('lodash'),
     concat = require('gulp-concat'),
     cssmin = require('gulp-cssmin'),
     env = require('gulp-env'),
+    filter = require('gulp-filter'),
     fs = require('fs'),
     getFolderSize = require('get-folder-size'),
     gulp = require('gulp'),
+    handlebars = require('gulp-compile-handlebars'),
     inject = require('gulp-inject'),
     jshint = require('gulp-jshint'),
+    less = require('gulp-less'),
     livereload = require('gulp-livereload'),
+    merge = require('merge-stream'),
     nodemon = require('gulp-nodemon'),
     open = require('gulp-open'),
     path = require('path'),
     prettyBytes = require('pretty-bytes'),
     pug = require('gulp-pug'),
     rev = require('gulp-rev'),
+    revDeleteOriginal = require('gulp-rev-delete-original'),
+    revReplace = require('gulp-rev-replace'),
     removeHtmlComments = require('gulp-remove-html-comments'),
+    run = require('gulp-run'),
     runSequence = require('run-sequence'),
     sort = require('gulp-sort'),
     stable = require('stable'),
+    streamQueue = require('streamqueue'),
     stylus = require('gulp-stylus'),
     through = require('through2'),
     uglify = require('gulp-uglify'),
@@ -34,12 +42,8 @@ var PluginError = util.PluginError;
 // -------------
 
 var files = {
-  js: [
-    'client/**/*.js'
-  ],
-  css: [
-    'build/development/assets/**/*.css'
-  ]
+  js: 'client/**/*.js',
+  css: 'build/development/assets/**/*.css'
 };
 
 var src = {
@@ -51,13 +55,17 @@ var src = {
   templates: { files: [ '*/**/*.pug' ], cwd: 'client' },
   // Favicon.
   favicon: { files: 'client/favicon.ico' },
+  // Less files to compile to CSS.
+  less: { files: '**/*.less', cwd: 'client' },
   // Stylus files to compile to CSS.
   styl: { files: '**/*.styl', cwd: 'client' },
   // Client assets.
   js: assetsWithDependenciesFactory('js', { files: files.js, compare: compareAngularFiles }),
   css: assetsWithDependenciesFactory('css', files.css),
   // JavaScript to check with JSHint.
-  lintJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js' ].concat(files.js) }
+  lintJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js' ].concat(files.js) },
+  // Production build files.
+  prod: { files: '**/*', cwd: 'build/production' }
 };
 
 var injections = {
@@ -69,6 +77,10 @@ var injections = {
     js: { files: [ 'build/production/assets/**/*.js' ] },
     css: { files: [ 'build/production/assets/**/*.css' ] }
   }
+};
+
+var filters = {
+  rev: filter([ '**/*', '!index.html', '!favicon.ico' ], { restore: true })
 };
 
 // Cleanup Tasks
@@ -94,15 +106,6 @@ gulp.task('clean', [ 'clean:dev', 'clean:prod', 'clean:tmp' ]);
 // Development Tasks
 // -----------------
 
-gulp.task('dev:copy:favicon', function() {
-  return taskBuilder(src.favicon)
-    .pipe(logFactory('build/development'))
-    .add(pipeDevFiles)
-    .end();
-});
-
-gulp.task('dev:copy', [ 'dev:copy:favicon' ]);
-
 gulp.task('dev:env', function() {
 
   var localEnv;
@@ -115,31 +118,35 @@ gulp.task('dev:env', function() {
   env.set(localEnv);
 });
 
+gulp.task('dev:favicon', function() {
+  return taskBuilder(src.favicon)
+    .pipe(logFactory('build/development'))
+    .add(pipeDevFiles)
+    .end();
+});
+
+gulp.task('dev:fonts', function() {
+
+  var dependencies = getDependencies('fonts');
+
+  return taskBuilder(dependencies)
+    .pipe(logFactory('build/development/assets'))
+    .add(pipeDevAssetsFactory('fonts'))
+    .end();
+});
+
+gulp.task('dev:less', function() {
+  return taskBuilder(src.less)
+    .pipe(logFactory('build/development/assets', 'less', 'css'))
+    .add(pipeCompileLess)
+    .add(pipeDevAssets)
+    .end();
+});
+
 gulp.task('dev:lint', function() {
   return taskBuilder(src.lintJs)
     .add(pipeLint)
     .end();
-});
-
-gulp.task('dev:nodemon', function() {
-  livereload.listen();
-
-  return nodemon({
-    script: 'bin/www',
-    ext: 'js',
-    watch: [ 'bin/www', 'config/**/*.js', 'server/**/*.js' ],
-    ignore: [ '.git', 'client', 'node_modules' ],
-    stdout: false
-  }).on('readable', function() {
-    this.stdout.on('data', function(chunk) {
-      if (/^Express server listening on port/.test(chunk)) {
-        livereload.changed(__dirname);
-      }
-    });
-
-    this.stdout.pipe(process.stdout);
-    this.stderr.pipe(process.stderr);
-  });
 });
 
 gulp.task('dev:open', function() {
@@ -180,6 +187,27 @@ gulp.task('dev:pug:index', function() {
 
 gulp.task('dev:pug', [ 'dev:pug:templates', 'dev:pug:index' ]);
 
+gulp.task('dev:nodemon', function() {
+  livereload.listen();
+
+  return nodemon({
+    script: 'bin/www',
+    ext: 'js',
+    watch: [ 'bin/www', 'config/**/*.js', 'server/**/*.js' ],
+    ignore: [ '.git', 'client', 'node_modules' ],
+    stdout: false
+  }).on('readable', function() {
+    this.stdout.on('data', function(chunk) {
+      if (/^Express server listening on port/.test(chunk)) {
+        livereload.changed(__dirname);
+      }
+    });
+
+    this.stdout.pipe(process.stdout);
+    this.stderr.pipe(process.stderr);
+  });
+});
+
 gulp.task('dev:stylus', function() {
   return taskBuilder(src.styl)
     .pipe(logFactory('build/development/assets', 'styl', 'css'))
@@ -188,14 +216,22 @@ gulp.task('dev:stylus', function() {
     .end();
 });
 
-gulp.task('dev:compile', sequence('clean:dev', [ 'dev:copy', 'dev:pug:templates', 'dev:stylus' ], 'dev:pug:index'));
-
 gulp.task('dev:watch:dependencies', function() {
   return watchSrc(src.dependencies, function(file) {
     clearDependenciesCache();
     return taskBuilder(src.compiledIndex)
       .add(pipeAutoInjectFactory('build/development'))
       .add(pipeDevFiles)
+      .end();
+  });
+});
+
+gulp.task('dev:watch:less', function() {
+  return watchSrc(src.less, function(file) {
+    return watchTaskBuilder(file, 'client')
+      .pipe(logFactory('build/development/assets', 'less', 'css'))
+      .add(pipeCompileLess)
+      .add(pipeDevAssets)
       .end();
   });
 });
@@ -240,7 +276,9 @@ gulp.task('dev:watch:stylus', function() {
   });
 });
 
-gulp.task('dev:watch', [ 'dev:watch:dependencies', 'dev:watch:lint', 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
+gulp.task('dev:compile', sequence('clean:dev', [ 'dev:favicon', 'dev:fonts', 'dev:less', 'dev:pug:templates', 'dev:stylus' ], 'dev:pug:index'));
+
+gulp.task('dev:watch', [ 'dev:watch:dependencies', 'dev:watch:less', 'dev:watch:lint', 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
 
 gulp.task('dev', sequence('dev:env', 'clean:dev', 'dev:compile', [ 'dev:nodemon', 'dev:watch', 'dev:open' ]));
 
@@ -254,13 +292,31 @@ gulp.task('prod:env', function() {
 });
 
 gulp.task('prod:css', function() {
-  return taskBuilder(src.styl)
+
+  var lessSrc = taskBuilder(src.less)
+    .add(pipeCompileLess)
+    .end();
+
+  var stylusSrc = taskBuilder(src.styl)
     .add(pipeCompileStylus)
+    .end();
+
+  return taskBuilder(streamQueue({ objectMode: true }, lessSrc, stylusSrc))
     .pipe(addSrc.prepend(getDependencies('css')))
     .pipe(concat('app.css'))
     .pipe(storeProdInitialSizeFactory('css'))
     .pipe(cssmin())
     .add(pipeProdAssets)
+    .end();
+});
+
+gulp.task('prod:fonts', function() {
+
+  var dependencies = getDependencies('fonts');
+
+  return taskBuilder(dependencies)
+    .pipe(logFactory('build/production/assets/fonts'))
+    .add(pipeProdAssetsFactory('fonts'))
     .end();
 });
 
@@ -289,6 +345,46 @@ gulp.task('prod:favicon', function() {
     .end();
 });
 
+gulp.task('prod:nodemon', function() {
+  return nodemon({
+    script: 'bin/www',
+    ext: 'js',
+    watch: [ 'bin/www', 'config/**/*.js', 'server/**/*.js' ],
+    ignore: [ '.git', 'client', 'node_modules' ],
+    stdout: false
+  }).on('readable', function() {
+    this.stdout.pipe(process.stdout);
+    this.stderr.pipe(process.stderr);
+  });
+});
+
+gulp.task('prod:rev', function() {
+  return taskBuilder(src.prod)
+    .pipe(filters.rev)
+    .pipe(rev())
+    .pipe(filters.rev.restore)
+    .add(pipeProdFiles)
+    .pipe(revDeleteOriginal())
+    .pipe(rev.manifest())
+    .pipe(gulp.dest('tmp/production'))
+    .end();
+});
+
+gulp.task('prod:rev:replace', function() {
+  return taskBuilder(src.prod)
+    .pipe(revReplace({
+      manifest: gulp.src('tmp/production/rev-manifest.json'),
+      modifyUnreved: function(filename) {
+        return '/' + filename;
+      },
+      modifyReved: function(filename) {
+        return '/' + filename;
+      }
+    }))
+   .pipe(gulp.dest('build/production'))
+   .end();
+});
+
 gulp.task('prod:size', function(callback) {
   getFolderSize('build/production', function(err, size) {
     if (err) {
@@ -300,7 +396,9 @@ gulp.task('prod:size', function(callback) {
   });
 });
 
-gulp.task('prod', sequence('prod:env', [ 'clean:prod', 'clean:tmp' ], [ 'prod:css', 'prod:favicon', 'prod:js' ], 'prod:index', 'prod:size'));
+gulp.task('prod', sequence('prod:env', [ 'clean:prod', 'clean:tmp' ], [ 'prod:css', 'prod:fonts', 'prod:favicon', 'prod:js' ], 'prod:index', 'prod:rev', 'prod:rev:replace', 'prod:size'));
+
+gulp.task('prod:run', sequence('prod', 'prod:nodemon'));
 
 // Default Task
 // ------------
@@ -326,6 +424,13 @@ function pipeAutoInjectFactory(dest) {
   };
 }
 
+function pipeCompileLess(src) {
+  return src
+    .pipe(less({
+      paths: [ 'client', 'node_modules' ]
+    }));
+}
+
 function pipeCompileStylus(src) {
   return src
     .pipe(stylus())
@@ -339,29 +444,40 @@ function pipeLint(src) {
     .pipe(jshint.reporter('fail'));
 }
 
-function pipeDevFiles(src, dir) {
+function pipeDevFiles(src, dest) {
   return src
-    .pipe(gulp.dest('build/development'))
+    .pipe(gulp.dest(dest || 'build/development'))
     .pipe(livereload());
 }
 
-function pipeDevAssets(src) {
+function pipeDevAssets(src, dest) {
   return src
-    .pipe(gulp.dest('build/development/assets'))
+    .pipe(gulp.dest(dest || 'build/development/assets'))
     .pipe(livereload());
 }
 
-function pipeProdFiles(src) {
+function pipeDevAssetsFactory(dir, dest) {
+  return function(src) {
+    return pipeDevAssets(src, path.join(dest || 'build/development/assets', dir));
+  };
+}
+
+function pipeProdFiles(src, dest) {
   return src
-    .pipe(gulp.dest('build/production'))
+    .pipe(gulp.dest(dest || 'build/production'))
     .pipe(logProdFactory());
 }
 
-function pipeProdAssets(src) {
+function pipeProdAssets(src, dest) {
   return src
-    .pipe(rev())
-    .pipe(gulp.dest('build/production/assets'))
+    .pipe(gulp.dest(dest || 'build/production/assets'))
     .pipe(logProdFactory());
+}
+
+function pipeProdAssetsFactory(dir, dest) {
+  return function(src) {
+    return pipeProdAssets(src, path.join(dest || 'build/production/assets', dir));
+  };
 }
 
 function pipeCompilePug(src) {
@@ -409,15 +525,15 @@ function assetsWithDependenciesFactory(type, src, options) {
   };
 }
 
-function logFactory(to, fromExt, toExt, from) {
-  if (!from) {
-    from = 'client';
-  }
-
+function logFactory(to, fromExt, toExt) {
   return through.obj(function(file, enc, callback) {
 
-    var relativePath = path.relative(from, file.path),
-        fromPath = path.join(from, relativePath),
+    var config = getConfig();
+
+    var base = file.base,
+        relativeBase = path.relative(config.root, base),
+        relativePath = path.relative(base, file.path),
+        fromPath = path.join(relativeBase, relativePath),
         toPath = path.join(to, relativePath);
 
     if (fromExt && toExt) {
@@ -447,14 +563,16 @@ function logProdFactory(name) {
     var relativePath = path.relative('build/production', file.path),
         toPath = path.join('build/production', relativePath);
 
-    var size = prettyBytes(file.contents.length);
+    if (file.contents) {
+      var size = prettyBytes(file.contents.length);
 
-    var name = toPath.replace(/.*\./, '');
-    if (sizes[name]) {
-      size = prettyBytes(sizes[name]) + ' -> ' + size;
+      var name = toPath.replace(/.*\./, '');
+      if (sizes[name]) {
+        size = prettyBytes(sizes[name]) + ' -> ' + size;
+      }
+
+      util.log(util.colors.blue(toPath + ' - ' + size));
     }
-
-    util.log(util.colors.blue(toPath + ' - ' + size));
 
     callback(null, file);
   });

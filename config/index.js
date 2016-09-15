@@ -17,9 +17,9 @@ var fixed = {
 var base = {
   open: parseConfigBoolean(process.env.OPEN),
   openBrowser: process.env.OPEN_BROWSER,
-  protocol: process.env.PROTOCOL,
-  host: process.env.HOST,
-  port: parseConfigInt(process.env.PORT)
+  protocol: process.env.PROTOCOL || 'http',
+  host: process.env.HOST || 'localhost',
+  port: parseConfigInt(process.env.PORT) || 3000
 };
 
 var environment = require('./' + env)(_.merge({}, base, fixed));

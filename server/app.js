@@ -16,11 +16,19 @@ app.set('view engine', 'pug');
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(express.static(config.path('build', 'development')));
-app.use('/node_modules', express.static(config.path('node_modules')));
 
+var indexPath = config.path('build/development');
 function serveIndex(req, res) {
-  res.sendFile('index.html', { root: config.path('build/development') });
+  res.sendFile('index.html', { root: indexPath });
+}
+
+if (config.env != 'production') {
+  app.use(express.static(config.path('build', 'development')));
+  app.use('/client', express.static(config.path('client')));
+  app.use('/node_modules', express.static(config.path('node_modules')));
+} else {
+  indexPath = config.path('build/production');
+  app.use(express.static(config.path('build', 'production')));
 }
 
 var router = express.Router();
