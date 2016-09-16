@@ -1,5 +1,6 @@
 var _ = require('lodash'),
     addSrc = require('gulp-add-src'),
+    apidoc = require('gulp-apidocjs'),
     autoPrefixer = require('gulp-autoprefixer'),
     clean = require('gulp-clean'),
     concat = require('gulp-concat'),
@@ -107,6 +108,29 @@ gulp.task('clean', [ 'clean:dev', 'clean:prod' ]);
 
 // Generic Tasks
 // -------------
+
+/**
+ * Generates the API documentation of routes in `server/api` and saves it to `doc/api`.
+ */
+gulp.task('doc:api', function(callback) {
+  apidoc.exec({
+    src: 'server/api',
+    dest: 'doc/api',
+    debug: !!process.env.APIDOC_DEBUG
+  }, callback);
+});
+
+/**
+ * Opens the API documentation in the browser.
+ */
+gulp.task('doc:api:open', [ 'local:env' ], function() {
+  return gulpOpen('./doc/api/index.html')
+});
+
+/**
+ * Generates and opens the project's documentation.
+ */
+gulp.task('doc', sequence('doc:api', 'doc:api:open'));
 
 /**
  * Opens the URL of the running server in the browser.
@@ -712,6 +736,31 @@ function wrapTemplateFactory() {
 
     callback(null, file);
   });
+}
+
+function gulpOpen(target) {
+
+  var stream = gulp.src(__filename);
+
+  var config = getConfig();
+  if (!config.open) {
+    return stream;
+  }
+
+  var openOptions = {};
+  if (config.openBrowser) {
+    openOptions.app = config.openBrowser;
+  }
+
+  if (_.isString(target)) {
+    openOptions.uri = target;
+  } else if (_.isFunction(target.pipe)) {
+    stream = target;
+  } else {
+    throw new Error('Only a file stream or an URL can be opened');
+  }
+
+  return stream.pipe(open(openOptions));
 }
 
 /**
