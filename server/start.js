@@ -1,9 +1,11 @@
 var app = require('./app'),
     config = require('../config'),
-    debug = require('debug')('biosentiers:server'),
-    http = require('http');
+    http = require('http'),
+    log4js = require('log4js');
 
 module.exports = function() {
+
+  var logger = log4js.getLogger('start');
 
   // Get port from environment and store in Express.
   var port = normalizePort(config.port);
@@ -63,6 +65,6 @@ module.exports = function() {
     var addr = server.address();
     var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
 
-    debug('Listening on ' + bind);
+    logger.info('Listening on ' + bind);
   }
 };

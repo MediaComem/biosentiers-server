@@ -2,7 +2,7 @@ var bodyParser = require('body-parser'),
     config = require('../config'),
     express = require('express'),
     favicon = require('serve-favicon'),
-    logger = require('morgan'),
+    log4js = require('log4js'),
     path = require('path');
 
 var app = express();
@@ -11,24 +11,32 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
-// uncomment after placing your favicon in /public
-//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-
-var indexPath = config.path('build/development');
-function serveIndex(req, res) {
-  res.sendFile('index.html', { root: indexPath });
+var buildDir = config.path('build', 'development');
+if (config.env == 'production') {
+  buildDir = config.path('build', 'production');
 }
 
+app.use(favicon(path.join(buildDir, 'favicon.ico')));
+app.use(bodyParser.json());
+
+function serveIndex(req, res) {
+  res.sendFile('index.html', { root: buildDir });
+}
+
+var logger = config.logger('express'),
+    connectLogger = log4js.connectLogger(logger, {
+      level: log4js.levels.TRACE,
+      format: ':method :url :status :response-time ms'
+    });
+
+app.use(connectLogger);
+
 if (config.env != 'production') {
-  app.use(express.static(config.path('build', 'development')));
+  app.use(express.static(buildDir));
   app.use('/client', express.static(config.path('client')));
   app.use('/node_modules', express.static(config.path('node_modules')));
 } else {
-  indexPath = config.path('build/production');
-  app.use(express.static(config.path('build', 'production')));
+  app.use(express.static(buildDir));
 }
 
 var router = express.Router();

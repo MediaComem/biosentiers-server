@@ -1,4 +1,5 @@
 var _ = require('lodash'),
+    log4js = require('log4js'),
     path = require('path');
 
 var env = process.env.NODE_ENV || 'development',
@@ -15,6 +16,7 @@ var fixed = {
   root: root,
   version: pkg.version,
   mainAngularModule: 'bio',
+  logger: createLogger,
   path: joinPathSegments,
   parseBoolean: parseConfigBoolean,
   parseInt: parseConfigInt
@@ -25,7 +27,8 @@ var base = {
   openBrowser: process.env.OPEN_BROWSER,
   protocol: process.env.PROTOCOL || 'http',
   host: process.env.HOST || 'localhost',
-  port: parseConfigInt(process.env.PORT) || 3000
+  port: parseConfigInt(process.env.PORT) || 3000,
+  logLevel: process.env.LOG_LEVEL
 };
 
 var environment = require('./' + env)(_.merge({}, base, fixed));
@@ -38,6 +41,12 @@ if (config.port && config.port != 80 && config.port != 443) {
 }
 
 module.exports = config;
+
+function createLogger(name) {
+  var logger = log4js.getLogger(name);
+  logger.setLevel(config.logLevel);
+  return logger;
+}
 
 function joinPathSegments() {
   var parts = Array.prototype.slice.call(arguments);
