@@ -26,26 +26,28 @@ var _ = require('lodash'),
     revReplace = require('gulp-rev-replace'),
     removeHtmlComments = require('gulp-remove-html-comments'),
     run = require('gulp-run'),
-    runSequence = require('run-sequence'),
-    sort = require('gulp-sort'),
-    stable = require('stable'),
     streamQueue = require('streamqueue'),
     stylus = require('gulp-stylus'),
     through = require('through2'),
     uglify = require('gulp-uglify'),
     util = require('gulp-util'),
-    watch = require('gulp-watch'),
     yaml = require('js-yaml');
 
-var PluginError = util.PluginError;
+// Custom utilities.
+var logUtils = require('./lib/gulp-log-utils'),
+    srcUtils = require('./lib/gulp-src-utils'),
+    taskUtils = require('./lib/gulp-task-utils');
+
+// Often-used functions in this file.
+var gulpifySrc = srcUtils.gulpify,
+    PluginError = util.PluginError,
+    sequence = taskUtils.sequence,
+    taskBuilder = taskUtils.taskBuilder,
+    watchSrc = srcUtils.watch,
+    watchTaskBuilder = taskUtils.watchTaskBuilder;
 
 // Configuration
 // -------------
-
-var files = {
-  js: 'client/**/*.js',
-  css: 'build/development/assets/**/*.css'
-};
 
 var src = {
   // Dependencies manifest.
@@ -61,19 +63,21 @@ var src = {
   // Stylus files to compile to CSS.
   styl: { files: '**/*.styl', cwd: 'client' },
   // Client assets.
-  js: assetsWithDependenciesFactory('js', { files: files.js, compare: compareAngularFiles }),
-  css: assetsWithDependenciesFactory('css', { files: files.css, compare: compareStylesheets }),
+  js: assetsWithDependenciesFactory('js', { files: 'client/**/*.js', compare: compareAngularFiles }),
+  css: assetsWithDependenciesFactory('css', { files: 'build/development/assets/**/*.css', compare: compareStylesheets }),
   // JavaScript to check with JSHint.
-  lintJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js' ].concat(files.js) },
+  lintJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js', 'client/**/*.js' ] },
   // Production build files.
   prod: { files: '**/*', cwd: 'build/production' }
 };
 
 var injections = {
+  // Files to inject into index.html in development mode.
   development: {
     js: src.js,
     css: src.css
   },
+  // Files to inject into index.html in production mode.
   production: {
     js: { files: [ 'build/production/assets/**/*.js' ] },
     css: { files: [ 'build/production/assets/**/*.css' ] }
@@ -81,6 +85,8 @@ var injections = {
 };
 
 var filters = {
+  // Filter to select files that should be rev'd
+  // (a hash of their contents will be added to their filename for static revisioning).
   rev: filter([ '**/*', '!index.html', '!favicon.ico' ], { restore: true })
 };
 
@@ -93,64 +99,19 @@ gulp.task('clean:dev', function() {
 });
 
 gulp.task('clean:prod', function() {
-  return gulp.src('build/production/*', { read: false })
+  return gulp.src([ 'build/production/*', 'tmp/production/*' ], { read: false })
     .pipe(clean());
 });
 
-gulp.task('clean:tmp', function() {
-  return gulp.src('tmp/*', { read: false })
-    .pipe(clean());
-});
+gulp.task('clean', [ 'clean:dev', 'clean:prod' ]);
 
-gulp.task('clean', [ 'clean:dev', 'clean:prod', 'clean:tmp' ]);
+// Generic Tasks
+// -------------
 
-// Development Tasks
-// -----------------
-
-gulp.task('dev:env', function() {
-
-  var localEnv;
-  try {
-    localEnv = require('./config/local.env');
-  } catch (err) {
-    localEnv = {};
-  }
-
-  env.set(localEnv);
-});
-
-gulp.task('dev:favicon', function() {
-  return taskBuilder(src.favicon)
-    .pipe(logFactory('build/development'))
-    .add(pipeDevFiles)
-    .end();
-});
-
-gulp.task('dev:fonts', function() {
-
-  var dependencies = getDependencies('fonts');
-
-  return taskBuilder(dependencies)
-    .pipe(logFactory('build/development/assets'))
-    .add(pipeDevAssetsFactory('fonts'))
-    .end();
-});
-
-gulp.task('dev:less', function() {
-  return taskBuilder(src.less)
-    .pipe(logFactory('build/development/assets', 'less', 'css'))
-    .add(pipeCompileLess)
-    .add(pipeDevAssets)
-    .end();
-});
-
-gulp.task('dev:lint', function() {
-  return taskBuilder(src.lintJs)
-    .add(pipeLint)
-    .end();
-});
-
-gulp.task('dev:open', function() {
+/**
+ * Opens the URL of the running server in the browser.
+ */
+gulp.task('open', function() {
 
   var config = getConfig();
   if (!config.open) {
@@ -169,25 +130,94 @@ gulp.task('dev:open', function() {
     .pipe(open(openOptions));
 });
 
+/**
+ * Loads the environment variables defined in `config/local.env.js` (if the file exists).
+ */
+gulp.task('local:env', function() {
+
+  var localEnv;
+  try {
+    localEnv = require('./config/local.env');
+  } catch (err) {
+    localEnv = {};
+  }
+
+  env.set(localEnv);
+});
+
+// Development Tasks
+// -----------------
+
+/**
+ * Copies `client/favicon.ico` to `build/development`.
+ */
+gulp.task('dev:favicon', function() {
+  return taskBuilder(src.favicon)
+    .pipe(logUtils.processedFiles('build/development'))
+    .add(pipeDevFiles)
+    .stream();
+});
+
+/**
+ * Copies font dependencies defined in `client/dependencies.yml` to `build/development/assets/fonts`.
+ */
+gulp.task('dev:fonts', function() {
+
+  var dependencies = getDependencies('fonts');
+
+  return taskBuilder(dependencies)
+    .pipe(logUtils.processedFiles('build/development/assets'))
+    .add(pipeDevAssetsFactory('fonts'))
+    .stream();
+});
+
+/**
+ * Compiles the Less stylesheets in `client` to `build/development/assets`.
+ */
+gulp.task('dev:less', function() {
+  return taskBuilder(src.less)
+    .pipe(logUtils.processedFiles('build/development/assets', 'less', 'css'))
+    .add(pipeCompileLess)
+    .add(pipeDevAssets)
+    .stream();
+});
+
+/**
+ * Runs the project's JavaScript files through JSHint.
+ */
+gulp.task('dev:lint', function() {
+  return taskBuilder(src.lintJs)
+    .add(pipeLint)
+    .stream();
+});
+
+/**
+ * Compiles the Pug templates in `client` to `build/development`.
+ */
 gulp.task('dev:pug:templates', function() {
   return taskBuilder(src.templates)
-    .pipe(logFactory('build/development', 'pug', 'html'))
+    .pipe(logUtils.processedFiles('build/development', 'pug', 'html'))
     .add(pipeCompilePug)
     .add(pipeDevFiles)
-    .end();
+    .stream();
 });
 
+/**
+ * Compiles `client/index.pug` to `build/development` and injects the required link and script tags.
+ * Stylesheets and scripts are sorted with custom functions to ensure they are in the correct order.
+ */
 gulp.task('dev:pug:index', function() {
   return taskBuilder(src.index)
-    .pipe(logFactory('build/development', 'pug', 'html'))
+    .pipe(logUtils.processedFiles('build/development', 'pug', 'html'))
     .add(pipeCompilePug)
-    .add(pipeAutoInjectFactory('build/development'))
+    .add(pipeInjectFactory('build/development'))
     .add(pipeDevFiles)
-    .end();
+    .stream();
 });
 
-gulp.task('dev:pug', [ 'dev:pug:templates', 'dev:pug:index' ]);
-
+/**
+ * Runs the server with Nodemon and restarts it when changes to server files are detected.
+ */
 gulp.task('dev:nodemon', function() {
   livereload.listen();
 
@@ -209,152 +239,238 @@ gulp.task('dev:nodemon', function() {
   });
 });
 
+/**
+ * Compiles the Stylus files in `client` to `build/development/assets`.
+ */
 gulp.task('dev:stylus', function() {
   return taskBuilder(src.styl)
-    .pipe(logFactory('build/development/assets', 'styl', 'css'))
+    .pipe(logUtils.processedFiles('build/development/assets', 'styl', 'css'))
     .add(pipeCompileStylus)
     .add(pipeDevAssets)
-    .end();
+    .stream();
 });
 
+/**
+ * Watches `client/dependencies.yml` and automatically re-injects the required link and script tags in the index when changes are detected.
+ */
 gulp.task('dev:watch:dependencies', function() {
-  return watchSrc(src.dependencies, function(file) {
+  return srcUtils.watch(src.dependencies, function(file) {
     clearDependenciesCache();
     return taskBuilder(src.compiledIndex)
-      .add(pipeAutoInjectFactory('build/development'))
+      .add(pipeInjectFactory('build/development'))
       .add(pipeDevFiles)
-      .end();
+      .stream();
   });
 });
 
+/**
+ * Watches the Less files in `client` and automatically compiles them to `build/development/assets` when changes are detected.
+ */
 gulp.task('dev:watch:less', function() {
-  return watchSrc(src.less, function(file) {
+  return srcUtils.watch(src.less, function(file) {
     return watchTaskBuilder(file, 'client')
-      .pipe(logFactory('build/development/assets', 'less', 'css'))
+      .pipe(logUtils.processedFiles('build/development/assets', 'less', 'css'))
       .add(pipeCompileLess)
       .add(pipeDevAssets)
-      .end();
+      .stream();
   });
 });
 
+/**
+ * Watches the project's JavaScript files and automatically runs them through JSHint when changes are detected.
+ */
 gulp.task('dev:watch:lint', function() {
-  return watchSrc(src.lintJs, function(file) {
+  return srcUtils.watch(src.lintJs, function(file) {
     return taskBuilder(file.path)
       .add(pipeLint)
       .on('error', _.noop)
-      .end();
+      .stream();
   });
 });
 
+/**
+ * Watches the Pug templates in `client` and automatically compiles them to `build/development` when changes are detected.
+ */
 gulp.task('dev:watch:pug:templates', function() {
-  return watchSrc(src.templates, function(file) {
+  return srcUtils.watch(src.templates, function(file) {
     return watchTaskBuilder(file, 'client')
-      .pipe(logFactory('build/development', 'pug', 'html'))
+      .pipe(logUtils.processedFiles('build/development', 'pug', 'html'))
       .add(pipeCompilePug)
       .add(pipeDevFiles)
-      .end();
+      .stream();
   });
 });
 
+/**
+ * Watches `client/index.pug` and automatically compiles it and injects the required link and script tags when changes are detected.
+ */
 gulp.task('dev:watch:pug:index', function() {
-  return watchSrc(src.index, function(file) {
+  return srcUtils.watch(src.index, function(file) {
     return watchTaskBuilder(file, 'client')
-      .pipe(logFactory('build/development', 'pug', 'html'))
+      .pipe(logUtils.processedFiles('build/development', 'pug', 'html'))
       .add(pipeCompilePug)
-      .add(pipeAutoInjectFactory('build/development'))
+      .add(pipeInjectFactory('build/development'))
       .add(pipeDevFiles)
-      .end();
+      .stream();
   });
 });
 
+/**
+ * Watches the Stylus files in `client` and automatically compiles them to `build/development/assets` when changes are detected.
+ */
 gulp.task('dev:watch:stylus', function() {
-  return watchSrc(src.styl, function(file) {
+  return srcUtils.watch(src.styl, function(file) {
     return watchTaskBuilder(file, 'client')
-      .pipe(logFactory('build/development/assets', 'styl', 'css'))
+      .pipe(logUtils.processedFiles('build/development/assets', 'styl', 'css'))
       .add(pipeCompileStylus)
       .add(pipeDevAssets)
-      .end();
+      .stream();
   });
 });
 
-gulp.task('dev:compile', sequence('clean:dev', [ 'dev:favicon', 'dev:fonts', 'dev:less', 'dev:pug:templates', 'dev:stylus' ], 'dev:pug:index'));
+/**
+ * Builds all development files once:
+ *
+ * * Load the local environment file if it exists.
+ * * Clean up the development build directory.
+ * * Copy and compile all required files (favicon, fonts, Less stylesheets, Stylus stylesheets, Pug templates).
+ */
+gulp.task('dev:build', sequence('local:env', 'clean:dev', [ 'dev:favicon', 'dev:fonts', 'dev:less', 'dev:pug:templates', 'dev:stylus' ], 'dev:pug:index'));
 
+/**
+ * Runs all watch tasks (dependencies manifest, Less stylesheets, Stylus stylesheets, Pug templates and linting).
+ */
 gulp.task('dev:watch', [ 'dev:watch:dependencies', 'dev:watch:less', 'dev:watch:lint', 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
 
-gulp.task('dev', sequence('dev:env', 'clean:dev', 'dev:compile', [ 'dev:nodemon', 'dev:watch', 'dev:open' ]));
+/**
+ * Builds and runs the development environment:
+ *
+ * * Execute `dev:build`.
+ * * Run the development server.
+ * * Run all watch tasks.
+ * * Open the browser.
+ */
+gulp.task('dev:run', sequence('dev:build', [ 'dev:nodemon', 'dev:watch', 'open' ]));
+
+/**
+ * Alias of `dev:run`.
+ */
+gulp.task('dev', sequence('dev:run'));
 
 // Production Tasks
 // ----------------
 
+/**
+ * Sets the Node.js environment to production.
+ */
 gulp.task('prod:env', function() {
   env.set({
     NODE_ENV: 'production'
   });
 });
 
+/**
+ * Builds the production CSS stylesheet:
+ *
+ * * Compile all stylesheets (Less & Stylus) and sort them in the correct order.
+ * * Prepend all stylesheet dependencies.
+ * * Concatenate all stylesheets into `app.css`.
+ * * Minify `app.css`.
+ * * Save `app.css` to `build/production/assets`.
+ *
+ * Static asset revisioning is performed later with the `prod:rev` and `prod:rev:replace` tasks.
+ */
 gulp.task('prod:css', function() {
 
   var lessSrc = taskBuilder(src.less)
     .add(pipeCompileLess)
-    .end();
+    .stream();
 
   var stylusSrc = taskBuilder(src.styl)
     .add(pipeCompileStylus)
-    .end();
+    .stream();
 
-  return taskBuilder(streamQueue({ objectMode: true }, lessSrc, stylusSrc))
+  return taskBuilder(merge(lessSrc, stylusSrc))
+    .add(srcUtils.pipeSortFactory(compareStylesheets))
     .pipe(addSrc.prepend(getDependencies('css')))
     .pipe(concat('app.css'))
-    .pipe(storeProdInitialSizeFactory('css'))
+    .pipe(logUtils.storeInitialSize('css'))
     .pipe(cssmin())
     .add(pipeProdAssets)
-    .end();
+    .stream();
 });
 
+/**
+ * Copies font dependencies defined in `client/dependencies.yml` to `build/production/assets/fonts`.
+ */
 gulp.task('prod:fonts', function() {
 
   var dependencies = getDependencies('fonts');
 
   return taskBuilder(dependencies)
-    .pipe(logFactory('build/production/assets/fonts'))
     .add(pipeProdAssetsFactory('fonts'))
-    .end();
+    .stream();
 });
 
+/**
+ * Builds the production JavaScript file:
+ *
+ * * Include all JavaScript sources.
+ * * Compile all Pug templates (excluding the index) and wrap them into JavaScript files.
+ * * Run all Angular files through ng-annotate.
+ * * Concatenate all JavaScript into `app.js`.
+ * * Uglify `app.js`.
+ * * Save `app.js` to `build/production/assets`.
+ *
+ * Static asset revisioning is performed later with the `prod:rev` and `prod:rev:replace` tasks.
+ */
 gulp.task('prod:js', function() {
 
-  var codeSrc = taskBuilder(src.js).end();
+  // JavaScript sources (client & dependencies).
+  var codeSrc = taskBuilder(src.js).stream();
 
+  // Wrapped templates.
   var templatesSrc = taskBuilder(src.templates)
     .add(pipeCompilePug)
-    .pipe(through.obj(wrapTemplate))
-    .end();
+    .pipe(wrapTemplateFactory())
+    .stream();
 
   return taskBuilder(streamQueue({ objectMode: true }, codeSrc, templatesSrc))
     .pipe(ngAnnotate())
     .pipe(concat('app.js'))
-    .pipe(storeProdInitialSizeFactory('js'))
+    .pipe(logUtils.storeInitialSize('js'))
     .pipe(uglify())
     .add(pipeProdAssets)
-    .end();
+    .stream();
 });
 
+/**
+ * Compiles `client/index.pug` to `build/production` and injects the required link and script tags.
+ * Stylesheets and scripts are sorted with custom functions to ensure they are in the correct order.
+ * All HTML comments are removed.
+ */
 gulp.task('prod:index', function() {
   return taskBuilder(src.index)
     .add(pipeCompilePug)
-    .add(pipeAutoInjectFactory('build/production'))
-    .pipe(storeProdInitialSizeFactory('html'))
+    .add(pipeInjectFactory('build/production'))
+    .pipe(logUtils.storeInitialSize('html'))
     .pipe(removeHtmlComments())
     .add(pipeProdFiles)
-    .end();
+    .stream();
 });
 
+/**
+ * Copies `client/favicon.ico` to `build/production`.
+ */
 gulp.task('prod:favicon', function() {
   return taskBuilder(src.favicon)
     .add(pipeProdFiles)
-    .end();
+    .stream();
 });
 
+/**
+ * Runs the server with Nodemon and restarts it when changes to server files are detected.
+ */
 gulp.task('prod:nodemon', function() {
   return nodemon({
     script: 'bin/www',
@@ -368,6 +484,10 @@ gulp.task('prod:nodemon', function() {
   });
 });
 
+/**
+ * Performs static asset revisioning on production assets in `build/production` (see https://github.com/sindresorhus/gulp-rev).
+ * The rev manifest is stored in `tmp/production`.
+ */
 gulp.task('prod:rev', function() {
   return taskBuilder(src.prod)
     .pipe(filters.rev)
@@ -377,24 +497,31 @@ gulp.task('prod:rev', function() {
     .pipe(revDeleteOriginal())
     .pipe(rev.manifest())
     .pipe(gulp.dest('tmp/production'))
-    .end();
+    .stream();
 });
 
+/**
+ * Replaces references to rev'd production assets in `build/production`.
+ */
 gulp.task('prod:rev:replace', function() {
+
+  function relativeToAbsolutePath(filename) {
+    return '/' + filename;
+  }
+
   return taskBuilder(src.prod)
     .pipe(revReplace({
       manifest: gulp.src('tmp/production/rev-manifest.json'),
-      modifyUnreved: function(filename) {
-        return '/' + filename;
-      },
-      modifyReved: function(filename) {
-        return '/' + filename;
-      }
+      modifyUnreved: relativeToAbsolutePath,
+      modifyReved: relativeToAbsolutePath
     }))
    .pipe(gulp.dest('build/production'))
-   .end();
+   .stream();
 });
 
+/**
+ * Logs the total size of `build/production`.
+ */
 gulp.task('prod:size', function(callback) {
   getFolderSize('build/production', function(err, size) {
     if (err) {
@@ -406,19 +533,41 @@ gulp.task('prod:size', function(callback) {
   });
 });
 
-gulp.task('prod', sequence('prod:env', [ 'clean:prod', 'clean:tmp' ], [ 'prod:css', 'prod:fonts', 'prod:favicon', 'prod:js' ], 'prod:index', 'prod:rev', 'prod:rev:replace', 'prod:size'));
+/**
+ * Builds all production files once:
+ *
+ * * Load the local environment file if it exists.
+ * * Set the environment to production.
+ * * Clean up the production build directory.
+ * * Copy and compile all required files (favicon, fonts, Less stylesheets, Stylus stylesheets, Pug templates).
+ * * Perform static asset revisioning.
+ * * Log the total size of the production build directory.
+ */
+gulp.task('prod:build', sequence('local:env', 'prod:env', 'clean:prod', [ 'prod:css', 'prod:favicon', 'prod:fonts', 'prod:js' ], 'prod:index', 'prod:rev', 'prod:rev:replace', 'prod:size'));
 
-gulp.task('prod:run', sequence('prod', 'prod:nodemon'));
+/**
+ * Builds and runs the production environment:
+ *
+ * * Execute `prod:build`.
+ * * Run the production server.
+ * * Open the browser.
+ */
+gulp.task('prod:run', sequence('prod:build', [ 'prod:nodemon', 'open' ]));
+
+/**
+ * Alias of `prod:run`.
+ */
+gulp.task('prod', sequence('prod:run'));
 
 // Default Task
 // ------------
 
 gulp.task('default', [ 'dev' ]);
 
-// Reusable piping functions
-// -------------------------
+// Reusable pipe sequences
+// -----------------------
 
-function pipeAutoInjectFactory(dest) {
+function pipeInjectFactory(dest) {
   return function(src) {
 
     var config = getConfig();
@@ -430,7 +579,7 @@ function pipeAutoInjectFactory(dest) {
     return taskBuilder(src)
       .pipe(autoInject(injections[config.env].js))
       .pipe(autoInject(injections[config.env].css))
-      .end();
+      .stream();
   };
 }
 
@@ -475,13 +624,13 @@ function pipeDevAssetsFactory(dir, dest) {
 function pipeProdFiles(src, dest) {
   return src
     .pipe(gulp.dest(dest || 'build/production'))
-    .pipe(logProdFactory());
+    .pipe(logUtils.productionFiles('build/production'));
 }
 
 function pipeProdAssets(src, dest) {
   return src
     .pipe(gulp.dest(dest || 'build/production/assets'))
-    .pipe(logProdFactory());
+    .pipe(logUtils.productionFiles('build/production'));
 }
 
 function pipeProdAssetsFactory(dir, dest) {
@@ -535,164 +684,34 @@ function assetsWithDependenciesFactory(type, src, options) {
   };
 }
 
-var htmlTemplateWrapper = _.template("angular.module('bio').run(function($templateCache) { $templateCache.put(<%= url %>, <%= contents %>); });")
-function wrapTemplate(file, enc, callback) {
-  if (file.isStream()) {
-    return callback(new PluginError('gulp-wrap-template', 'Streaming not supported'));
-  }
+var htmlTemplateWrapper = _.template("angular.module(<%= angularModule %>).run(function($templateCache) { $templateCache.put(<%= templateUrl %>, <%= templateContents %>); });");
 
-  var config = getConfig();
-
-  var templateUrl = '/' + path.relative('client', file.path);
-  file.path = file.path.replace(/\.html$/, '.js');
-
-  if (file.isBuffer()) {
-    try {
-      file.contents = new Buffer(htmlTemplateWrapper({
-        url: JSON.stringify(templateUrl),
-        contents: JSON.stringify(file.contents.toString())
-      }));
-    } catch(e) {
-      e.message = 'Slim template error in ' + path.relative(config.root, file.path) + '; ' + e.message;
-      return callback(new PluginError('gulp-wrap-template', e));
-    }
-  }
-
-  callback(null, file);
-}
-
-function logFactory(to, fromExt, toExt) {
+function wrapTemplateFactory() {
   return through.obj(function(file, enc, callback) {
+    if (file.isStream()) {
+      return callback(new PluginError('gulp-wrap-template', 'Streaming not supported'));
+    }
 
     var config = getConfig();
 
-    var base = file.base,
-        relativeBase = path.relative(config.root, base),
-        relativePath = path.relative(base, file.path),
-        fromPath = path.join(relativeBase, relativePath),
-        toPath = path.join(to, relativePath);
+    var templateUrl = '/' + path.relative('client', file.path);
+    file.path = file.path.replace(/\.html$/, '.js');
 
-    if (fromExt && toExt) {
-      toPath = toPath.replace(new RegExp('\\.' + fromExt + '$'), '.' + toExt);
-    }
-
-    util.log(util.colors.cyan(fromPath) + ' -> ' + util.colors.cyan(toPath));
-
-    callback(null, file);
-  });
-}
-
-var sizes = {};
-
-function storeProdInitialSizeFactory(name) {
-  sizes[name] = 0;
-
-  return through.obj(function(file, enc, callback) {
-    sizes[name] += file.contents.length;
-    callback(null, file);
-  });
-}
-
-function logProdFactory(name) {
-  return through.obj(function(file, enc, callback) {
-
-    var relativePath = path.relative('build/production', file.path),
-        toPath = path.join('build/production', relativePath);
-
-    if (file.contents) {
-      var size = prettyBytes(file.contents.length);
-
-      var name = toPath.replace(/.*\./, '');
-      if (sizes[name]) {
-        size = prettyBytes(sizes[name]) + ' -> ' + size;
+    if (file.isBuffer()) {
+      try {
+        file.contents = new Buffer(htmlTemplateWrapper({
+          angularModule: JSON.stringify(config.mainAngularModule),
+          templateUrl: JSON.stringify(templateUrl),
+          templateContents: JSON.stringify(file.contents.toString())
+        }));
+      } catch(e) {
+        e.message = 'Slim template error in ' + path.relative(config.root, file.path) + '; ' + e.message;
+        return callback(new PluginError('gulp-wrap-template', e));
       }
-
-      util.log(util.colors.blue(toPath + ' - ' + size));
     }
 
     callback(null, file);
   });
-}
-
-function sequence() {
-  var tasks = Array.prototype.slice.call(arguments);
-  return function(callback) {
-    return runSequence.apply(undefined, [].concat(tasks).concat([ callback ]));
-  };
-}
-
-function gulpifySrc(src, options) {
-  if (_.isFunction(src)) {
-    return src(options);
-  }
-
-  var files;
-  if (_.isString(src) || _.isArray(src)) {
-    files = src;
-  } else if (_.isFunction(src)) {
-    files = src();
-  } else if (_.has(src, 'files')) {
-    files = src.files;
-  } else {
-    throw new Error('Source of type ' + typeof(src) + ' cannot be gulpified');
-  }
-
-  var gulpOptions = _.extend({}, src, options),
-      gulpSrc = gulp.src(files, getSrcOptions(gulpOptions));
-
-  if (_.isFunction(gulpOptions.compare)) {
-    gulpSrc = gulpSrc.pipe(sort({
-      customSortFn: function(files) {
-        return stable(files, gulpOptions.compare);
-      }
-    }));
-  }
-
-  return gulpSrc;
-}
-
-function getSrcOptions(src) {
-  return _.pick(src, 'base', 'cwd');
-}
-
-function taskBuilder(src) {
-  return new TaskBuilder(src);
-}
-
-function TaskBuilder(src) {
-  if (_.isFunction(src.pipe)) {
-    this.src = src;
-  } else {
-    this.src = gulpifySrc(src);
-  }
-}
-
-TaskBuilder.prototype.add = function(func) {
-  this.src = func(this.src);
-  return this;
-};
-
-TaskBuilder.prototype.pipe = function(func) {
-  this.src = this.src.pipe(func);
-  return this;
-};
-
-TaskBuilder.prototype.on = function() {
-  var args = Array.prototype.slice.call(arguments);
-  this.src = this.src.on.apply(this.src, args);
-  return this;
-};
-
-TaskBuilder.prototype.end = function() {
-  return this.src;
-};
-
-function watchSrc(src, callback) {
-  return watch(src.files, getSrcOptions(src), callback);
-}
-
-function watchTaskBuilder(file, base) {
-  return taskBuilder({ files: file.path, base: base });
 }
 
 /**

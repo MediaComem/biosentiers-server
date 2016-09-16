@@ -5,17 +5,23 @@ var env = process.env.NODE_ENV || 'development',
     pkg = require(path.join('..', 'package')),
     root = path.normalize(path.join(__dirname, '..'));
 
+var envs = 'development production test'.split(/\s+/);
+if (!_.includes(envs, env)) {
+  throw new Error('Unsupported environment ' + JSON.stringify(env) + '; must be one of ' + envs.join(', '));
+}
+
 var fixed = {
   env: env,
   root: root,
   version: pkg.version,
+  mainAngularModule: 'bio',
   path: joinPathSegments,
   parseBoolean: parseConfigBoolean,
   parseInt: parseConfigInt
 };
 
 var base = {
-  open: parseConfigBoolean(process.env.OPEN),
+  open: parseConfigBoolean(process.env.OPEN, true),
   openBrowser: process.env.OPEN_BROWSER,
   protocol: process.env.PROTOCOL || 'http',
   host: process.env.HOST || 'localhost',
@@ -38,9 +44,9 @@ function joinPathSegments() {
   return path.join.apply(path, [ root ].concat(parts));
 }
 
-function parseConfigBoolean(value) {
+function parseConfigBoolean(value, defaultValue) {
   if (value === undefined) {
-    return undefined;
+    return defaultValue;
   } else if (!_.isString(value)) {
     return !!value;
   } else {

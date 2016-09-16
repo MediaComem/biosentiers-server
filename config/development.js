@@ -2,9 +2,7 @@ var _ = require('lodash');
 
 module.exports = function(base) {
 
-  var config = {
-    open: _.get(base, 'open', true)
-  };
+  var config = {};
 
   var liveReloadPort = base.parseInt(process.env.LIVERELOAD_PORT) || 35729;
   config.liveReloadUrl = base.protocol + '://' + base.host + ':' + liveReloadPort + '/livereload.js';
