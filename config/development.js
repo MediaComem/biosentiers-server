@@ -7,7 +7,7 @@ module.exports = function(base) {
   };
 
   var liveReloadPort = base.parseInt(process.env.LIVERELOAD_PORT) || 35729;
-  config.liveReloadUrl = config.protocol + '://' + config.host + ':' + liveReloadPort + '/livereload.js';
+  config.liveReloadUrl = base.protocol + '://' + base.host + ':' + liveReloadPort + '/livereload.js';
 
   return config;
 };

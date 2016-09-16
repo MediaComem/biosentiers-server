@@ -15,6 +15,7 @@ var _ = require('lodash'),
     less = require('gulp-less'),
     livereload = require('gulp-livereload'),
     merge = require('merge-stream'),
+    ngAnnotate = require('gulp-ng-annotate'),
     nodemon = require('gulp-nodemon'),
     open = require('gulp-open'),
     path = require('path'),
@@ -321,7 +322,16 @@ gulp.task('prod:fonts', function() {
 });
 
 gulp.task('prod:js', function() {
-  return taskBuilder(src.js)
+
+  var codeSrc = taskBuilder(src.js).end();
+
+  var templatesSrc = taskBuilder(src.templates)
+    .add(pipeCompilePug)
+    .pipe(through.obj(wrapTemplate))
+    .end();
+
+  return taskBuilder(streamQueue({ objectMode: true }, codeSrc, templatesSrc))
+    .pipe(ngAnnotate())
     .pipe(concat('app.js'))
     .pipe(storeProdInitialSizeFactory('js'))
     .pipe(uglify())
@@ -523,6 +533,32 @@ function assetsWithDependenciesFactory(type, src, options) {
     return gulpifySrc(src, _.extend({}, src, options, additionalOptions))
       .pipe(addSrc.prepend(getDependencies(type)));
   };
+}
+
+var htmlTemplateWrapper = _.template("angular.module('bio').run(function($templateCache) { $templateCache.put(<%= url %>, <%= contents %>); });")
+function wrapTemplate(file, enc, callback) {
+  if (file.isStream()) {
+    return callback(new PluginError('gulp-wrap-template', 'Streaming not supported'));
+  }
+
+  var config = getConfig();
+
+  var templateUrl = '/' + path.relative('client', file.path);
+  file.path = file.path.replace(/\.html$/, '.js');
+
+  if (file.isBuffer()) {
+    try {
+      file.contents = new Buffer(htmlTemplateWrapper({
+        url: JSON.stringify(templateUrl),
+        contents: JSON.stringify(file.contents.toString())
+      }));
+    } catch(e) {
+      e.message = 'Slim template error in ' + path.relative(config.root, file.path) + '; ' + e.message;
+      return callback(new PluginError('gulp-wrap-template', e));
+    }
+  }
+
+  callback(null, file);
 }
 
 function logFactory(to, fromExt, toExt) {

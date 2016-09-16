@@ -1,20 +1,25 @@
 doctype html
-html
+html(ng-app='bio', ng-strict-di=(config.env == 'production'))
   head
     title BioSentiers
+    base(href='/')
+
+    // ATTENTION: the inject:css section below is automatically filled
+    // by the gulp-inject plugin. DO NOT EDIT IT YOURSELF. See the README.
     // inject:css
     // endinject
+
   body
-    .navbar.navbar-default.navbar-fixed-top
-      .container
-        .navbar-header
-          a.navbar-brand(href='#') BioSentiers
+
+    bio-navbar
+
     .container
-      p
-        span.glyphicon.glyphicon-star
-        = ' '
-        span Welcome to BioSentiers
+      ui-view
+
+    // ATTENTION: the inject:js section below is automatically filled
+    // by the gulp-inject plugin. DO NOT EDIT IT YOURSELF. See the README.
     // inject:js
     // endinject
+
     if liveReloadUrl
       script(src=liveReloadUrl)
