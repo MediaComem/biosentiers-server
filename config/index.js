@@ -17,6 +17,7 @@ var fixed = {
   version: pkg.version,
   mainAngularModule: 'bio',
   logger: createLogger,
+  buildDir: path.join(root, 'build', env),
   path: joinPathSegments,
   parseBoolean: parseConfigBoolean,
   parseInt: parseConfigInt

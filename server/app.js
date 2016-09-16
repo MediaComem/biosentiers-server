@@ -1,5 +1,6 @@
 var bodyParser = require('body-parser'),
     config = require('../config'),
+    errors = require('./lib/express-errors'),
     express = require('express'),
     favicon = require('serve-favicon'),
     log4js = require('log4js'),
@@ -7,73 +8,39 @@ var bodyParser = require('body-parser'),
 
 var app = express();
 
-// view engine setup
+// Configure the view engine (used only for error pages; all other pages
+// are served statically from the build directory).
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
-var buildDir = config.path('build', 'development');
-if (config.env == 'production') {
-  buildDir = config.path('build', 'production');
-}
-
-app.use(favicon(path.join(buildDir, 'favicon.ico')));
+// Configure initial middleware.
+app.use(favicon(path.join(config.buildDir, 'favicon.ico')));
 app.use(bodyParser.json());
 
-function serveIndex(req, res) {
-  res.sendFile('index.html', { root: buildDir });
-}
+// Log all HTTP requests.
+app.use(require('./lib/express-logger'));
 
-var logger = config.logger('express'),
-    connectLogger = log4js.connectLogger(logger, {
-      level: log4js.levels.TRACE,
-      format: ':method :url :status :response-time ms'
-    });
-
-app.use(connectLogger);
-
+// Serve static files.
 if (config.env != 'production') {
-  app.use(express.static(buildDir));
+  app.use(express.static(config.buildDir));
+  // Serve files directly out of `client` and `node_modules` in development.
   app.use('/client', express.static(config.path('client')));
   app.use('/node_modules', express.static(config.path('node_modules')));
 } else {
-  app.use(express.static(buildDir));
+  // In production, all files are copied or compiled to the build directory.
+  app.use(express.static(config.buildDir));
 }
 
-var router = express.Router();
-router.get('/', serveIndex);
-router.get('/*', serveIndex);
-app.use('/', router);
+// Serve API requests.
+app.use('/api', require('./api'));
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
-});
+// Catch 404 (e.g. missing asset) and forward to the next error handler.
+app.use(errors.catch404);
 
-// error handlers
+// Serve the index page.
+app.use('/', require('./lib/express-index'));
 
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
-    });
-  });
-}
-
-// production error handler
-// no stacktraces leaked to user
-app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  res.render('error', {
-    message: err.message,
-    error: {}
-  });
-});
-
+// Handle errors.
+app.use(errors.handler);
 
 module.exports = app;
