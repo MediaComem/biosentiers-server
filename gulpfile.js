@@ -61,7 +61,7 @@ var src = {
   styl: { files: '**/*.styl', cwd: 'client' },
   // Client assets.
   js: assetsWithDependenciesFactory('js', { files: files.js, compare: compareAngularFiles }),
-  css: assetsWithDependenciesFactory('css', files.css),
+  css: assetsWithDependenciesFactory('css', { files: files.css, compare: compareStylesheets }),
   // JavaScript to check with JSHint.
   lintJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js' ].concat(files.js) },
   // Production build files.
@@ -660,6 +660,40 @@ function watchTaskBuilder(file, base) {
 }
 
 /**
+ * Compares CSS stylesheets so that `.base.js` files appear first in a directory.
+ */
+function compareStylesheets(f1, f2) {
+
+  // Perform a standard comparison if one or both files are not CSS.
+  if (!isCss(f1) || !isCss(f2)) {
+    return f1.path.localeCompare(f2.path);
+  }
+
+  var f1Dir = path.dirname(f1.path),
+      f1Base = isBaseStylesheet(f1),
+      f2Dir = path.dirname(f2.path),
+      f2Base = isBaseStylesheet(f2);
+
+  if (f1Dir.indexOf(f2Dir + path.sep) === 0) {
+    // If f1 is in a subdirectory of f2's directory, place f1 last.
+    return 1;
+  } else if (f2Dir.indexOf(f1Dir + path.sep) === 0) {
+    // If f2 is in a subdirectory of f1's directory, place f1 first.
+    return -1;
+  } else if (f1Dir != f2Dir || f1Base == f2Base) {
+    // Perform a standard comparison if the files are not in the same directory,
+    // if both are base stylesheets, or if both are not base stylesheets.
+    return f1.path.localeCompare(f2.path);
+  } else if (f1Base) {
+    // If f1 is a base stylesheet and f2 is not, place f1 first.
+    return -1;
+  } else {
+    // If f1 is not a base stylesheet and f2 is, place f1 last.
+    return 1;
+  }
+}
+
+/**
  * Compares JavaScript files so that `.module.js` files appear first in a directory.
  */
 function compareAngularFiles(f1, f2) {
@@ -691,6 +725,14 @@ function compareAngularFiles(f1, f2) {
     // If f1 is not an Angular module and f2 is, place f1 last.
     return 1;
   }
+}
+
+function isCss(file) {
+  return !!file.path.match(/\.css$/);
+}
+
+function isBaseStylesheet(file) {
+  return !!file.path.match(/\.base\.css$/);
 }
 
 function isJs(file) {
