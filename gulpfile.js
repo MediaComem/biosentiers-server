@@ -8,7 +8,6 @@ var _ = require('lodash'),
     env = require('gulp-env'),
     filter = require('gulp-filter'),
     fs = require('fs'),
-    getFolderSize = require('get-folder-size'),
     gulp = require('gulp'),
     handlebars = require('gulp-compile-handlebars'),
     htmlmin = require('gulp-htmlmin'),
@@ -21,7 +20,6 @@ var _ = require('lodash'),
     nodemon = require('gulp-nodemon'),
     open = require('gulp-open'),
     path = require('path'),
-    prettyBytes = require('pretty-bytes'),
     pug = require('gulp-pug'),
     rev = require('gulp-rev'),
     revDeleteOriginal = require('gulp-rev-delete-original'),
@@ -539,14 +537,9 @@ gulp.task('prod:rev', [ 'prod:unreved' ], function() {
  * Logs the total size of `build/production`.
  */
 gulp.task('prod:size', function(callback) {
-  getFolderSize(dirs.prodBuild, function(err, size) {
-    if (err) {
-      return callback(err);
-    }
-
-    util.log('Total size of ' + util.colors.magenta('build/production') + ' is ' + util.colors.bold(prettyBytes(size)));
-    callback();
-  });
+  return gulp
+    .src(dirs.prodBuild)
+    .pipe(logUtils.directorySize());
 });
 
 /**
@@ -662,6 +655,37 @@ function minifyHtml() {
   })();
 }
 
+function wrapTemplate() {
+
+  var templateWrapper = _.template(fs.readFileSync('client/template-cache.hbs', { encoding: 'utf-8' }));
+
+  return through.obj(function(file, enc, callback) {
+    if (file.isStream()) {
+      return callback(new PluginError('gulp-wrap-template', 'Streaming not supported'));
+    }
+
+    var config = getConfig();
+
+    var templateUrl = '/assets/' + path.relative('client', file.path);
+    file.path = file.path.replace(/\.html$/, '.template.js');
+
+    if (file.isBuffer()) {
+      try {
+        file.contents = new Buffer(templateWrapper({
+          angularModule: JSON.stringify(config.mainAngularModule),
+          templateUrl: JSON.stringify(templateUrl),
+          templateContents: JSON.stringify(file.contents.toString())
+        }));
+      } catch(e) {
+        e.message = 'Slim template error in ' + path.relative(config.root, file.path) + '; ' + e.message;
+        return callback(new PluginError('gulp-wrap-template', e));
+      }
+    }
+
+    callback(null, file);
+  });
+}
+
 function toDevBuild(dir) {
   var dest = path.normalize(path.join(dirs.devBuild, dir || '.'));
   return chain(function(stream) {
@@ -707,37 +731,6 @@ function sequence() {
   return function(callback) {
     return runSequence.apply(undefined, [].concat(tasks).concat([ callback ]));
   };
-}
-
-function wrapTemplate() {
-
-  var templateWrapper = _.template(fs.readFileSync('client/template-cache.hbs', { encoding: 'utf-8' }));
-
-  return through.obj(function(file, enc, callback) {
-    if (file.isStream()) {
-      return callback(new PluginError('gulp-wrap-template', 'Streaming not supported'));
-    }
-
-    var config = getConfig();
-
-    var templateUrl = '/assets/' + path.relative('client', file.path);
-    file.path = file.path.replace(/\.html$/, '.template.js');
-
-    if (file.isBuffer()) {
-      try {
-        file.contents = new Buffer(templateWrapper({
-          angularModule: JSON.stringify(config.mainAngularModule),
-          templateUrl: JSON.stringify(templateUrl),
-          templateContents: JSON.stringify(file.contents.toString())
-        }));
-      } catch(e) {
-        e.message = 'Slim template error in ' + path.relative(config.root, file.path) + '; ' + e.message;
-        return callback(new PluginError('gulp-wrap-template', e));
-      }
-    }
-
-    callback(null, file);
-  });
 }
 
 function openBrowser(target) {
