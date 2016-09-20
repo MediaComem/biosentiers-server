@@ -6,8 +6,12 @@ html(ng-app='bio', ng-strict-di=(env == 'production'))
 
     // ATTENTION: the inject:css section below is automatically filled
     // by the gulp-inject plugin. DO NOT EDIT IT YOURSELF. See the README.
+
+    // build:css /assets/app.css
+    link(rel='stylesheet', href='/assets/bootstrap.base.css')
     // inject:css
     // endinject
+    // endbuild
 
   body
 
@@ -18,8 +22,16 @@ html(ng-app='bio', ng-strict-di=(env == 'production'))
 
     // ATTENTION: the inject:js section below is automatically filled
     // by the gulp-inject plugin. DO NOT EDIT IT YOURSELF. See the README.
+
+    // build:js /assets/app.js
+    script(src='/node_modules/lodash/lodash.js')
+    script(src='/node_modules/jquery/dist/jquery.js')
+    script(src='/node_modules/angular/angular.js')
+    script(src='/node_modules/angular-ui-router/release/angular-ui-router.js')
+    script(src='/node_modules/angular-ui-bootstrap/dist/ui-bootstrap-tpls.js')
     // inject:js
     // endinject
+    // endbuild
 
     if liveReloadUrl
       script(src=liveReloadUrl)

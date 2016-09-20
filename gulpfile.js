@@ -12,6 +12,7 @@ var _ = require('lodash'),
     getFolderSize = require('get-folder-size'),
     gulp = require('gulp'),
     handlebars = require('gulp-compile-handlebars'),
+    htmlmin = require('gulp-htmlmin'),
     inject = require('gulp-inject'),
     jshint = require('gulp-jshint'),
     less = require('gulp-less'),
@@ -26,12 +27,12 @@ var _ = require('lodash'),
     rev = require('gulp-rev'),
     revDeleteOriginal = require('gulp-rev-delete-original'),
     revReplace = require('gulp-rev-replace'),
-    removeHtmlComments = require('gulp-remove-html-comments'),
     runSequence = require('run-sequence'),
     streamQueue = require('streamqueue'),
     stylus = require('gulp-stylus'),
     through = require('through2'),
     uglify = require('gulp-uglify'),
+    useref = require('gulp-useref'),
     util = require('gulp-util'),
     yaml = require('js-yaml');
 
@@ -48,11 +49,10 @@ var gulpifySrc = srcUtils.gulpify,
 // -------------
 
 var src = {
-  // Dependencies manifest.
-  dependencies: { files: 'dependencies.yml', cwd: 'client' },
+  // Fonts.
+  fonts: { files: 'node_modules/bootstrap/dist/fonts/**/*' },
   // Pug templates.
   index: { files: 'index.pug', cwd: 'client' },
-  compiledIndex: { files: 'index.html', cwd: 'build/development' },
   templates: { files: [ '*/**/*.pug' ], cwd: 'client' },
   // Favicon.
   favicon: { files: 'client/favicon.ico' },
@@ -61,12 +61,16 @@ var src = {
   // Stylus files to compile to CSS.
   styl: { files: '**/*.styl', cwd: 'client' },
   // Client assets.
-  js: assetsWithDependenciesFactory('js', { files: 'client/**/*.js', compare: compareAngularFiles }),
-  css: assetsWithDependenciesFactory('css', { files: 'build/development/assets/**/*.css', compare: compareStylesheets }),
+  js: { files: 'client/**/*.js', compare: compareAngularFiles },
+  css: { files: [ 'build/development/assets/**/*.css', '!**/*.base.css' ], compare: compareStylesheets },
   // JavaScript to check with JSHint.
   lintJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js', 'client/**/*.js' ] },
   // Production build files.
-  prod: { files: '**/*', cwd: 'build/production' }
+  prod: { files: '**/*', cwd: 'build/production' },
+  prodCss: { files: '**/*.css', cwd: 'build/production' },
+  prodJs: { files: '**/*.js', cwd: 'build/production' },
+  prodHtml: { files: '**/*.html', cwd: 'build/production' },
+  prodIndex: { files: 'index.html', cwd: 'build/production' }
 };
 
 var injections = {
@@ -77,8 +81,8 @@ var injections = {
   },
   // Files to inject into index.html in production mode.
   production: {
-    js: { files: [ 'build/production/assets/**/*.js' ] },
-    css: { files: [ 'build/production/assets/**/*.css' ] }
+    js: { files: [ 'build/production/assets/**/*.js' ], compare: compareAngularFiles },
+    css: { files: [ 'build/production/assets/**/*.css', '!**/*.base.css' ], compare: compareStylesheets }
   }
 };
 
@@ -97,7 +101,7 @@ gulp.task('clean:dev', function() {
 });
 
 gulp.task('clean:prod', function() {
-  return gulp.src([ 'build/production/*', 'tmp/production/*' ], { read: false })
+  return gulp.src([ 'build/production/*' ], { read: false })
     .pipe(clean());
 });
 
@@ -182,12 +186,9 @@ gulp.task('dev:favicon', function() {
  * Copies font dependencies defined in `client/dependencies.yml` to `build/development/assets/fonts`.
  */
 gulp.task('dev:fonts', function() {
-
-  var dependencies = getDependencies('fonts');
-
-  return gulpifySrc(dependencies)
+  return gulpifySrc(src.fonts)
     .pipe(logUtils.processedFiles('build/development/assets'))
-    .pipe(pipeDevAssetsFactory('fonts'));
+    .pipe(pipeDevAssets('fonts'));
 });
 
 /**
@@ -215,7 +216,7 @@ gulp.task('dev:pug:templates', function() {
   return gulpifySrc(src.templates)
     .pipe(logUtils.processedFiles('build/development', 'pug', 'html'))
     .pipe(pipeCompilePug())
-    .pipe(pipeDevFiles());
+    .pipe(pipeDevAssets());
 });
 
 /**
@@ -262,18 +263,6 @@ gulp.task('dev:stylus', function() {
     .pipe(logUtils.processedFiles('build/development/assets', 'styl', 'css'))
     .pipe(pipeCompileStylus())
     .pipe(pipeDevAssets());
-});
-
-/**
- * Watches `client/dependencies.yml` and automatically re-injects the required link and script tags in the index when changes are detected.
- */
-gulp.task('dev:watch:dependencies', function() {
-  return srcUtils.watch(src.dependencies, function(file) {
-    clearDependenciesCache();
-    return gulpifySrc(src.compiledIndex)
-      .pipe(pipeInject('build/development'))
-      .pipe(pipeDevFiles());
-  });
 });
 
 /**
@@ -346,9 +335,9 @@ gulp.task('dev:watch:stylus', function() {
 gulp.task('dev:build', sequence('local:env', 'clean:dev', [ 'dev:favicon', 'dev:fonts', 'dev:less', 'dev:pug:templates', 'dev:stylus' ], 'dev:pug:index'));
 
 /**
- * Runs all watch tasks (dependencies manifest, Less stylesheets, Stylus stylesheets, Pug templates and linting).
+ * Runs all watch tasks (Less stylesheets, Stylus stylesheets, Pug templates and linting).
  */
-gulp.task('dev:watch', [ 'dev:watch:dependencies', 'dev:watch:less', 'dev:watch:lint', 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
+gulp.task('dev:watch', [ 'dev:watch:less', 'dev:watch:lint', 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
 
 /**
  * Builds and runs the development environment:
@@ -378,17 +367,9 @@ gulp.task('prod:env', function() {
 });
 
 /**
- * Builds the production CSS stylesheet:
- *
- * * Compile all stylesheets (Less & Stylus) and sort them in the correct order.
- * * Prepend all stylesheet dependencies.
- * * Concatenate all stylesheets into `app.css`.
- * * Minify `app.css`.
- * * Save `app.css` to `build/production/assets`.
- *
- * Static asset revisioning is performed later with the `prod:rev` and `prod:rev:replace` tasks.
+ * Compiles the Less and Stylus stylesheets in `client`, concatenates them and saves them to `build/production/assets/app.css`.
  */
-gulp.task('prod:css', function() {
+gulp.task('prod:css', [ 'prod:env' ], function() {
 
   var lessSrc = gulpifySrc(src.less)
     .pipe(pipeCompileLess());
@@ -397,75 +378,159 @@ gulp.task('prod:css', function() {
     .pipe(pipeCompileStylus());
 
   return gulpifySrc(merge(lessSrc, stylusSrc))
-    .pipe(srcUtils.pipeSortFactory(compareStylesheets))
-    .pipe(addSrc.prepend(getDependencies('css')))
+    .pipe(srcUtils.stableSort(compareStylesheets))
     .pipe(concat('app.css'))
-    .pipe(logUtils.storeInitialSize('css'))
-    .pipe(cssmin())
     .pipe(pipeProdAssets());
-});
-
-/**
- * Copies font dependencies defined in `client/dependencies.yml` to `build/production/assets/fonts`.
- */
-gulp.task('prod:fonts', function() {
-
-  var dependencies = getDependencies('fonts');
-
-  return gulpifySrc(dependencies)
-    .pipe(pipeProdAssetsFactory('fonts'));
-});
-
-/**
- * Builds the production JavaScript file:
- *
- * * Include all JavaScript sources.
- * * Compile all Pug templates (excluding the index) and wrap them into JavaScript files.
- * * Run all Angular files through ng-annotate.
- * * Concatenate all JavaScript into `app.js`.
- * * Uglify `app.js`.
- * * Save `app.js` to `build/production/assets`.
- *
- * Static asset revisioning is performed later with the `prod:rev` and `prod:rev:replace` tasks.
- */
-gulp.task('prod:js', function() {
-
-  // JavaScript sources (client & dependencies).
-  var codeSrc = gulpifySrc(src.js);
-
-  // Wrapped templates.
-  var templatesSrc = gulpifySrc(src.templates)
-    .pipe(pipeCompilePug())
-    .pipe(wrapTemplateFactory());
-
-  return gulpifySrc(streamQueue({ objectMode: true }, codeSrc, templatesSrc))
-    .pipe(ngAnnotate())
-    .pipe(concat('app.js'))
-    .pipe(logUtils.storeInitialSize('js'))
-    .pipe(uglify())
-    .pipe(pipeProdAssets());
-});
-
-/**
- * Compiles `client/index.pug` to `build/production` and injects the required link and script tags.
- * Stylesheets and scripts are sorted with custom functions to ensure they are in the correct order.
- * All HTML comments are removed.
- */
-gulp.task('prod:index', function() {
-  return gulpifySrc(src.index)
-    .pipe(pipeCompilePug())
-    .pipe(pipeInject('build/production'))
-    .pipe(logUtils.storeInitialSize('html'))
-    .pipe(removeHtmlComments())
-    .pipe(pipeProdFiles());
 });
 
 /**
  * Copies `client/favicon.ico` to `build/production`.
  */
-gulp.task('prod:favicon', function() {
+gulp.task('prod:favicon', [ 'prod:env' ], function() {
   return gulpifySrc(src.favicon)
     .pipe(pipeProdFiles());
+});
+
+/**
+ * Copies font dependencies defined in `client/dependencies.yml` to `build/production/assets/fonts`.
+ */
+gulp.task('prod:fonts', [ 'prod:env' ], function() {
+  return gulpifySrc(src.fonts)
+    .pipe(pipeProdAssets('fonts'));
+});
+
+/**
+ * Prepare production JavaScript files:
+ *
+ * * Copy all JavaScript sources.
+ * * Compile all Pug templates and wrap them into JavaScript files.
+ * * Run all Angular files through ng-annotate.
+ * * Save all files to `build/production/assets`.
+ */
+gulp.task('prod:js', [ 'prod:env' ], function() {
+
+  // JavaScript sources.
+  var codeSrc = gulpifySrc(src.js);
+
+  // Wrapped templates.
+  var templatesSrc = gulpifySrc(src.templates)
+    .pipe(pipeCompilePug())
+    .pipe(wrapTemplate());
+
+  return gulpifySrc(streamQueue({ objectMode: true }, codeSrc, templatesSrc))
+    .pipe(ngAnnotate())
+    .pipe(concat('app.js'))
+    .pipe(pipeProdAssets());
+});
+
+/**
+ * Compiles `client/index.pug` to `build/production` and injects the required link and script tags.
+ *
+ * Note: the compiled HTML must be pretty-printed as the useref plugin
+ * used later in this build chain does not work with one-line files.
+ */
+gulp.task('prod:index', [ 'prod:css', 'prod:js' ], function() {
+  return gulpifySrc(src.index)
+    .pipe(pipeCompilePug())
+    .pipe(pipeInject('build/production'))
+    .pipe(pipeProdFiles());
+});
+
+/**
+ * Parses build comments in `build/production/index.html` and concatenates the files within.
+ */
+gulp.task('prod:useref', [ 'prod:index' ], function() {
+  return gulpifySrc(src.prodIndex)
+    .pipe(useref({
+      searchPath: [ 'build/production', '.' ]
+    }))
+    .pipe(pipeProdFiles());
+});
+
+/**
+ * Minifies the production stylesheets in `build/production`.
+ */
+gulp.task('prod:minify:css', [ 'prod:useref' ], function() {
+  return gulpifySrc(src.prodCss)
+    .pipe(logUtils.storeInitialSize('css'))
+    .pipe(cssmin())
+    .pipe(pipeProdFiles());
+});
+
+/**
+ * Minifies the production HTML files in `build/production`.
+ *
+ * Note: this needs to be done after the `gulp:useref` task
+ * as the useref plugin does not work with one-line files.
+ */
+gulp.task('prod:minify:html', [ 'prod:useref' ], function() {
+  return gulpifySrc(src.prodHtml)
+    .pipe(logUtils.storeInitialSize('html'))
+    .pipe(htmlmin({
+      caseSensitive: true,
+      collapseWhitespace: true,
+      removeComments: true
+    }))
+    .pipe(pipeProdFiles());
+})
+
+/**
+ * Minifies the production JavaScript files in `build/production`.
+ */
+gulp.task('prod:minify:js', [ 'prod:useref' ], function() {
+  return gulpifySrc(src.prodJs)
+    .pipe(logUtils.storeInitialSize('js'))
+    .pipe(uglify())
+    .pipe(pipeProdFiles());
+});
+
+/**
+ * Minifies production files in `build/production`.
+ */
+gulp.task('prod:minify', [ 'prod:minify:css', 'prod:minify:html', 'prod:minify:js' ]);
+
+/**
+ * Prepare all production assets for static revisioning.
+ */
+gulp.task('prod:unreved', [ 'prod:favicon', 'prod:fonts', 'prod:minify'  ]);
+
+/**
+ * Performs static asset revisioning on production assets in `build/production`
+ *
+ * @see https://github.com/sindresorhus/gulp-rev
+ * @see https://github.com/jamesknelson/gulp-rev-replace
+ */
+gulp.task('prod:rev', [ 'prod:unreved' ], function() {
+
+  function relativeToAbsolutePath(filename) {
+    return '/' + filename;
+  }
+
+  return gulpifySrc(src.prod)
+    .pipe(filters.rev)
+    .pipe(rev())
+    .pipe(revDeleteOriginal())
+    .pipe(pipeProdFiles())
+    .pipe(filters.rev.restore)
+    .pipe(revReplace({
+      modifyUnreved: relativeToAbsolutePath,
+      modifyReved: relativeToAbsolutePath
+    }))
+    .pipe(pipeProdFiles());
+});
+
+/**
+ * Logs the total size of `build/production`.
+ */
+gulp.task('prod:size', function(callback) {
+  getFolderSize('build/production', function(err, size) {
+    if (err) {
+      return callback(err);
+    }
+
+    util.log(util.colors.blue('build/production - ' + prettyBytes(size)));
+    callback();
+  });
 });
 
 /**
@@ -485,63 +550,16 @@ gulp.task('prod:nodemon', function() {
 });
 
 /**
- * Performs static asset revisioning on production assets in `build/production` (see https://github.com/sindresorhus/gulp-rev).
- * The rev manifest is stored in `tmp/production`.
- */
-gulp.task('prod:rev', function() {
-  return gulpifySrc(src.prod)
-    .pipe(filters.rev)
-    .pipe(rev())
-    .pipe(filters.rev.restore)
-    .pipe(pipeProdFiles())
-    .pipe(revDeleteOriginal())
-    .pipe(rev.manifest())
-    .pipe(gulp.dest('tmp/production'));
-});
-
-/**
- * Replaces references to rev'd production assets in `build/production`.
- */
-gulp.task('prod:rev:replace', function() {
-
-  function relativeToAbsolutePath(filename) {
-    return '/' + filename;
-  }
-
-  return gulpifySrc(src.prod)
-    .pipe(revReplace({
-      manifest: gulp.src('tmp/production/rev-manifest.json'),
-      modifyUnreved: relativeToAbsolutePath,
-      modifyReved: relativeToAbsolutePath
-    }))
-   .pipe(gulp.dest('build/production'));
-});
-
-/**
- * Logs the total size of `build/production`.
- */
-gulp.task('prod:size', function(callback) {
-  getFolderSize('build/production', function(err, size) {
-    if (err) {
-      return callback(err);
-    }
-
-    util.log(util.colors.blue('build/production - ' + prettyBytes(size)));
-    callback();
-  });
-});
-
-/**
- * Builds all production files once:
+ * Builds the production application:
  *
  * * Load the local environment file if it exists.
  * * Set the environment to production.
  * * Clean up the production build directory.
- * * Copy and compile all required files (favicon, fonts, Less stylesheets, Stylus stylesheets, Pug templates).
+ * * Build, concatenate and minify all production files (favicon, fonts, JavaScript, Less stylesheets, Stylus stylesheets, Pug templates).
  * * Perform static asset revisioning.
  * * Log the total size of the production build directory.
  */
-gulp.task('prod:build', sequence('local:env', 'prod:env', 'clean:prod', [ 'prod:css', 'prod:favicon', 'prod:fonts', 'prod:js' ], 'prod:index', 'prod:rev', 'prod:rev:replace', 'prod:size'));
+gulp.task('prod:build', sequence('local:env', 'prod:env', 'clean:prod', 'prod:rev', 'prod:size'));
 
 /**
  * Builds and runs the production environment:
@@ -614,18 +632,11 @@ function pipeDevFiles(stream, dest) {
   })();
 }
 
-function pipeDevAssets(dest) {
+function pipeDevAssets(dir, dest) {
   return chain(function(stream) {
     return stream
-      .pipe(gulp.dest(dest || 'build/development/assets'))
+      .pipe(gulp.dest(path.join(dest || 'build/development/assets', dir || '.')))
       .pipe(livereload());
-  })();
-}
-
-function pipeDevAssetsFactory(dir, dest) {
-  return chain(function(stream) {
-    return stream
-      .pipe(pipeDevAssets(path.join(dest || 'build/development/assets', dir)));
   })();
 }
 
@@ -637,18 +648,11 @@ function pipeProdFiles(dest) {
   })();
 }
 
-function pipeProdAssets(dest) {
+function pipeProdAssets(dir, dest) {
   return chain(function(stream) {
     return stream
-      .pipe(gulp.dest(dest || 'build/production/assets'))
+      .pipe(gulp.dest(path.join(dest || 'build/production/assets', dir || '.')))
       .pipe(logUtils.productionFiles('build/production'));
-  })();
-}
-
-function pipeProdAssetsFactory(dir, dest) {
-  return chain(function(stream) {
-    return stream
-      .pipe(pipeProdAssets(path.join(dest || 'build/production/assets', dir)));
   })();
 }
 
@@ -660,7 +664,7 @@ function pipeCompilePug(stream) {
     return stream
       .pipe(pug({
         locals: config,
-        pretty: config.env != 'production'
+        pretty: true
       }))
       .on('error', util.log);
   })();
@@ -676,27 +680,6 @@ function getConfig() {
   }
 
   return _config;
-}
-
-var _dependencies;
-function getDependencies(type) {
-  if (!_dependencies) {
-    var config = getConfig();
-    _dependencies = yaml.safeLoad(fs.readFileSync('client/dependencies.yml', 'utf-8'));
-  }
-
-  return type ? _dependencies[type] : _dependencies;
-}
-
-function clearDependenciesCache() {
-  _dependencies = null;
-}
-
-function assetsWithDependenciesFactory(type, src, options) {
-  return function(additionalOptions) {
-    return gulpifySrc(src, _.extend({}, src, options, additionalOptions))
-      .pipe(addSrc.prepend(getDependencies(type)));
-  };
 }
 
 function changedFileSrc(file, base) {
@@ -723,7 +706,7 @@ function sequence() {
 
 var htmlTemplateWrapper = _.template("angular.module(<%= angularModule %>).run(function($templateCache) { $templateCache.put(<%= templateUrl %>, <%= templateContents %>); });");
 
-function wrapTemplateFactory() {
+function wrapTemplate() {
   return through.obj(function(file, enc, callback) {
     if (file.isStream()) {
       return callback(new PluginError('gulp-wrap-template', 'Streaming not supported'));
@@ -731,8 +714,8 @@ function wrapTemplateFactory() {
 
     var config = getConfig();
 
-    var templateUrl = '/' + path.relative('client', file.path);
-    file.path = file.path.replace(/\.html$/, '.js');
+    var templateUrl = '/assets/' + path.relative('client', file.path);
+    file.path = file.path.replace(/\.html$/, '.template.js');
 
     if (file.isBuffer()) {
       try {
@@ -802,10 +785,8 @@ function compareStylesheets(f1, f2) {
     // if both are base stylesheets, or if both are not base stylesheets.
     return f1.path.localeCompare(f2.path);
   } else if (f1Base) {
-    // If f1 is a base stylesheet and f2 is not, place f1 first.
     return -1;
   } else {
-    // If f1 is not a base stylesheet and f2 is, place f1 last.
     return 1;
   }
 }

@@ -15,7 +15,7 @@
         url: '/',
         controller: 'BioHomeCtrl',
         controllerAs: 'home',
-        templateUrl: '/home/home.html'
+        templateUrl: '/assets/home/home.html'
       })
 
     ;

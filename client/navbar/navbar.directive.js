@@ -10,7 +10,7 @@
     return {
       restrict: 'E',
       controller: 'BioNavbarCtrl',
-      templateUrl: '/navbar/navbar.html'
+      templateUrl: '/assets/navbar/navbar.html'
     };
   }
 
