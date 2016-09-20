@@ -2,6 +2,7 @@ var _ = require('lodash'),
     addSrc = require('gulp-add-src'),
     apidoc = require('gulp-apidocjs'),
     autoPrefixer = require('gulp-autoprefixer'),
+    chain = require('gulp-chain'),
     clean = require('gulp-clean'),
     concat = require('gulp-concat'),
     cssmin = require('gulp-cssmin'),
@@ -26,6 +27,7 @@ var _ = require('lodash'),
     revDeleteOriginal = require('gulp-rev-delete-original'),
     revReplace = require('gulp-rev-replace'),
     removeHtmlComments = require('gulp-remove-html-comments'),
+    runSequence = require('run-sequence'),
     streamQueue = require('streamqueue'),
     stylus = require('gulp-stylus'),
     through = require('through2'),
@@ -35,16 +37,12 @@ var _ = require('lodash'),
 
 // Custom utilities.
 var logUtils = require('./lib/gulp-log-utils'),
-    srcUtils = require('./lib/gulp-src-utils'),
-    taskUtils = require('./lib/gulp-task-utils');
+    srcUtils = require('./lib/gulp-src-utils');
 
 // Often-used functions in this file.
 var gulpifySrc = srcUtils.gulpify,
     PluginError = util.PluginError,
-    sequence = taskUtils.sequence,
-    taskBuilder = taskUtils.taskBuilder,
-    watchSrc = srcUtils.watch,
-    watchTaskBuilder = taskUtils.watchTaskBuilder;
+    watchSrc = srcUtils.watch;
 
 // Configuration
 // -------------
@@ -123,7 +121,7 @@ gulp.task('doc:api', function(callback) {
  * Opens the API documentation in the browser.
  */
 gulp.task('doc:api:open', [ 'local:env' ], function() {
-  return gulpOpen('./doc/api/index.html')
+  return gulpOpen('./doc/api/index.html');
 });
 
 /**
@@ -175,10 +173,9 @@ gulp.task('local:env', function() {
  * Copies `client/favicon.ico` to `build/development`.
  */
 gulp.task('dev:favicon', function() {
-  return taskBuilder(src.favicon)
+  return gulpifySrc(src.favicon)
     .pipe(logUtils.processedFiles('build/development'))
-    .add(pipeDevFiles)
-    .stream();
+    .pipe(pipeDevFiles());
 });
 
 /**
@@ -188,41 +185,37 @@ gulp.task('dev:fonts', function() {
 
   var dependencies = getDependencies('fonts');
 
-  return taskBuilder(dependencies)
+  return gulpifySrc(dependencies)
     .pipe(logUtils.processedFiles('build/development/assets'))
-    .add(pipeDevAssetsFactory('fonts'))
-    .stream();
+    .pipe(pipeDevAssetsFactory('fonts'));
 });
 
 /**
  * Compiles the Less stylesheets in `client` to `build/development/assets`.
  */
 gulp.task('dev:less', function() {
-  return taskBuilder(src.less)
+  return gulpifySrc(src.less)
     .pipe(logUtils.processedFiles('build/development/assets', 'less', 'css'))
-    .add(pipeCompileLess)
-    .add(pipeDevAssets)
-    .stream();
+    .pipe(pipeCompileLess())
+    .pipe(pipeDevAssets());
 });
 
 /**
  * Runs the project's JavaScript files through JSHint.
  */
 gulp.task('dev:lint', function() {
-  return taskBuilder(src.lintJs)
-    .add(pipeLint)
-    .stream();
+  return gulpifySrc(src.lintJs)
+    .pipe(pipeLint());
 });
 
 /**
  * Compiles the Pug templates in `client` to `build/development`.
  */
 gulp.task('dev:pug:templates', function() {
-  return taskBuilder(src.templates)
+  return gulpifySrc(src.templates)
     .pipe(logUtils.processedFiles('build/development', 'pug', 'html'))
-    .add(pipeCompilePug)
-    .add(pipeDevFiles)
-    .stream();
+    .pipe(pipeCompilePug())
+    .pipe(pipeDevFiles());
 });
 
 /**
@@ -230,12 +223,11 @@ gulp.task('dev:pug:templates', function() {
  * Stylesheets and scripts are sorted with custom functions to ensure they are in the correct order.
  */
 gulp.task('dev:pug:index', function() {
-  return taskBuilder(src.index)
+  return gulpifySrc(src.index)
     .pipe(logUtils.processedFiles('build/development', 'pug', 'html'))
-    .add(pipeCompilePug)
-    .add(pipeInjectFactory('build/development'))
-    .add(pipeDevFiles)
-    .stream();
+    .pipe(pipeCompilePug())
+    .pipe(pipeInject('build/development'))
+    .pipe(pipeDevFiles());
 });
 
 /**
@@ -266,11 +258,10 @@ gulp.task('dev:nodemon', function() {
  * Compiles the Stylus files in `client` to `build/development/assets`.
  */
 gulp.task('dev:stylus', function() {
-  return taskBuilder(src.styl)
+  return gulpifySrc(src.styl)
     .pipe(logUtils.processedFiles('build/development/assets', 'styl', 'css'))
-    .add(pipeCompileStylus)
-    .add(pipeDevAssets)
-    .stream();
+    .pipe(pipeCompileStylus())
+    .pipe(pipeDevAssets());
 });
 
 /**
@@ -279,10 +270,9 @@ gulp.task('dev:stylus', function() {
 gulp.task('dev:watch:dependencies', function() {
   return srcUtils.watch(src.dependencies, function(file) {
     clearDependenciesCache();
-    return taskBuilder(src.compiledIndex)
-      .add(pipeInjectFactory('build/development'))
-      .add(pipeDevFiles)
-      .stream();
+    return gulpifySrc(src.compiledIndex)
+      .pipe(pipeInject('build/development'))
+      .pipe(pipeDevFiles());
   });
 });
 
@@ -291,11 +281,10 @@ gulp.task('dev:watch:dependencies', function() {
  */
 gulp.task('dev:watch:less', function() {
   return srcUtils.watch(src.less, function(file) {
-    return watchTaskBuilder(file, 'client')
+    return changedFileSrc(file, 'client')
       .pipe(logUtils.processedFiles('build/development/assets', 'less', 'css'))
-      .add(pipeCompileLess)
-      .add(pipeDevAssets)
-      .stream();
+      .pipe(pipeCompileLess())
+      .pipe(pipeDevAssets());
   });
 });
 
@@ -304,10 +293,9 @@ gulp.task('dev:watch:less', function() {
  */
 gulp.task('dev:watch:lint', function() {
   return srcUtils.watch(src.lintJs, function(file) {
-    return taskBuilder(file.path)
-      .add(pipeLint)
-      .on('error', _.noop)
-      .stream();
+    return gulpifySrc(file.path)
+      .pipe(pipeLint())
+      .on('error', _.noop);
   });
 });
 
@@ -316,11 +304,10 @@ gulp.task('dev:watch:lint', function() {
  */
 gulp.task('dev:watch:pug:templates', function() {
   return srcUtils.watch(src.templates, function(file) {
-    return watchTaskBuilder(file, 'client')
+    return changedFileSrc(file, 'client')
       .pipe(logUtils.processedFiles('build/development', 'pug', 'html'))
-      .add(pipeCompilePug)
-      .add(pipeDevFiles)
-      .stream();
+      .pipe(pipeCompilePug())
+      .pipe(pipeDevFiles());
   });
 });
 
@@ -329,12 +316,11 @@ gulp.task('dev:watch:pug:templates', function() {
  */
 gulp.task('dev:watch:pug:index', function() {
   return srcUtils.watch(src.index, function(file) {
-    return watchTaskBuilder(file, 'client')
+    return changedFileSrc(file, 'client')
       .pipe(logUtils.processedFiles('build/development', 'pug', 'html'))
-      .add(pipeCompilePug)
-      .add(pipeInjectFactory('build/development'))
-      .add(pipeDevFiles)
-      .stream();
+      .pipe(pipeCompilePug())
+      .pipe(pipeInject('build/development'))
+      .pipe(pipeDevFiles());
   });
 });
 
@@ -343,11 +329,10 @@ gulp.task('dev:watch:pug:index', function() {
  */
 gulp.task('dev:watch:stylus', function() {
   return srcUtils.watch(src.styl, function(file) {
-    return watchTaskBuilder(file, 'client')
+    return changedFileSrc(file, 'client')
       .pipe(logUtils.processedFiles('build/development/assets', 'styl', 'css'))
-      .add(pipeCompileStylus)
-      .add(pipeDevAssets)
-      .stream();
+      .pipe(pipeCompileStylus())
+      .pipe(pipeDevAssets());
   });
 });
 
@@ -405,22 +390,19 @@ gulp.task('prod:env', function() {
  */
 gulp.task('prod:css', function() {
 
-  var lessSrc = taskBuilder(src.less)
-    .add(pipeCompileLess)
-    .stream();
+  var lessSrc = gulpifySrc(src.less)
+    .pipe(pipeCompileLess());
 
-  var stylusSrc = taskBuilder(src.styl)
-    .add(pipeCompileStylus)
-    .stream();
+  var stylusSrc = gulpifySrc(src.styl)
+    .pipe(pipeCompileStylus());
 
-  return taskBuilder(merge(lessSrc, stylusSrc))
-    .add(srcUtils.pipeSortFactory(compareStylesheets))
+  return gulpifySrc(merge(lessSrc, stylusSrc))
+    .pipe(srcUtils.pipeSortFactory(compareStylesheets))
     .pipe(addSrc.prepend(getDependencies('css')))
     .pipe(concat('app.css'))
     .pipe(logUtils.storeInitialSize('css'))
     .pipe(cssmin())
-    .add(pipeProdAssets)
-    .stream();
+    .pipe(pipeProdAssets());
 });
 
 /**
@@ -430,9 +412,8 @@ gulp.task('prod:fonts', function() {
 
   var dependencies = getDependencies('fonts');
 
-  return taskBuilder(dependencies)
-    .add(pipeProdAssetsFactory('fonts'))
-    .stream();
+  return gulpifySrc(dependencies)
+    .pipe(pipeProdAssetsFactory('fonts'));
 });
 
 /**
@@ -450,21 +431,19 @@ gulp.task('prod:fonts', function() {
 gulp.task('prod:js', function() {
 
   // JavaScript sources (client & dependencies).
-  var codeSrc = taskBuilder(src.js).stream();
+  var codeSrc = gulpifySrc(src.js);
 
   // Wrapped templates.
-  var templatesSrc = taskBuilder(src.templates)
-    .add(pipeCompilePug)
-    .pipe(wrapTemplateFactory())
-    .stream();
+  var templatesSrc = gulpifySrc(src.templates)
+    .pipe(pipeCompilePug())
+    .pipe(wrapTemplateFactory());
 
-  return taskBuilder(streamQueue({ objectMode: true }, codeSrc, templatesSrc))
+  return gulpifySrc(streamQueue({ objectMode: true }, codeSrc, templatesSrc))
     .pipe(ngAnnotate())
     .pipe(concat('app.js'))
     .pipe(logUtils.storeInitialSize('js'))
     .pipe(uglify())
-    .add(pipeProdAssets)
-    .stream();
+    .pipe(pipeProdAssets());
 });
 
 /**
@@ -473,22 +452,20 @@ gulp.task('prod:js', function() {
  * All HTML comments are removed.
  */
 gulp.task('prod:index', function() {
-  return taskBuilder(src.index)
-    .add(pipeCompilePug)
-    .add(pipeInjectFactory('build/production'))
+  return gulpifySrc(src.index)
+    .pipe(pipeCompilePug())
+    .pipe(pipeInject('build/production'))
     .pipe(logUtils.storeInitialSize('html'))
     .pipe(removeHtmlComments())
-    .add(pipeProdFiles)
-    .stream();
+    .pipe(pipeProdFiles());
 });
 
 /**
  * Copies `client/favicon.ico` to `build/production`.
  */
 gulp.task('prod:favicon', function() {
-  return taskBuilder(src.favicon)
-    .add(pipeProdFiles)
-    .stream();
+  return gulpifySrc(src.favicon)
+    .pipe(pipeProdFiles());
 });
 
 /**
@@ -512,15 +489,14 @@ gulp.task('prod:nodemon', function() {
  * The rev manifest is stored in `tmp/production`.
  */
 gulp.task('prod:rev', function() {
-  return taskBuilder(src.prod)
+  return gulpifySrc(src.prod)
     .pipe(filters.rev)
     .pipe(rev())
     .pipe(filters.rev.restore)
-    .add(pipeProdFiles)
+    .pipe(pipeProdFiles())
     .pipe(revDeleteOriginal())
     .pipe(rev.manifest())
-    .pipe(gulp.dest('tmp/production'))
-    .stream();
+    .pipe(gulp.dest('tmp/production'));
 });
 
 /**
@@ -532,14 +508,13 @@ gulp.task('prod:rev:replace', function() {
     return '/' + filename;
   }
 
-  return taskBuilder(src.prod)
+  return gulpifySrc(src.prod)
     .pipe(revReplace({
       manifest: gulp.src('tmp/production/rev-manifest.json'),
       modifyUnreved: relativeToAbsolutePath,
       modifyReved: relativeToAbsolutePath
     }))
-   .pipe(gulp.dest('build/production'))
-   .stream();
+   .pipe(gulp.dest('build/production'));
 });
 
 /**
@@ -590,8 +565,8 @@ gulp.task('default', [ 'dev' ]);
 // Reusable pipe sequences
 // -----------------------
 
-function pipeInjectFactory(dest) {
-  return function(src) {
+function pipeInject(dest) {
+  return chain(function(stream) {
 
     var config = getConfig();
 
@@ -599,79 +574,96 @@ function pipeInjectFactory(dest) {
       return inject(gulpifySrc(files, { read: false }), { ignorePath: dest });
     }
 
-    return taskBuilder(src)
+    return gulpifySrc(stream)
       .pipe(autoInject(injections[config.env].js))
-      .pipe(autoInject(injections[config.env].css))
-      .stream();
-  };
+      .pipe(autoInject(injections[config.env].css));
+  })();
 }
 
-function pipeCompileLess(src) {
-  return src
-    .pipe(less({
-      paths: [ 'client', 'node_modules' ]
-    }));
+function pipeCompileLess() {
+  return chain(function(stream) {
+    return stream
+      .pipe(less({
+        paths: [ 'client', 'node_modules' ]
+      }));
+  })();
 }
 
-function pipeCompileStylus(src) {
-  return src
-    .pipe(stylus())
-    .pipe(autoPrefixer());
+function pipeCompileStylus() {
+  return chain(function(stream) {
+    return stream
+      .pipe(stylus())
+      .pipe(autoPrefixer());
+  })();
 }
 
-function pipeLint(src) {
-  return src
-    .pipe(jshint())
-    .pipe(jshint.reporter('jshint-stylish'))
-    .pipe(jshint.reporter('fail'));
+function pipeLint() {
+  return chain(function(stream) {
+    return stream
+      .pipe(jshint())
+      .pipe(jshint.reporter('jshint-stylish'))
+      .pipe(jshint.reporter('fail'));
+  })();
 }
 
-function pipeDevFiles(src, dest) {
-  return src
-    .pipe(gulp.dest(dest || 'build/development'))
-    .pipe(livereload());
+function pipeDevFiles(stream, dest) {
+  return chain(function(stream) {
+    return stream
+      .pipe(gulp.dest(dest || 'build/development'))
+      .pipe(livereload());
+  })();
 }
 
-function pipeDevAssets(src, dest) {
-  return src
-    .pipe(gulp.dest(dest || 'build/development/assets'))
-    .pipe(livereload());
+function pipeDevAssets(dest) {
+  return chain(function(stream) {
+    return stream
+      .pipe(gulp.dest(dest || 'build/development/assets'))
+      .pipe(livereload());
+  })();
 }
 
 function pipeDevAssetsFactory(dir, dest) {
-  return function(src) {
-    return pipeDevAssets(src, path.join(dest || 'build/development/assets', dir));
-  };
+  return chain(function(stream) {
+    return stream
+      .pipe(pipeDevAssets(path.join(dest || 'build/development/assets', dir)));
+  })();
 }
 
-function pipeProdFiles(src, dest) {
-  return src
-    .pipe(gulp.dest(dest || 'build/production'))
-    .pipe(logUtils.productionFiles('build/production'));
+function pipeProdFiles(dest) {
+  return chain(function(stream) {
+    return stream
+      .pipe(gulp.dest(dest || 'build/production'))
+      .pipe(logUtils.productionFiles('build/production'));
+  })();
 }
 
-function pipeProdAssets(src, dest) {
-  return src
-    .pipe(gulp.dest(dest || 'build/production/assets'))
-    .pipe(logUtils.productionFiles('build/production'));
+function pipeProdAssets(dest) {
+  return chain(function(stream) {
+    return stream
+      .pipe(gulp.dest(dest || 'build/production/assets'))
+      .pipe(logUtils.productionFiles('build/production'));
+  })();
 }
 
 function pipeProdAssetsFactory(dir, dest) {
-  return function(src) {
-    return pipeProdAssets(src, path.join(dest || 'build/production/assets', dir));
-  };
+  return chain(function(stream) {
+    return stream
+      .pipe(pipeProdAssets(path.join(dest || 'build/production/assets', dir)));
+  })();
 }
 
-function pipeCompilePug(src) {
+function pipeCompilePug(stream) {
 
   var config = getConfig();
 
-  return src
-    .pipe(pug({
-      locals: config,
-      pretty: config.env != 'production'
-    }))
-    .on('error', util.log);
+  return chain(function(stream) {
+    return stream
+      .pipe(pug({
+        locals: config,
+        pretty: config.env != 'production'
+      }))
+      .on('error', util.log);
+  })();
 }
 
 // Utility functions
@@ -704,6 +696,28 @@ function assetsWithDependenciesFactory(type, src, options) {
   return function(additionalOptions) {
     return gulpifySrc(src, _.extend({}, src, options, additionalOptions))
       .pipe(addSrc.prepend(getDependencies(type)));
+  };
+}
+
+function changedFileSrc(file, base) {
+  return gulpifySrc({ files: file.path, base: base });
+}
+
+/**
+ * Returns a gulp task definition function that will use the run-sequence gulp plugin
+ * to run the specified tasks in a specific order. Useful to define complex task aliases.
+ *
+ * @param {...String,Array} names - A sequence of task names (tasks to run in sequence) and task name arrays (tasks to run in parallel).
+ * @returns {Function} A gulp task definition function.
+ *
+ * @example
+ * // The `dev` task defined below will first run `foo`, then `bar` and `baz` in parallel, then `qux`.
+ * gulp.task('dev', taskUtils.sequence('foo', [ 'bar', 'baz' ], 'qux'));
+ */
+function sequence() {
+  var tasks = Array.prototype.slice.call(arguments);
+  return function(callback) {
+    return runSequence.apply(undefined, [].concat(tasks).concat([ callback ]));
   };
 }
 
