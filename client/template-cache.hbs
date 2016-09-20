@@ -1,0 +1,7 @@
+(function() {
+  angular
+    .module(<%= angularModule %>)
+    .run(function($templateCache) {
+      $templateCache.put(<%= templateUrl %>, <%= templateContents %>);
+    });
+})();
