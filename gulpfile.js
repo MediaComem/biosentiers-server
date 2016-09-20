@@ -46,6 +46,7 @@ var gulpifySrc = srcUtils.gulpify,
 // -------------
 
 var dirs = {
+  client: 'client',
   devBuild: 'build/development',
   devAssets: 'build/development/assets',
   prodBuild: 'build/production',
@@ -224,10 +225,7 @@ gulp.task('dev:pug:templates', function() {
  */
 gulp.task('dev:pug:index', function() {
   return gulpifySrc(src.index)
-    .pipe(compilePug())
-    .pipe(autoInject(dirs.devBuild))
-    .pipe(logProcessedFiles(dirs.devBuild, 'pug'))
-    .pipe(toDevBuild());
+    .pipe(buildIndex());
 });
 
 /**
@@ -305,10 +303,7 @@ gulp.task('dev:watch:pug:templates', function() {
 gulp.task('dev:watch:pug:index', function() {
   return srcUtils.watch(src.index, function(file) {
     return changedFileSrc(file, 'client')
-      .pipe(compilePug())
-      .pipe(autoInject(dirs.devBuild))
-      .pipe(logProcessedFiles(dirs.devBuild, 'pug'))
-      .pipe(toDevBuild());
+      .pipe(buildIndex());
   });
 });
 
@@ -317,10 +312,27 @@ gulp.task('dev:watch:pug:index', function() {
  */
 gulp.task('dev:watch:stylus', function() {
   return srcUtils.watch(src.styl, function(file) {
-    return changedFileSrc(file, 'client')
+
+    var stream = changedFileSrc(file, 'client')
       .pipe(compileStylus())
-      .pipe(logProcessedFiles(dirs.devAssets, 'styl'))
-      .pipe(toDevBuild('assets'));
+      .pipe(logProcessedFiles(dirs.devAssets, 'styl'));
+
+    if (file.event == 'change') {
+      // In the case of an existing file that was modified, simply save it to the build directory.
+      stream.pipe(toDevBuild('assets'));
+    } else if (file.event == 'add') {
+      stream.pipe(toDevBuild('assets', false)).pipe(rebuildIndex());
+    } else if (file.event == 'unlink') {
+      deleteCompiled(file, dirs.client, dirs.devAssets, 'css', function(err) {
+        if (err) {
+          util.log(err);
+        } else {
+          debouncedRebuildIndex();
+        }
+      });
+    } else {
+      throw new Error('Unsupported gulp-watch event type ' + JSON.stringify(file.event));
+    }
   });
 });
 
@@ -607,6 +619,29 @@ function autoInject(dest) {
   })();
 }
 
+function buildIndex() {
+  return chain(function(stream) {
+    return stream
+      .pipe(compilePug())
+      .pipe(autoInject(dirs.devBuild))
+      .pipe(logProcessedFiles(dirs.devBuild, 'pug'))
+      .pipe(toDevBuild());
+  })();
+}
+
+var debouncedRebuildIndex = _.debounce(function() {
+  util.log('Rebuilding index');
+  return gulpifySrc(src.index)
+    .pipe(buildIndex());
+}, 500);
+
+function rebuildIndex() {
+  return through.obj(function(file, enc, callback) {
+    debouncedRebuildIndex();
+    callback(null, file);
+  });
+}
+
 function compileLess() {
   return chain(function(stream) {
     return stream
@@ -686,8 +721,31 @@ function wrapTemplate() {
   });
 }
 
-function toDevBuild(dir) {
+function deleteCompiled(file, from, to, toExt, callback) {
+
+  var compiledPath = path.join(to, path.relative(from, file.path).replace(/\.[^\.]+$/, '.' + toExt));
+
+  fs.stat(compiledPath, function(err, stat) {
+    if (err) {
+      return callback(err);
+    } else if (!stat) {
+      return callback(null, file);
+    }
+
+    fs.unlink(compiledPath, function(err) {
+      if (err) {
+        callback(err);
+      } else {
+        callback(null, file);
+      }
+    });
+  });
+}
+
+function toDevBuild(dir, reload) {
+
   var dest = path.normalize(path.join(dirs.devBuild, dir || '.'));
+
   return chain(function(stream) {
     return stream
       .pipe(gulp.dest(dest))
