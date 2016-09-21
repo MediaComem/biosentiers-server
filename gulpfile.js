@@ -242,7 +242,7 @@ gulp.task('dev:nodemon', function() {
 
     this.stdout.pipe(process.stdout);
     this.stderr.pipe(process.stderr);
-  });
+  }).on('readable', [ 'open' ]);
 });
 
 /**
@@ -335,7 +335,7 @@ gulp.task('dev:watch', [ 'dev:watch:less', 'dev:watch:lint', 'dev:watch:pug:temp
  * * Run all watch tasks.
  * * Open the browser.
  */
-gulp.task('dev:run', sequence('dev:build', [ 'dev:nodemon', 'dev:watch', 'open' ]));
+gulp.task('dev:run', sequence('dev:build', [ 'dev:nodemon', 'dev:watch' ]));
 
 /**
  * Alias of `dev:run`.
@@ -544,7 +544,7 @@ gulp.task('prod:nodemon', function() {
   }).on('readable', function() {
     this.stdout.pipe(process.stdout);
     this.stderr.pipe(process.stderr);
-  });
+  }).on('readable', [ 'open' ]);
 });
 
 /**
@@ -566,7 +566,7 @@ gulp.task('prod:build', sequence('local:env', 'prod:env', 'clean:prod', 'prod:re
  * * Run the production server.
  * * Open the browser.
  */
-gulp.task('prod:run', sequence('prod:build', [ 'prod:nodemon', 'open' ]));
+gulp.task('prod:run', sequence('prod:build', 'prod:nodemon'));
 
 /**
  * Alias of `prod:run`.
