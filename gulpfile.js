@@ -30,7 +30,8 @@ var _ = require('lodash'),
     through = require('through2'),
     uglify = require('gulp-uglify'),
     useref = require('gulp-useref'),
-    util = require('gulp-util');
+    util = require('gulp-util'),
+    wait = require('gulp-wait');
 
 // Custom utilities.
 var logUtils = require('./lib/gulp-log-utils'),
@@ -240,7 +241,7 @@ gulp.task('dev:nodemon', function() {
 
     this.stdout.pipe(process.stdout);
     this.stderr.pipe(process.stderr);
-  }).on('readable', [ 'open' ]);
+  });
 });
 
 /**
@@ -333,7 +334,7 @@ gulp.task('dev:watch', [ 'dev:watch:less', 'dev:watch:lint', 'dev:watch:template
  * * Run the development server and open the browser.
  * * Run all watch tasks.
  */
-gulp.task('dev:run', sequence('dev:build', [ 'dev:nodemon', 'dev:watch' ]));
+gulp.task('dev:run', sequence('dev:build', [ 'dev:nodemon', 'dev:watch', 'open' ]));
 
 /**
  * Alias of `dev:run`.
@@ -551,7 +552,7 @@ gulp.task('prod:nodemon', [ 'prod:env' ], function() {
   }).on('readable', function() {
     this.stdout.pipe(process.stdout);
     this.stderr.pipe(process.stderr);
-  }).on('readable', [ 'open' ]);
+  });
 });
 
 /**
@@ -573,7 +574,7 @@ gulp.task('prod:build', sequence('prod:env', 'local:env', 'clean:prod', 'prod:re
  * * Run the production server.
  * * Open the browser.
  */
-gulp.task('prod:run', sequence('prod:build', 'prod:nodemon'));
+gulp.task('prod:run', sequence('prod:build', [ 'prod:nodemon', 'open' ]));
 
 /**
  * Alias of `prod:run`.
@@ -830,7 +831,9 @@ function openBrowser(target) {
     throw new Error('Only a file stream or an URL can be opened');
   }
 
-  return stream.pipe(open(openOptions));
+  return stream
+    .pipe(wait(1000))
+    .pipe(open(openOptions));
 }
 
 /**
