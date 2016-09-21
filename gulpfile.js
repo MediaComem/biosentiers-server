@@ -51,10 +51,14 @@ var dirs = {
   devBuild: 'build/development',
   devAssets: 'build/development/assets',
   prodBuild: 'build/production',
-  prodAssets: 'build/production/assets'
+  prodAssets: 'build/production/assets',
+  apiDocSource: 'server/api',
+  apiDocTarget: 'doc/api'
 };
 
 var src = {
+  // Files containing apiDoc comments.
+  apiDoc: { files: '**/*.js', cwd: dirs.apiDocSource },
   // Favicon.
   favicon: { files: 'client/favicon.ico' },
   // Fonts.
@@ -115,18 +119,14 @@ gulp.task('clean:prod', function() {
 
 gulp.task('clean', [ 'clean:dev', 'clean:prod' ]);
 
-// Generic Tasks
-// -------------
+// Documentation Tasks
+// -------------------
 
 /**
  * Generates the API documentation of routes in `server/api` and saves it to `doc/api`.
  */
 gulp.task('doc:api', function(callback) {
-  apidoc.exec({
-    src: 'server/api',
-    dest: 'doc/api',
-    debug: !!process.env.APIDOC_DEBUG
-  }, callback);
+  generateApiDoc(callback);
 });
 
 /**
@@ -140,6 +140,18 @@ gulp.task('doc:api:open', [ 'local:env' ], function() {
  * Generates and opens the project's documentation.
  */
 gulp.task('doc', sequence('doc:api', 'doc:api:open'));
+
+/**
+ * Watches the API documentation in `server/api` and automatically generates it to `doc/api` when changes are detected.
+ */
+gulp.task('doc:watch', function() {
+  return watchSrc(src.apiDoc, function() {
+    debouncedGenerateApiDoc(_.noop);
+  });
+});
+
+// Generic Tasks
+// -------------
 
 /**
  * Opens the URL of the running server in the browser.
@@ -325,7 +337,7 @@ gulp.task('dev:build', sequence('local:env', 'clean:dev', 'dev:lint', [ 'dev:fav
 /**
  * Runs all watch tasks (Less stylesheets, Stylus stylesheets, Pug templates and linting).
  */
-gulp.task('dev:watch', [ 'dev:watch:less', 'dev:watch:lint', 'dev:watch:templates', 'dev:watch:index', 'dev:watch:stylus' ]);
+gulp.task('dev:watch', [ 'dev:watch:less', 'dev:watch:lint', 'dev:watch:templates', 'dev:watch:index', 'dev:watch:stylus', 'doc:watch' ]);
 
 /**
  * Builds and runs the development environment:
@@ -736,6 +748,16 @@ function getConfig() {
 
   return _config;
 }
+
+function generateApiDoc(callback) {
+  apidoc.exec({
+    src: dirs.apiDocSource,
+    dest: dirs.apiDocTarget,
+    debug: !!process.env.APIDOC_DEBUG
+  }, callback);
+}
+
+var debouncedGenerateApiDoc = _.debounce(generateApiDoc, 500);
 
 function changedFileSrc(file, base) {
   return gulpifySrc({ files: file.path, base: base });
