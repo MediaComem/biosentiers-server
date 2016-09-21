@@ -148,8 +148,7 @@ gulp.task('open', function() {
 });
 
 /**
- * Loads the environment variables defined in `config/local.env.js`
- * and in `config/ENV.env.js` (where ENV is the current environment).
+ * Loads the environment variables defined in `config/local.env.js`.
  */
 gulp.task('local:env', function() {
 
@@ -176,7 +175,7 @@ gulp.task('dev:favicon', function() {
 });
 
 /**
- * Copies required fonts to `build/development/assets/fonts`.
+ * Copies required fonts to `build/development/assets`.
  */
 gulp.task('dev:fonts', function() {
   return gulpifySrc(src.fonts)
@@ -205,7 +204,7 @@ gulp.task('dev:lint', function() {
 /**
  * Compiles the Pug templates in `client` to `build/development/assets`.
  */
-gulp.task('dev:pug:templates', function() {
+gulp.task('dev:templates', function() {
   return gulpifySrc(src.templates)
     .pipe(compilePug())
     .pipe(logProcessedFiles(dirs.devAssets, 'pug'))
@@ -213,16 +212,15 @@ gulp.task('dev:pug:templates', function() {
 });
 
 /**
- * Compiles `client/index.pug` to `build/development` and injects the required link and script tags.
- * Stylesheets and scripts are sorted with custom functions to ensure they are in the correct order.
+ * Compiles `client/index.pug` to `build/development` and injects the required link and script tags in the correct order.
  */
-gulp.task('dev:pug:index', function() {
+gulp.task('dev:index', function() {
   return gulpifySrc(src.index)
     .pipe(buildIndex());
 });
 
 /**
- * Runs the server with Nodemon and restarts it when changes to server files are detected.
+ * Runs the server with Nodemon and automatically restarts it when changes to server files are detected.
  */
 gulp.task('dev:nodemon', function() {
   livereload.listen();
@@ -235,7 +233,7 @@ gulp.task('dev:nodemon', function() {
     stdout: false
   }).on('readable', function() {
     this.stdout.on('data', function(chunk) {
-      if (/^Express server listening on port/.test(chunk)) {
+      if (/Listening on port /.test(chunk)) {
         livereload.changed(__dirname);
       }
     });
@@ -283,7 +281,7 @@ gulp.task('dev:watch:lint', function() {
 /**
  * Watches the Pug templates in `client` and automatically compiles them to `build/development/assets` when changes are detected.
  */
-gulp.task('dev:watch:pug:templates', function() {
+gulp.task('dev:watch:templates', function() {
   return srcUtils.watch(src.templates, function(file) {
     return changedFileSrc(file, 'client')
       .pipe(compilePug())
@@ -295,7 +293,7 @@ gulp.task('dev:watch:pug:templates', function() {
 /**
  * Watches `client/index.pug` and automatically compiles it and injects the required link and script tags when changes are detected.
  */
-gulp.task('dev:watch:pug:index', function() {
+gulp.task('dev:watch:index', function() {
   return srcUtils.watch(src.index, debouncedRebuildIndex);
 });
 
@@ -318,22 +316,22 @@ gulp.task('dev:watch:stylus', function() {
  *
  * * Load the local environment file if it exists.
  * * Clean up the development build directory.
- * * Copy and compile all required files (favicon, fonts, Less stylesheets, Stylus stylesheets, Pug templates).
+ * * Run all JavaScript files through JSHint.
+ * * Copy or compile all required files (favicon, fonts, Less stylesheets, Stylus stylesheets, Pug templates) to `build/development`.
  */
-gulp.task('dev:build', sequence('local:env', 'clean:dev', 'dev:lint', [ 'dev:favicon', 'dev:fonts', 'dev:less', 'dev:pug:templates', 'dev:stylus' ], 'dev:pug:index'));
+gulp.task('dev:build', sequence('local:env', 'clean:dev', 'dev:lint', [ 'dev:favicon', 'dev:fonts', 'dev:less', 'dev:templates', 'dev:stylus' ], 'dev:index'));
 
 /**
  * Runs all watch tasks (Less stylesheets, Stylus stylesheets, Pug templates and linting).
  */
-gulp.task('dev:watch', [ 'dev:watch:less', 'dev:watch:lint', 'dev:watch:pug:templates', 'dev:watch:pug:index', 'dev:watch:stylus' ]);
+gulp.task('dev:watch', [ 'dev:watch:less', 'dev:watch:lint', 'dev:watch:templates', 'dev:watch:index', 'dev:watch:stylus' ]);
 
 /**
  * Builds and runs the development environment:
  *
  * * Execute `dev:build`.
- * * Run the development server.
+ * * Run the development server and open the browser.
  * * Run all watch tasks.
- * * Open the browser.
  */
 gulp.task('dev:run', sequence('dev:build', [ 'dev:nodemon', 'dev:watch' ]));
 
@@ -359,15 +357,15 @@ gulp.task('prod:env', function() {
  */
 gulp.task('prod:css', [ 'prod:env' ], function() {
 
-  var lessSrc = gulpifySrc(src.less)
+  var lessStream = gulpifySrc(src.less)
     .pipe(logUtils.concatenatingFiles('CSS'))
     .pipe(compileLess());
 
-  var stylusSrc = gulpifySrc(src.styl)
+  var stylusStream = gulpifySrc(src.styl)
     .pipe(logUtils.concatenatingFiles('CSS'))
     .pipe(compileStylus());
 
-  return gulpifySrc(merge(lessSrc, stylusSrc))
+  return merge(lessStream, stylusStream)
     .pipe(srcUtils.stableSort(compareStylesheets))
     .pipe(concat('app.css'))
     .pipe(logUtils.concatenatedFiles('CSS'))
@@ -384,7 +382,7 @@ gulp.task('prod:favicon', [ 'prod:env' ], function() {
 });
 
 /**
- * Copies font dependencies defined in `client/dependencies.yml` to `build/production/assets/fonts`.
+ * Copies required fonts to `build/production/assets`.
  */
 gulp.task('prod:fonts', [ 'prod:env' ], function() {
   return gulpifySrc(src.fonts)
@@ -403,17 +401,20 @@ gulp.task('prod:fonts', [ 'prod:env' ], function() {
 gulp.task('prod:js', [ 'prod:env' ], function() {
 
   // JavaScript sources.
-  var codeSrc = gulpifySrc(src.js)
+  var codeStream = gulpifySrc(src.js)
     .pipe(logUtils.concatenatingFiles('JS'));
 
   // Wrapped templates.
-  var templatesSrc = gulpifySrc(src.templates)
+  var templatesStream = gulpifySrc(src.templates)
     .pipe(logUtils.concatenatingFiles('JS'))
     .pipe(compilePug())
     .pipe(minifyHtml())
     .pipe(wrapTemplate());
 
-  return gulpifySrc(streamQueue({ objectMode: true }, codeSrc, templatesSrc))
+  // Merge the two streams while conserving order (templates after sources).
+  var stream = streamQueue({ objectMode: true }, codeStream, templatesStream);
+
+  return stream
     .pipe(ngAnnotate())
     .pipe(concat('app.js'))
     .pipe(logUtils.concatenatedFiles('JS'))
@@ -435,7 +436,7 @@ gulp.task('prod:index', [ 'prod:css', 'prod:js' ], function() {
 });
 
 /**
- * Parses build comments in `build/production/index.html` and concatenates the files within.
+ * Parses build block comments in `build/production/index.html` and concatenates the files within.
  *
  * @see https://www.npmjs.com/package/gulp-useref
  */
@@ -485,17 +486,17 @@ gulp.task('prod:minify:js', [ 'prod:useref' ], function() {
 });
 
 /**
- * Minifies production files in `build/production`.
+ * Builds and minifies production files in `build/production`.
  */
 gulp.task('prod:minify', [ 'prod:minify:css', 'prod:minify:html', 'prod:minify:js' ]);
 
 /**
- * Prepare all production assets for static revisioning.
+ * Prepares all production assets for static revisioning.
  */
-gulp.task('prod:unreved', [ 'prod:favicon', 'prod:fonts', 'prod:minify'  ]);
+gulp.task('prod:unreved', [ 'prod:favicon', 'prod:fonts', 'prod:minify' ]);
 
 /**
- * Performs static asset revisioning on production assets in `build/production`.
+ * Builds production files and performs static asset revisioning on assets in `build/production`.
  *
  * @see https://www.npmjs.com/package/gulp-rev
  * @see https://www.npmjs.com/package/gulp-rev-replace
@@ -507,17 +508,22 @@ gulp.task('prod:rev', [ 'prod:unreved' ], function() {
   }
 
   return gulpifySrc(src.prod)
+    // Rev assets (add content hash to filenames).
     .pipe(filters.rev)
     .pipe(rev())
+    // Delete the original files.
     .pipe(revDeleteOriginal())
+    // Save the rev-ed assets.
     .pipe(logUtils.revedFiles())
     .pipe(toProdBuild())
+    // Replace references to rev'd assets.
     .pipe(filters.rev.restore)
     .pipe(logUtils.revReplacedFiles.fingerprint())
     .pipe(revReplace({
       modifyUnreved: relativeToAbsolutePath,
       modifyReved: relativeToAbsolutePath
     }))
+    // Save the updated assets.
     .pipe(logUtils.revReplacedFiles())
     .pipe(toProdBuild());
 });
@@ -532,9 +538,10 @@ gulp.task('prod:size', function(callback) {
 });
 
 /**
- * Runs the server with Nodemon and restarts it when changes to server files are detected.
+ * Runs the server in production mode with Nodemon and restarts it when changes to server files are detected.
+ * Note that live reload of client files will not be enabled.
  */
-gulp.task('prod:nodemon', function() {
+gulp.task('prod:nodemon', [ 'prod:env' ], function() {
   return nodemon({
     script: 'bin/www',
     ext: 'js',
@@ -557,7 +564,7 @@ gulp.task('prod:nodemon', function() {
  * * Perform static asset revisioning.
  * * Log the total size of the production build directory.
  */
-gulp.task('prod:build', sequence('local:env', 'prod:env', 'clean:prod', 'prod:rev', 'prod:size'));
+gulp.task('prod:build', sequence('prod:env', 'local:env', 'clean:prod', 'prod:rev', 'prod:size'));
 
 /**
  * Builds and runs the production environment:
@@ -590,7 +597,7 @@ function autoInject(dest) {
       return inject(gulpifySrc(files, { read: false }), { ignorePath: dest });
     }
 
-    return gulpifySrc(stream)
+    return stream
       .pipe(injectFactory(injections[config.env].js))
       .pipe(injectFactory(injections[config.env].css));
   })();
@@ -608,8 +615,7 @@ function buildIndex() {
 
 var debouncedRebuildIndex = _.debounce(function() {
   util.log('Rebuilding index');
-  return gulpifySrc(src.index)
-    .pipe(buildIndex());
+  return gulpifySrc(src.index).pipe(buildIndex());
 }, 500);
 
 function rebuildIndex() {
