@@ -267,10 +267,12 @@ gulp.task('dev:stylus', function() {
  */
 gulp.task('dev:watch:less', function() {
   return srcUtils.watch(src.less, function(file) {
-    return changedFileSrc(file, 'client')
+
+    var stream = changedFileSrc(file, 'client')
       .pipe(compileLess())
-      .pipe(logProcessedFiles(dirs.devAssets, 'less'))
-      .pipe(toDevBuild('assets'));
+      .pipe(logProcessedFiles(dirs.devAssets, 'less'));
+
+    handleAssetChangeStream(stream);
   });
 });
 
@@ -301,10 +303,7 @@ gulp.task('dev:watch:pug:templates', function() {
  * Watches `client/index.pug` and automatically compiles it and injects the required link and script tags when changes are detected.
  */
 gulp.task('dev:watch:pug:index', function() {
-  return srcUtils.watch(src.index, function(file) {
-    return changedFileSrc(file, 'client')
-      .pipe(buildIndex());
-  });
+  return srcUtils.watch(src.index, debouncedRebuildIndex);
 });
 
 /**
@@ -317,22 +316,7 @@ gulp.task('dev:watch:stylus', function() {
       .pipe(compileStylus())
       .pipe(logProcessedFiles(dirs.devAssets, 'styl'));
 
-    if (file.event == 'change') {
-      // In the case of an existing file that was modified, simply save it to the build directory.
-      stream.pipe(toDevBuild('assets'));
-    } else if (file.event == 'add') {
-      stream.pipe(toDevBuild('assets', false)).pipe(rebuildIndex());
-    } else if (file.event == 'unlink') {
-      deleteCompiled(file, dirs.client, dirs.devAssets, 'css', function(err) {
-        if (err) {
-          util.log(err);
-        } else {
-          debouncedRebuildIndex();
-        }
-      });
-    } else {
-      throw new Error('Unsupported gulp-watch event type ' + JSON.stringify(file.event));
-    }
+    handleAssetChangeStream(file, stream);
   });
 });
 
@@ -721,30 +705,14 @@ function wrapTemplate() {
   });
 }
 
-function deleteCompiled(file, from, to, toExt, callback) {
-
-  var compiledPath = path.join(to, path.relative(from, file.path).replace(/\.[^\.]+$/, '.' + toExt));
-
-  fs.stat(compiledPath, function(err, stat) {
-    if (err) {
-      return callback(err);
-    } else if (!stat) {
-      return callback(null, file);
-    }
-
-    fs.unlink(compiledPath, function(err) {
-      if (err) {
-        callback(err);
-      } else {
-        callback(null, file);
-      }
-    });
-  });
-}
-
 function toDevBuild(dir, reload) {
 
+  reload = reload !== undefined ? reload : true;
   var dest = path.normalize(path.join(dirs.devBuild, dir || '.'));
+
+  if (!reload) {
+    return gulp.dest(dest);
+  }
 
   return chain(function(stream) {
     return stream
@@ -773,6 +741,32 @@ function changedFileSrc(file, base) {
   return gulpifySrc({ files: file.path, base: base });
 }
 
+function handleAssetChangeStream(file, stream) {
+  if (file.event == 'change') {
+    // In the case of an existing asset that was modified, simply save it.
+    stream
+      .pipe(toDevBuild('assets'));
+  } else if (file.event == 'add') {
+    // If the asset is a new file, rebuild and reload the index to include it.
+    stream
+      .pipe(toDevBuild('assets', false))
+      .pipe(rebuildIndex());
+  } else if (file.event == 'unlink') {
+    // If the asset was deleted, delete the corresponding compiled file, then rebuild and reload the index.
+    deleteCompiled(file, dirs.client, dirs.devAssets, 'css', function(err) {
+      if (err) {
+        util.log(err);
+      } else {
+        debouncedRebuildIndex();
+      }
+    });
+  } else if (!_.has(file, 'event')) {
+    throw new Error('File does not appear to be from gulp-watch (it has no `event` property)');
+  } else {
+    throw new Error('Unsupported gulp-watch event type ' + JSON.stringify(file.event));
+  }
+}
+
 /**
  * Returns a gulp task definition function that will use the run-sequence gulp plugin
  * to run the specified tasks in a specific order. Useful to define complex task aliases.
@@ -789,6 +783,30 @@ function sequence() {
   return function(callback) {
     return runSequence.apply(undefined, [].concat(tasks).concat([ callback ]));
   };
+}
+
+function deleteCompiled(file, from, to, toExt, callback) {
+
+  var config = getConfig(),
+      relativePath = path.relative(config.root, file.path).replace(/\.[^\.]+$/, '.' + toExt),
+      compiledPath = path.join(to, path.relative(from, file.path).replace(/\.[^\.]+$/, '.' + toExt));
+
+  fs.stat(compiledPath, function(err, stat) {
+    if (err) {
+      return callback(err);
+    } else if (!stat) {
+      return callback(null, file);
+    }
+
+    fs.unlink(compiledPath, function(err) {
+      if (err) {
+        callback(err);
+      } else {
+        util.log(util.colors.red(relativePath + ' deleted'));
+        callback(null, file);
+      }
+    });
+  });
 }
 
 function openBrowser(target) {
