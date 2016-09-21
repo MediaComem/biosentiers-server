@@ -44,16 +44,16 @@ How to set up your machine to contribute to the project.
 
 * Clone this repository:
 
-      git clone https://github.com/MediaComem/biosentiers-server.git
+        git clone https://github.com/MediaComem/biosentiers-server.git
 
 * Install the application's dependencies:
 
-      cd /path/to/repo
-      npm install
+        cd /path/to/repo
+        npm install
 
 * Create your local configuration file:
 
-      cp config/sample.env.js config/local.env.js
+        cp config/sample.env.js config/local.env.js
 
 * Edit `config/local.env.js` and customize it as needed on your machine.
   It allows you to override the [environment variables](#config) used to configure the application.
@@ -65,7 +65,7 @@ How to set up your machine to contribute to the project.
 
 * Run the default gulp task:
 
-      gulp
+        gulp
 
 
 
@@ -74,7 +74,7 @@ How to set up your machine to contribute to the project.
 
 * Run the production gulp task which will concatenate and minify all assets:
 
-      gulp prod
+        gulp prod
 
 
 
@@ -83,11 +83,11 @@ How to set up your machine to contribute to the project.
 
 * Update your branch (and resolve any conflicts):
 
-      git pull
+        git pull
 
 * Install new application dependencies (if any):
 
-      npm install
+        npm install
 
 * Update `config/local.env.js` if new configuration variables are required.
 
