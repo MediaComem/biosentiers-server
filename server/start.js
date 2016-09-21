@@ -1,5 +1,7 @@
-var app = require('./app'),
+var _ = require('lodash'),
+    app = require('./app'),
     config = require('../config'),
+    db = require('./db'),
     http = require('http'),
     log4js = require('log4js');
 
@@ -14,10 +16,14 @@ module.exports = function() {
   // Create HTTP server.
   var server = http.createServer(app);
 
-  // Listen on provided port, on all network interfaces.
-  server.listen(port);
-  server.on('error', onError);
-  server.on('listening', onListening);
+  db.authenticate().then(function() {
+    logger.debug('Connected to database postgres://' + db.config.host + ':' + db.config.port + '/' + db.config.database);
+
+    // Listen on provided port, on all network interfaces.
+    server.listen(port);
+    server.on('error', onError);
+    server.on('listening', onListening);
+  }).catch(_.bind(logger.error, logger));
 
   // Normalize a port into a number, string, or false.
   function normalizePort(val) {

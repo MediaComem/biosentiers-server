@@ -155,19 +155,12 @@ gulp.task('local:env', function() {
 
   var localEnv;
   try {
-    localEnv = require('./config/local.env');
+    localEnv = require('./config/local.env')(process.env.NODE_ENV || 'development');
   } catch (err) {
     localEnv = {};
   }
 
-  var currentEnv;
-  try {
-    currentEnv = require('./config/' + (process.env.NODE_ENV || 'development') + '.env');
-  } catch (err) {
-    currentEnv = {};
-  }
-
-  env.set(_.extend({}, localEnv, currentEnv));
+  env.set(localEnv);
 });
 
 // Development Tasks
