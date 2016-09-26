@@ -2,6 +2,9 @@ var express = require('express');
 
 var router = express.Router();
 
+router.use('/paths', require('./paths/paths.routes'));
+router.use('/pois', require('./pois/pois.routes'));
+router.use('/tours', require('./tours/tours.routes'));
 router.use('/users', require('./users/users.routes'));
 
 // Catch API 404 and return a simple status instead of an error page.
@@ -13,6 +16,10 @@ module.exports = router;
 
 /**
  * @apiDefine Authorization
+ *
+ * @apiHeader (Headers) {String} Authorization A bearer token identifying the user.
+ * @apiHeaderExample Authorization
+ * Authorization: Bearer eyJhbGciOiJI.eyJzdWIiOiIx.Rq8IxqeX7eA6
  *
  * @apiError (Error 401) AuthUnauthorized Authentication is required to access this resource.
  *
@@ -54,6 +61,6 @@ module.exports = router;
 /**
  * @apiDefine Pagination
  *
- * @apiParam {Number{0..}} offset Query parameter: the index of the first element to list.
- * @apiParam {Number{1..}} limit Query parameter: the maximum number of elements to list.
+ * @apiParam (Query parameters) {Number{0..}} offset Query parameter: the index of the first element to list.
+ * @apiParam (Query parameters) {Number{1..}} limit Query parameter: the maximum number of elements to list.
  */
