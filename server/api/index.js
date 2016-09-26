@@ -2,6 +2,7 @@ var express = require('express');
 
 var router = express.Router();
 
+router.use('/auth', require('./auth/auth.routes'));
 router.use('/paths', require('./paths/paths.routes'));
 router.use('/pois', require('./pois/pois.routes'));
 router.use('/tours', require('./tours/tours.routes'));
@@ -61,6 +62,9 @@ module.exports = router;
 /**
  * @apiDefine Pagination
  *
- * @apiParam (Query parameters) {Number{0..}} offset Query parameter: the index of the first element to list.
- * @apiParam (Query parameters) {Number{1..}} limit Query parameter: the maximum number of elements to list.
+ * @apiParam (Query parameters) {Number{0..}} offset The index of the first element to list.
+ * @apiParam (Query parameters) {Number{1..}} limit The maximum number of elements to list.
+ *
+ * @apiParamExample offset & limit
+ * ?offset=45&limit=15
  */

@@ -5,7 +5,7 @@ var router = express.Router();
 
 /**
  * @api {POST} /pois Create a POI
- * @apiGroup Pois
+ * @apiGroup POIs
  * @apiName CreatePoi
  * @apiDescription Add a new point of interest (e.g. a bird, blower, garden, etc) to the database.
  *
@@ -88,7 +88,7 @@ router.post('/', utils.notYetImplemented);
 /**
  * @api {GET} /pois List POIs
  * @apiName ListPois
- * @apiGroup Pois
+ * @apiGroup POIs
  *
  * @apiUse Pagination
  * @apiUse Authorization
@@ -113,7 +113,7 @@ router.post('/', utils.notYetImplemented);
  *       ]
  *     },
  *     "comment": "It looks green."
- *   }
+ *   },
  *   {
  *     "id": "89d8110a-5c28-4718-81ce-2194e98af063"
  *     "type": "SpecialInterest",
