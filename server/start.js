@@ -16,8 +16,10 @@ module.exports = function() {
   // Create HTTP server.
   var server = http.createServer(app);
 
-  db.authenticate().then(function() {
-    logger.debug('Connected to database postgres://' + db.config.host + ':' + db.config.port + '/' + db.config.database);
+  db.ensureConnected().then(function() {
+
+    var connection = db.knex.client.config.connection;
+    logger.debug('Connected to database ' + connection.database + ' on ' + connection.host);
 
     // Listen on provided port, on all network interfaces.
     server.listen(port);
