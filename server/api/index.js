@@ -3,6 +3,8 @@ var express = require('express');
 var router = express.Router();
 
 router.use('/auth', require('./auth/auth.routes'));
+router.use('/flower-pollinators', require('./flower-pollinators/flower-pollinators.routes'));
+router.use('/flower-species', require('./flower-species/flower-species.routes'));
 router.use('/paths', require('./paths/paths.routes'));
 router.use('/pois', require('./pois/pois.routes'));
 router.use('/tours', require('./tours/tours.routes'));

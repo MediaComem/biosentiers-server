@@ -64,6 +64,11 @@ router.post('/', utils.notYetImplemented);
  *
  * @apiSuccessExample Success 200
  * HTTP/1.1 200 OK
+ * Content-Type: application/json
+ * Pagination-Offset: 0
+ * Pagination-Limit: 30
+ * Pagination-Total: 2
+ * Pagination-Filtered: 2
  *
  * [
  *   {

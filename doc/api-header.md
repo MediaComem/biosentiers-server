@@ -49,6 +49,29 @@ You may select the range of items that are returned with the `offset` and `limit
 GET /api/v1/pois?offset=20&limit=40
 ```
 
+The response will always include headers indicating which pagination parameters have been applied,
+and also the total number of available items:
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+Pagination-Offset: 0
+Pagination-Limit: 30
+Pagination-Total: 120
+Pagination-Filtered: 45
+
+[
+  ... 30 JSON objects
+]
+```
+
+In this example, this is the meaning of the pagination headers:
+
+* `Pagination-Offset: 0` - the applied offset is 0.
+* `Pagination-Limit: 30` - the applied limit is 30.
+* `Pagination-Total: 120` - There are 120 available items in total.
+* `Pagination-Filtered: 45` - There are 45 available items with the currently applied filters (if no filters are applied, this number will be the same as the total).
+
 
 
 ## HTTP Verbs

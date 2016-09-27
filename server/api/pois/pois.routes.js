@@ -82,6 +82,19 @@ var router = express.Router();
  *     ]
  *   }
  * }
+ *
+ * @apiExample SpecialInterest
+ * POST /api/v1/pois HTTP/1.1
+ * Content-Type: application/json
+ *
+ * {
+ *   "type": "SpecialInterest",
+ *   "name": "Tour start",
+ *   "geometry": {
+ *     "type": "Point",
+ *     "coordinates": [ 102.0, 2.0 ]
+ *   }
+ * }
  */
 router.post('/', utils.notYetImplemented);
 
@@ -100,6 +113,11 @@ router.post('/', utils.notYetImplemented);
  *
  * @apiSuccessExample Success 200
  * HTTP/1.1 200 OK
+ * Content-Type: application/json
+ * Pagination-Offset: 0
+ * Pagination-Limit: 30
+ * Pagination-Total: 2
+ * Pagination-Filtered: 2
  *
  * [
  *   {
