@@ -3,7 +3,7 @@
   "name": "BioSentiers API",
   "title": "BioSentiers API",
   "description": "The documentation for the API of the BioSentiers server.",
-  "url" : "https://example.com/api/v1",
+  "url" : "https://example.com/api",
   "header": {
     "title": "Overview",
     "filename": "doc/api-header.md"
