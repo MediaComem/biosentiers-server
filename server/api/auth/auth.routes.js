@@ -1,4 +1,5 @@
-var express = require('express'),
+var controller = require('./auth.api'),
+    express = require('express'),
     utils = require('../utils');
 
 var router = express.Router();
@@ -27,6 +28,8 @@ var router = express.Router();
  * @apiSuccess (Success 201) {Object} user The authenticated user.
  * @apiSuccess (Success 201) {String} user.id The identifier of the user resource.
  * @apiSuccess (Success 201) {String} user.email The unique e-mail identifying the user.
+ * @apiSuccess (Success 201) {String} user.active If false, the user cannot log in. A user is inactive when first created, until registration is completed. A user can also be deactivated by an administrator.
+ * @apiSuccess (Success 201) {String} user.role The role of the user (`user` or `admin`).
  * @apiSuccess (Success 201) {String} user.createdAt The date at which the user was created (ISO-8601).
  * @apiSuccess (Success 201) {String} user.updatedAt The date at which the user was last modified (ISO-8601).
  *
@@ -39,6 +42,8 @@ var router = express.Router();
  *   "user": {
  *     "id": "5c49e2f9-2ae6-49be-80ef-0fa4126a7d30",
  *     "email": "jdoe@example.com",
+ *     "active": true,
+ *     "role": "user",
  *     "createdAt": "2016-01-01T09:32:15Z",
  *     "updatedAt": "2016-01-01T09:34:30Z"
  *   }
@@ -59,6 +64,6 @@ var router = express.Router();
  *   ]
  * }
  */
-router.post('/', utils.notYetImplemented);
+router.post('/', controller.authenticate);
 
 module.exports = router;

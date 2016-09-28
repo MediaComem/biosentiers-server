@@ -73,7 +73,7 @@ var src = {
   // Client JavaScript.
   js: { files: 'client/**/*.js', compare: compareAngularFiles },
   // JavaScript to check with JSHint.
-  lintJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js', 'lib/**/*.js', 'client/**/*.js' ] },
+  lintJs: { files: [ 'bin/www', 'config/**/*.js', 'gulpfile.js', 'knexfile.js', 'lib/**/*.js', 'client/**/*.js' ] },
   // Development build files.
   devCss: { files: [ 'assets/**/*.css' ], cwd: dirs.devBuild, compare: compareStylesheets },
   // Production build files.

@@ -14,6 +14,16 @@ module.exports = function(env) {
     vars.DATABASE_URI = 'postgres://localhost/biosentiers-production';
   }
 
+  if (env != 'test') {
+    vars.SMTP_HOST = 'smtp.example.com';
+    vars.SMTP_PORT = 587;
+    vars.SMTP_SECURE = false;
+    vars.SMTP_USERNAME = 'jdoe@example.com';
+    vars.SMTP_PASSWORD = 'letmein';
+    vars.SMTP_FROM_NAME = 'John\'s Local BioSentiers Server';
+    vars.SMTP_FROM_ADDRESS = 'jdoe@example.com';
+  }
+
   if (env == 'test') {
     vars.PORT = '3002';
     vars.DATABASE_URI = 'postgres://localhost/biosentiers-test';

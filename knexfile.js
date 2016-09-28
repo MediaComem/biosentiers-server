@@ -1,0 +1,18 @@
+var config = require('./config');
+
+module.exports = {
+  development: {
+    client: 'postgresql',
+    connection: config.db
+  },
+
+  staging: {
+    client: 'postgresql',
+    connection: config.db
+  },
+
+  production: {
+    client: 'postgresql',
+    connection: config.db
+  }
+};

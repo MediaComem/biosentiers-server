@@ -1,3 +1,4 @@
+// FIXME: validate config (e.g. required properties)
 var _ = require('lodash'),
     log4js = require('log4js'),
     path = require('path');
@@ -26,14 +27,31 @@ var fixed = {
 };
 
 var config = {
-  db: process.env.DATABASE_URI || 'postgres://localhost/biosentiers',
   protocol: process.env.PROTOCOL || 'http',
   host: process.env.HOST || 'localhost',
-  logLevel: process.env.LOG_LEVEL,
   port: parseConfigInt(process.env.PORT) || 3000,
+
+  db: process.env.DATABASE_URI || 'postgres://localhost/biosentiers',
+
+  jwtSecret: process.env.SECRET || 'changeme', // FIXME: no production default, validate
+  bcryptCost: parseConfigInt(process.env.BCRYPT_COST) || 10,
+
+  logLevel: process.env.LOG_LEVEL,
+
   liveReload: parseConfigBoolean(process.env.LIVERELOAD, false),
   open: parseConfigBoolean(process.env.OPEN, false),
-  openBrowser: process.env.OPEN_BROWSER
+  openBrowser: process.env.OPEN_BROWSER,
+
+  mail: {
+    enabled: parseConfigBoolean(process.env.SMTP_ENABLED, true),
+    host: process.env.SMTP_HOST,
+    port: parseConfigInt(process.env.SMTP_PORT) || 0,
+    secure: !!(process.env.SMTP_SECURE || '0').match(/^(1|y|yes|t|true)$/i),
+    username: process.env.SMTP_USERNAME,
+    password: process.env.SMTP_PASSWORD,
+    fromName: process.env.SMTP_FROM_NAME,
+    fromAddress: process.env.SMTP_FROM_ADDRESS
+  }
 };
 
 if (env == 'development') {
@@ -54,7 +72,10 @@ if (env == 'development') {
 } else if (env == 'test') {
   // Test overrides.
   _.merge(config, {
-    logLevel: config.logLevel || 'TRACE'
+    logLevel: config.logLevel || 'TRACE',
+    mail: {
+      enabled: false
+    }
   });
 }
 

@@ -13,6 +13,8 @@ var db = knex({
 db.on('query', logDbQueries);
 
 module.exports = bookshelf(db);
+module.exports.plugin('registry');
+module.exports.plugin('virtuals');
 
 module.exports.ensureConnected = function() {
   return db.raw('select 1+1 as n').then(function(result) {
