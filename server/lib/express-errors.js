@@ -2,8 +2,8 @@ var config = require('../../config');
 
 exports.catch404 = function(req, res, next) {
 
-  // If the path does not have an extension, it's probably an Angular or
-  // API route, so the request should be handled by the next middleware.
+  // If the path does not have an extension, it's probably an Angular
+  // route, so the request should be handled by the next middleware.
   if (!req.path.match(/\.[^\.]+$/)) {
     return next();
   }

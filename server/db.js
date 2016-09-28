@@ -5,6 +5,7 @@ var _ = require('lodash'),
 
 var logger = config.logger('db');
 
+// Initialize knex.
 var db = knex({
   client: 'postgresql',
   connection: config.db
@@ -12,6 +13,7 @@ var db = knex({
 
 db.on('query', logDbQueries);
 
+// Initialize and export bookshelf.
 module.exports = bookshelf(db);
 module.exports.plugin('registry');
 module.exports.plugin('virtuals');
@@ -30,6 +32,7 @@ function logDbQueries(query) {
 
   if (query.bindings) {
     _.each(query.bindings, function(binding) {
+      // FIXME: only allow in development
       message = message.replace(/\?/, binding);
     });
   }

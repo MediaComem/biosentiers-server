@@ -1,7 +1,7 @@
 var _ = require('lodash'),
     compose = require('composable-middleware'),
     config = require('../../config'),
-    errors = require('../lib/errors'),
+    errors = require('../api/errors'),
     jwt = require('express-jwt'),
     p = require('bluebird'),
     User = require('../models/user');
@@ -22,15 +22,15 @@ exports.authenticate = function(options) {
     .use(loadAuthenticatedUser(options.required));
 };
 
-exports.authorize = function(policy, identifiedResource, options) {
-  if (_.isObject(identifiedResource)) {
-    options = identifiedResource;
-    identifiedResource = false;
+exports.authorize = function(policy, resourceName, options) {
+  if (_.isObject(resourceName)) {
+    options = resourceName;
+    resourceName = null;
   }
 
   options = _.defaults({}, options, {
     required: false,
-    identifiedResource: identifiedResource
+    resourceName: resourceName
   });
 
   return compose()
@@ -41,7 +41,7 @@ exports.authorize = function(policy, identifiedResource, options) {
         if (authorized) {
           next();
         } else {
-          next(options.identifiedResource ? new errors.NotFoundError() : new errors.ApiError('You are not authorized to perform this action.', 403))
+          next(options.resourceName ? errors.recordNotFound(resourceName, req.params.id) : errors.forbidden());
         }
       }).catch(next);
     });
@@ -50,7 +50,7 @@ exports.authorize = function(policy, identifiedResource, options) {
 function enrichRequest(req, res, next) {
   req.authenticated = function() {
     if (!req.user) {
-      throw new errors.ApiError('Authentication required', 401);
+      throw errors.unauthorized('auth.missingCredentials');
     } else {
       return req.user;
     }

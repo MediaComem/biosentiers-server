@@ -1,5 +1,6 @@
-var auth = require('../../lib/auth'),
+var auth = require('../auth'),
     bcrypt = require('bcryptjs'),
+    errors = require('../errors'),
     LocalStrategy = require('passport-local').Strategy,
     passport = require('passport'),
     policy = require('../users/users.policy'),
@@ -9,12 +10,10 @@ setUpPassport();
 
 exports.authenticate = function(req, res, next) {
   passport.authenticate('local', function(err, user, info) {
-
-    var error = err || info;
-    if (error) {
-      return res.status(401).json(error);
+    if (err) {
+      return next(err);
     } else if (!user) {
-      return res.status(404).json({ message: 'Something went wrong, please try again.' });
+      return next(new Error('Could not authenticate user'));
     }
 
     req.user = user;
@@ -32,15 +31,14 @@ function setUpPassport() {
     passwordField: 'password'
   }, function(email, password, done) {
     User.where({
-      active: true,
       email: email.toLowerCase()
     }).fetch().then(function(user) {
-      if (!user) {
-        return done(null, false, { message: 'This user is not registered or inactive.' });
+      if (!user || !user.isActive()) {
+        throw errors.unauthorized('auth.invalidUser', 'This user account does not exist or is inactive.');
       } else if (!bcrypt.compareSync(password, user.get('password_hash'))) {
-        return done(null, false, { message: 'The e-mail or password is invalid.' });
+        throw errors.unauthorized('auth.invalidCredentials', 'The e-mail or password is invalid.');
       } else {
-        return done(null, user);
+        done(undefined, user);
       }
     }).catch(done);
   }));

@@ -5,6 +5,9 @@ var api = require('../utils'),
 
 var builder = api.builder(User, 'users');
 
+// API resource name (used in some API errors).
+exports.name = 'user';
+
 exports.create = builder.route(function(req, res, next, helper) {
   helper.create(User.parse(req), policy, sendRegistrationEmail).catch(next);
 });
@@ -29,7 +32,7 @@ exports.update = builder.route(function(req, res, next, helper) {
   user.save().then(helper.serializer(policy)).then(helper.created());
 });
 
-exports.fetchRecord = builder.fetcher();
+exports.fetchRecord = builder.fetcher(exports.name);
 
 function sendRegistrationEmail(user) {
   return mailer.send({

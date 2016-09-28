@@ -46,6 +46,10 @@ var User = Abstract.extend({
     return _.includes(availableRoles, role) && this.get('role') === role;
   },
 
+  isActive: function() {
+    return !!this.get('active');
+  },
+
   jwt: function() {
     return jwt.sign({
       sub: this.get('api_id'),

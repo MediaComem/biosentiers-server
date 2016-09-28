@@ -1,6 +1,7 @@
 var _ = require('lodash'),
-    auth = require('../lib/auth'),
+    auth = require('./auth'),
     config = require('../../config'),
+    errors = require('./errors'),
     Promise = require('bluebird');
 
 exports.notYetImplemented = function(req, res) {
@@ -19,21 +20,28 @@ function ApiBuilder(model, name) {
 }
 
 ApiBuilder.prototype.route = function(definition) {
+
   var logger = this.logger;
+
   return function(req, res, next) {
     var helper = exports.helper(req, res, logger);
     definition(req, res, next, helper);
   };
 };
 
-ApiBuilder.prototype.fetcher = function() {
+ApiBuilder.prototype.fetcher = function(resourceName) {
+
   var model = this.model;
+
   return function(req, res, next) {
+
+    var apiId = req.params.id;
+
     new model({
-      api_id: req.params.id
+      api_id: apiId
     }).fetch().then(function(record) {
       if (!record) {
-        return res.sendStatus(404);
+        throw errors.recordNotFound(resourceName, apiId);
       }
 
       req.record = record;

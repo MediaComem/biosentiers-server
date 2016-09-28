@@ -1,7 +1,10 @@
-var express = require('express');
+var _ = require('lodash'),
+    errors = require('./errors'),
+    express = require('express');
 
 var router = express.Router();
 
+// Plug in API routes.
 router.use('/auth', require('./auth/auth.routes'));
 router.use('/flower-pollinators', require('./flower-pollinators/flower-pollinators.routes'));
 router.use('/flower-species', require('./flower-species/flower-species.routes'));
@@ -10,9 +13,19 @@ router.use('/pois', require('./pois/pois.routes'));
 router.use('/tours', require('./tours/tours.routes'));
 router.use('/users', require('./users/users.routes'));
 
-// Catch API 404 and return a simple status instead of an error page.
-router.all('/*', function(req, res) {
-  res.sendStatus(404);
+// Catch API 404.
+router.all('/*', function(req, res, next) {
+  next(errors.notFound());
+});
+
+// Return a JSON error response for API calls.
+router.use(function(err, req, res, next) {
+
+  var error = _.pick(err, 'code', 'message');
+
+  res.status(err.status || 500).json({
+    errors: [ error ]
+  });
 });
 
 module.exports = router;
