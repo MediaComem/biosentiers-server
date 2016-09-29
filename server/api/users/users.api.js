@@ -9,7 +9,27 @@ var builder = api.builder(User, 'users');
 exports.name = 'user';
 
 exports.create = builder.route(function(req, res, helper) {
-  return helper.create(User.parse(req), policy, sendRegistrationEmail);
+  return validate().then(create);
+
+  function validate() {
+    return helper.validateRequest(function() {
+      return this.validate(this.get('body'), this.type('object'), function() {
+        return this.validate(this.json('/email'), this.type('string'), this.presence(), this.email());
+      });
+    });
+  }
+
+  function create() {
+    return User.transaction(function() {
+      var record = User.parse(req);
+      return record
+        .save()
+        .then(sendRegistrationEmail)
+        .return(record)
+        .then(helper.serializer(policy))
+        .then(helper.created());
+    });
+  }
 });
 
 exports.list = builder.route(function(req, res, helper) {
@@ -29,7 +49,10 @@ exports.update = builder.route(function(req, res, helper) {
     user.set('password', password);
   }
 
-  return user.save().then(helper.serializer(policy)).then(helper.created());
+  return user
+    .save()
+    .then(helper.serializer(policy))
+    .then(helper.ok());
 });
 
 exports.fetchRecord = builder.fetcher(exports.name);

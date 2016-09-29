@@ -2,7 +2,8 @@ var _ = require('lodash'),
     auth = require('./auth'),
     config = require('../../config'),
     errors = require('./errors'),
-    Promise = require('bluebird');
+    Promise = require('bluebird'),
+    valdsl = require('valdsl');
 
 exports.notYetImplemented = function(req, res) {
   res.sendStatus(418);
@@ -58,7 +59,7 @@ ApiBuilder.prototype.fetcher = function(resourceName) {
 
 exports.helper = function(req, res, next, logger) {
   var helper = new ApiHelper(req, res, next, logger);
-  _.bindAll(helper, 'create', 'created', 'ok', 'respond', 'serialize', 'serializer');
+  _.bindAll(helper, 'created', 'ok', 'respond', 'serialize', 'serializer');
   return helper;
 };
 
@@ -69,15 +70,14 @@ function ApiHelper(req, res, next, logger) {
   this.logger = logger;
 }
 
-ApiHelper.prototype.create = function(record, policy, callback) {
-  var serializer = this.serializer;
-  return record.constructor.transaction(function() {
-    return record
-      .save()
-      .then(callback || _.noop)
-      .return(record)
-      .then(serializer(policy));
-  }).then(this.created());
+ApiHelper.prototype.validate = function(value, callback) {
+  return valdsl(function() {
+    return this.validate(this.value(value), this.unlessError(this.atCurrentLocation()), callback);
+  });
+};
+
+ApiHelper.prototype.validateRequest = function(callback) {
+  return this.validate(this.req, callback);
 };
 
 ApiHelper.prototype.respond = function(record, policy, callback) {

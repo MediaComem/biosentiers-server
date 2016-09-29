@@ -1,8 +1,10 @@
 var _ = require('lodash'),
+    config = require('../../config'),
     errors = require('./errors'),
     express = require('express');
 
-var router = express.Router();
+var logger = config.logger('api'),
+    router = express.Router();
 
 // Plug in API routes.
 router.use('/auth', require('./auth/auth.routes'));
@@ -21,10 +23,24 @@ router.all('/*', function(req, res, next) {
 // Return a JSON error response for API calls.
 router.use(function(err, req, res, next) {
 
-  var error = _.pick(err, 'code', 'message');
+  var errors;
+  if (err.errors) {
+    // If the error contains a list of errors, send it in the response.
+    errors = err.errors;
+  } else {
+    // Otherwise, build a one-element array with the error's properties.
+    errors = [
+      _.pick(err, 'code', 'message')
+    ];
+  }
 
-  res.status(err.status || 500).json({
-    errors: [ error ]
+  var status = err.status || 500;
+  if (status >= 500 && status <= 599) {
+    logger.error(err);
+  }
+
+  res.status(status).json({
+    errors: errors
   });
 });
 
