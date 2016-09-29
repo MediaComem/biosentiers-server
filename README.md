@@ -20,13 +20,14 @@ This repository contains the Node.js Express server application for the BioSenti
 ## Requirements
 
 * [Node.js](https://nodejs.org) 4.x
-* [npm](https://www.npmjs.com) (bundled with Node.js)
+* [npm](https://www.npmjs.com) (usually bundled with Node.js)
 * [PostgreSQL](https://www.postgresql.org) 9.5+
 * [PostGIS](http://postgis.net) 2.2+
 
 Additional development requirements:
 
-* [Gulp](http://gulpjs.com) (install with `npm install -g gulp-cli` once you have Node.js & npm)
+* [Gulp](http://gulpjs.com) (install with `npm install -g gulp-cli`)
+* [Knex](http://knexjs.org) (install with `npm install -g knex`)
 
 
 
@@ -57,6 +58,10 @@ How to set up your machine to contribute to the project.
 
 * Edit `config/local.env.js` and customize it as needed on your machine.
   It allows you to override the [environment variables](#config) used to configure the application.
+
+* Migrate the database:
+
+        knex migrate:latest
 
 
 
@@ -112,6 +117,9 @@ The application is configured through environment variables which are listed her
 * `PROTOCOL` - The protocol to run the Node.js HTTP server on. Defaults to `http`.
 * `HOST` - The host to run the Node.js HTTP server on. Defaults to `localhost`.
 * `PORT` - The port to run the Node.js HTTP server on. Defaults to `3000`.
+* `SECRET`- The secret key used to sign authentication tokens (should be at least 100 characters long).
+* `BCRYPT_COST` - Key expansion iteraction count of the [bcrypt algorithm](https://en.wikipedia.org/wiki/Bcrypt)
+                  (this is actually a power of 2 of the number of iterations). Defaults to `10`.
 * `LOG_LEVEL` - The minimum severity of messages to logged.
                 Available levels are `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`.
                 If the level is set to `WARN`, for example, only `WARN`, `ERROR` and `FATAL` messages will be logged.
