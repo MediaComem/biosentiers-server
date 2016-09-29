@@ -8,19 +8,19 @@ var builder = api.builder(User, 'users');
 // API resource name (used in some API errors).
 exports.name = 'user';
 
-exports.create = builder.route(function(req, res, next, helper) {
-  helper.create(User.parse(req), policy, sendRegistrationEmail).catch(next);
+exports.create = builder.route(function(req, res, helper) {
+  return helper.create(User.parse(req), policy, sendRegistrationEmail);
 });
 
-exports.list = builder.route(function(req, res, next, helper) {
-  res.json([]);
+exports.list = builder.route(function(req, res, helper) {
+  return res.json([]);
 });
 
-exports.retrieve = builder.route(function(req, res, next, helper) {
-  helper.respond(req.record, policy);
+exports.retrieve = builder.route(function(req, res, helper) {
+  return helper.respond(req.record, policy);
 });
 
-exports.update = builder.route(function(req, res, next, helper) {
+exports.update = builder.route(function(req, res, helper) {
 
   var user = req.record;
 
@@ -29,7 +29,7 @@ exports.update = builder.route(function(req, res, next, helper) {
     user.set('password', password);
   }
 
-  user.save().then(helper.serializer(policy)).then(helper.created());
+  return user.save().then(helper.serializer(policy)).then(helper.created());
 });
 
 exports.fetchRecord = builder.fetcher(exports.name);

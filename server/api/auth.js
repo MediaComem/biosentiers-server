@@ -49,10 +49,14 @@ exports.authorize = function(policy, resourceName, options) {
 
 function enrichRequest(req, res, next) {
   req.authenticated = function() {
-    if (!req.user) {
-      throw errors.unauthorized('auth.missingCredentials');
-    } else {
+    if (req.user) {
       return req.user;
+    } else if (!req.get('Authorization')) {
+      throw errors.unauthorized('auth.tokenRequired');
+    } else if (!req.jwtToken || !req.user) {
+      throw errors.unauthorized('auth.tokenInvalid', 'The submitted bearer token is invalid or has expired.');
+    } else {
+      throw new Error('An unexpected authentication error has occurred.');
     }
   };
 
@@ -119,7 +123,7 @@ _.extend(AuthorizationHelper.prototype, {
   },
 
   hasRole: function(role) {
-    return this.authenticated().hasRole(role);
+    return this.req.user && this.req.user.hasRole(role);
   },
 
   sameRecord: function(r1, r2) {

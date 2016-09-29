@@ -7,7 +7,7 @@ exports.canList = function(req) {
 };
 
 exports.canRetrieve = function(req) {
-  return this.hasRole('admin') || this.sameRecord(req.user, req.record);
+  return this.authenticated() && (this.hasRole('admin') || this.sameRecord(req.user, req.record));
 };
 
 exports.canUpdate = exports.canRetrieve;

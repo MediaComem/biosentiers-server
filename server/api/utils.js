@@ -20,12 +20,18 @@ function ApiBuilder(model, name) {
 }
 
 ApiBuilder.prototype.route = function(definition) {
-
   var logger = this.logger;
-
   return function(req, res, next) {
-    var helper = exports.helper(req, res, logger);
-    definition(req, res, next, helper);
+    var helper = exports.helper(req, res, next, logger);
+    Promise.resolve().then(function() {
+
+      var result = definition(req, res, helper);
+      if (result === undefined) {
+        throw new Error('Routes defined with ApiBuilder#route must return a value or promise');
+      }
+
+      return result;
+    }).catch(next);
   };
 };
 
@@ -50,15 +56,16 @@ ApiBuilder.prototype.fetcher = function(resourceName) {
   };
 };
 
-exports.helper = function(req, res, logger) {
-  var helper = new ApiHelper(req, res, logger);
+exports.helper = function(req, res, next, logger) {
+  var helper = new ApiHelper(req, res, next, logger);
   _.bindAll(helper, 'create', 'created', 'ok', 'respond', 'serialize', 'serializer');
   return helper;
 };
 
-function ApiHelper(req, res, logger) {
+function ApiHelper(req, res, next, logger) {
   this.req = req;
   this.res = res;
+  this.next = next;
   this.logger = logger;
 }
 
