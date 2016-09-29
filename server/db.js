@@ -18,6 +18,11 @@ module.exports = bookshelf(db);
 module.exports.plugin('registry');
 module.exports.plugin('virtuals');
 
+/**
+ * Runs a database query to ensure the connection is working.
+ *
+ * @returns Promise A promise that will be resolved if the connection is working, or rejected otherwise.
+ */
 module.exports.ensureConnected = function() {
   return db.raw('select 1+1 as n').then(function(result) {
     if (result.rowCount !== 1 || result.rows[0].n !== 2) {

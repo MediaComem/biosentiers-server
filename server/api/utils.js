@@ -20,22 +20,46 @@ function ApiBuilder(model, name) {
   this.logger = config.logger('api:' + name);
 }
 
+/**
+ * Creates a middleware function that facilitates writing asynchronous routes with promises.
+ *
+ * Instead of being called with the signature `function(req, res, next)`, the provided definition function is
+ * called with the signature `function(req, res, helper)`. `helper` is an object bound to the request and response
+ * and provides several utility methods.
+ *
+ * The definition function MUST return a value or promise.
+ * That value or promise will be resolved and the standard `next` function will automatically be called if the returned promise is rejected.
+ *
+ * @param {String} definition - A route definition function that takes the request, response and API helper as arguments.
+ * @returns Function A middleware function.
+ */
 ApiBuilder.prototype.route = function(definition) {
   var logger = this.logger;
   return function(req, res, next) {
+
+    // Create the helper.
     var helper = exports.helper(req, res, next, logger);
+
     Promise.resolve().then(function() {
 
+      // Call the definition function.
       var result = definition(req, res, helper);
+
+      // Throw an error if it does not return a promise.
       if (result === undefined) {
         throw new Error('Routes defined with ApiBuilder#route must return a value or promise');
       }
-
-      return result;
     }).catch(next);
   };
 };
 
+/**
+ * Creates a middleware function that will fetch the record identified by the current URL and attach it to the request.
+ * If no record is found, an HTTP 404 Not Found response will be sent.
+ *
+ * @param {String} resourceName - The name of the API resource (used in error messages).
+ * @returns Function A middleware function.
+ */
 ApiBuilder.prototype.fetcher = function(resourceName) {
 
   var model = this.model;

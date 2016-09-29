@@ -26,6 +26,7 @@ exports.handler = function(err, req, res, next) {
     data.error = err;
   }
 
+  // Display the HTML error page.
   res.status(err.status || 500);
   res.render('error', data);
 };
