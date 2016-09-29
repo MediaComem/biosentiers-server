@@ -801,7 +801,7 @@ function handleAssetChangeStream(file, stream) {
  * gulp.task('dev', taskUtils.sequence('foo', [ 'bar', 'baz' ], 'qux'));
  */
 function sequence() {
-  var tasks = Array.prototype.slice.call(arguments);
+  var tasks = _.toArray(arguments);
   return function(callback) {
     return runSequence.apply(undefined, [].concat(tasks).concat([ callback ]));
   };

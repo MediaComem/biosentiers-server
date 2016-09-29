@@ -100,7 +100,7 @@ function createLogger(name) {
 }
 
 function joinPathSegments() {
-  var parts = Array.prototype.slice.call(arguments);
+  var parts = _.toArray(arguments);
   return path.join.apply(path, [ root ].concat(parts));
 }
 

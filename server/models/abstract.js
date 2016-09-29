@@ -45,7 +45,7 @@ var Abstract = bookshelf.Model.extend({
       record = new this();
     }
 
-    var attrs = Array.prototype.slice.call(arguments, 2);
+    var attrs = _.toArray(arguments).slice(2);
     if (!attrs.length) {
       attrs = resolveParsingAttributes(record);
     }
