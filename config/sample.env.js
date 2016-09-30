@@ -1,3 +1,4 @@
+// TODO: document this file (e.g. DB must be created and PostGIS enabled)
 module.exports = function(env) {
 
   var vars = {

@@ -1,3 +1,4 @@
+// TODO: run knex migrations through gulp or document the required environment variables
 var config = require('./config');
 
 module.exports = {
