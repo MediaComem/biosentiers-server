@@ -31,6 +31,10 @@ module.exports.ensureConnected = function() {
   });
 };
 
+module.exports.disconnect = function() {
+  db.destroy();
+};
+
 function logDbQueries(query) {
 
   var message = query.sql;

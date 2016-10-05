@@ -14,7 +14,10 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
 // Configure initial middleware.
-app.use(favicon(path.join(config.buildDir, 'favicon.ico')));
+if (config.env != 'test') {
+  app.use(favicon(path.join(config.buildDir, 'favicon.ico')));
+}
+
 app.use(bodyParser.json());
 
 // Log all HTTP requests.

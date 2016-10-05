@@ -15,6 +15,7 @@ var _ = require('lodash'),
     jshint = require('gulp-jshint'),
     less = require('gulp-less'),
     livereload = require('gulp-livereload'),
+    mocha = require('gulp-spawn-mocha'),
     merge = require('merge-stream'),
     ngAnnotate = require('gulp-ng-annotate'),
     nodemon = require('gulp-nodemon'),
@@ -81,7 +82,9 @@ var src = {
   prodCss: { files: '**/*.css', cwd: dirs.prodBuild },
   prodJs: { files: '**/*.js', cwd: dirs.prodBuild },
   prodHtml: { files: '**/*.html', cwd: dirs.prodBuild },
-  prodIndex: { files: 'index.html', cwd: dirs.prodBuild }
+  prodIndex: { files: 'index.html', cwd: dirs.prodBuild },
+  // Test files.
+  apiSpecs: { files: 'server/**/*.spec.js' }
 };
 
 var injections = {
@@ -593,6 +596,23 @@ gulp.task('prod:run', sequence('prod:build', [ 'prod:nodemon', 'open' ]));
  */
 gulp.task('prod', sequence('prod:run'));
 
+// Test Tasks
+// ----------
+
+gulp.task('test:env', function() {
+  env.set({
+    NODE_ENV: 'test'
+  });
+});
+
+gulp.task('test:api', [ 'test:env' ], function() {
+  return gulpifySrc(src.apiSpecs, { read: false })
+    .pipe(mocha())
+    .on('end', disconnectDatabase);
+});
+
+gulp.task('test', sequence([ 'test:api' ]));
+
 // Default Task
 // ------------
 
@@ -805,6 +825,10 @@ function sequence() {
   return function(callback) {
     return runSequence.apply(undefined, [].concat(tasks).concat([ callback ]));
   };
+}
+
+function disconnectDatabase() {
+  require('./server/db').disconnect();
 }
 
 function deleteCompiled(file, from, to, toExt, callback) {
