@@ -1,25 +1,29 @@
 var app = require('../../app'),
     expect = require('chai').expect,
+    expectUser = require('../../spec/expectations/user'),
     spec = require('../../spec/utils'),
     supertest = require('supertest-as-promised');
 
 describe('Users API', function() {
   describe('POST /api/users', function() {
 
-    beforeEach(function(done) {
-      spec.cleanDatabase().then(done);
+    var data = {};
+    beforeEach(function() {
+      data.user = {
+        email: 'test@example.com',
+        password: 'changeme'
+      };
+
+      return spec.cleanDatabase();
     });
 
-    it('should create a user', function(done) {
-      supertest(app)
+    it('should create a user', function() {
+      return supertest(app)
         .post('/api/users')
-        .send({
-          email: 'test@example.com',
-          password: 'changeme'
-        })
+        .send(data.user)
         .expect('Content-Type', /^application\/json/)
         .expect(201)
-        .end(done);
+        .then(expectUser.responseChecker(data.user));
     });
   });
 });

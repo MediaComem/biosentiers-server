@@ -72,7 +72,7 @@ if (env == 'development') {
 } else if (env == 'test') {
   // Test overrides.
   _.merge(config, {
-    logLevel: config.logLevel || 'TRACE',
+    logLevel: config.logLevel || 'WARN',
     mail: {
       enabled: false
     }

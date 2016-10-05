@@ -599,15 +599,19 @@ gulp.task('prod', sequence('prod:run'));
 // Test Tasks
 // ----------
 
-gulp.task('test:env', function() {
+gulp.task('test:env:node', function() {
   env.set({
     NODE_ENV: 'test'
   });
 });
 
+gulp.task('test:env', sequence('test:env:node', 'local:env'));
+
 gulp.task('test:api', [ 'test:env' ], function() {
   return gulpifySrc(src.apiSpecs, { read: false })
-    .pipe(mocha())
+    .pipe(mocha({
+      env: process.env
+    }))
     .on('end', disconnectDatabase);
 });
 
