@@ -48,6 +48,8 @@ function createTransport() {
 function sendEmail(email) {
   if (!config.mail.enabled) {
     return Promise.resolve();
+  } else if (config.env == 'test') {
+    throw new Error('Trying to send an e-mail in test mode');
   }
 
   return new Promise(function(resolve, reject) {

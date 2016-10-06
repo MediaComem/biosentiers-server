@@ -609,9 +609,7 @@ gulp.task('test:env', sequence('test:env:node', 'local:env'));
 
 gulp.task('test:api', [ 'test:env' ], function() {
   return gulpifySrc(src.apiSpecs, { read: false })
-    .pipe(mocha({
-      env: process.env
-    }))
+    .pipe(mocha())
     .on('end', disconnectDatabase);
 });
 

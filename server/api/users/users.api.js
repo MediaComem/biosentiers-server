@@ -43,16 +43,29 @@ exports.retrieve = builder.route(function(req, res, helper) {
 exports.update = builder.route(function(req, res, helper) {
 
   var user = req.record;
+  return validate().then(update);
 
-  var password = req.body.password;
-  if (password) {
-    user.set('password', password);
+  function validate() {
+    return helper.validateRequest(function() {
+      return this.validate(this.get('body'), this.type('object'), function() {
+        return this.parallel(
+          this.validate(this.json('/password', this.type('string')))
+        );
+      });
+    });
   }
 
-  return user
-    .save()
-    .then(helper.serializer(policy))
-    .then(helper.ok());
+  function update() {
+    var password = req.body.password;
+    if (password) {
+      user.set('password', password);
+    }
+
+    return user
+      .save()
+      .then(helper.serializer(policy))
+      .then(helper.ok());
+  }
 });
 
 exports.fetchRecord = builder.fetcher(exports.name);
