@@ -1,5 +1,6 @@
 var _ = require('lodash'),
     app = require('../app'),
+    config = require('../../config'),
     db = require('../db'),
     expect = require('chai').expect,
     expectations = require('./expectations/response'),
@@ -7,6 +8,8 @@ var _ = require('lodash'),
     moment = require('moment'),
     Promise = require('bluebird'),
     supertest = require('supertest-as-promised');
+
+var logger = config.logger('spec');
 
 exports.testApi = function(method, path) {
   method = (method || 'GET').toLowerCase();
@@ -51,13 +54,20 @@ exports.setUp = function(data, callback) {
       if (!_.has(data, 'now')) {
         data.now = moment();
       }
-    });
+
+      var duration = moment().diff(data.beforeSetup) / 1000;
+      logger.debug('Completed test setup in ' + duration + 's');
+    }).return(exports);
 };
 
 exports.cleanDatabase = function() {
+  var start = moment();
   return Promise.all([
     db.knex.raw('TRUNCATE user_account;')
-  ]).return();
+  ]).then(function() {
+    var duration = moment().diff(start) / 1000;
+    logger.debug('Cleaned database in ' + duration + 's')
+  });
 };
 
 exports.enrichExpectation = function(checkFunc) {

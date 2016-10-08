@@ -72,6 +72,7 @@ if (env == 'development') {
 } else if (env == 'test') {
   // Test overrides.
   _.merge(config, {
+    bcryptCost: parseConfigInt(process.env.BCRYPT_COST) || 1,
     logLevel: config.logLevel || 'WARN',
     mail: {
       enabled: false

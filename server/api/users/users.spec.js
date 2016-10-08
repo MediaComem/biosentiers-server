@@ -13,7 +13,6 @@ describe('Users API', function() {
   });
 
   describe('POST /api/users', function() {
-
     beforeEach(function() {
       data.reqBody = {
         email: 'test@example.com'
@@ -79,6 +78,13 @@ describe('Users API', function() {
         });
       });
 
+      it('should not retrieve a non-existent user', function() {
+        return spec
+          .testApi('GET', '/users/foo')
+          .set('Authorization', 'Bearer ' + data.user.jwt())
+          .expect(expectRes.notFound('No user was found with ID foo.'));
+      });
+
       it('should prevent a user from retrieving another user', function() {
         return userFixtures.user().then(function(anotherUser) {
           return spec
@@ -89,14 +95,14 @@ describe('Users API', function() {
       });
 
       it('should prevent an anonymous user from retrieving a user', function() {
-          return spec
-            .testApi('GET', '/users/' + data.user.get('api_id'))
-            .expect(expectRes.unauthorized('Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'));
+        return spec
+          .testApi('GET', '/users/' + data.user.get('api_id'))
+          .expect(expectRes.unauthorized('Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'));
       });
     });
 
     describe('PATCH /api/users/:id', function() {
-      function getUpdatedExpected(changes) {
+      function getExpectedPatched(changes) {
         return getExpected(_.extend({
           updatedBefore: null,
           updatedAfter: data.now
@@ -113,7 +119,7 @@ describe('Users API', function() {
           .testUpdate('/users/' + data.user.get('api_id'))
           .set('Authorization', 'Bearer ' + data.user.jwt())
           .send(changes)
-          .then(expectUser.inBody(getUpdatedExpected(changes)));
+          .then(expectUser.inBody(getExpectedPatched(changes)));
       });
     });
   });
