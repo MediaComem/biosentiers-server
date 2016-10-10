@@ -13,10 +13,8 @@ exports.create = builder.route(function(req, res, helper) {
   return validate().then(create);
 
   function validate() {
-    return helper.validateRequest(function() {
-      return this.validate(this.get('body'), this.type('object'), function() {
-        return this.validate(this.json('/email'), this.type('string'), this.presence(), this.email());
-      });
+    return helper.validateRequestBody(function() {
+      return this.validate(this.json('/email'), this.type('string'), this.presence(), this.email());
     });
   }
 
@@ -47,12 +45,10 @@ exports.update = builder.route(function(req, res, helper) {
   return validate().then(update);
 
   function validate() {
-    return helper.validateRequest(function() {
-      return this.validate(this.get('body'), this.type('object'), function(context) {
-        return this.parallel(
-          this.validate(this.json('/password'), this.type('string'), this.presence())
-        );
-      });
+    return helper.validateRequestBody(function() {
+      return this.parallel(
+        this.validate(this.json('/password'), this.patchMode(), this.type('string'), this.presence())
+      );
     });
   }
 

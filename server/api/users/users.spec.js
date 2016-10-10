@@ -35,6 +35,24 @@ describe('Users API', function() {
         .testCreate('/users', data.reqBody)
         .then(expectUser.inBody(expected));
     });
+
+    it('should not accept invalid properties', function() {
+
+      var body = {
+        email: 'foo'
+      };
+
+      return spec.testApi('POST', '/users')
+        .send(body)
+        .then(expectRes.invalid([
+          {
+            code: 'validation.email.invalid',
+            type: 'json',
+            location: '/email',
+            message: 'Value must be a valid e-mail address.'
+          }
+        ]));
+    });
   });
 
   function addExistingUserData(changes) {
@@ -179,7 +197,7 @@ describe('Users API', function() {
         });
       });
 
-      it('should not accept an invalid update', function() {
+      it('should not accept invalid properties', function() {
 
         var body = {
           password: '',
@@ -192,11 +210,9 @@ describe('Users API', function() {
           .then(expectRes.invalid([
             {
               code: 'validation.presence.missing',
-              message: 'Value is required.',
-              value: '',
-              valueSet: true,
               type: 'json',
-              location: '/password'
+              location: '/password',
+              message: 'Value is required.'
             }
           ]));
       });

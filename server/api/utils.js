@@ -3,7 +3,7 @@ var _ = require('lodash'),
     config = require('../../config'),
     errors = require('./errors'),
     Promise = require('bluebird'),
-    valdsl = require('valdsl');
+    valdsl = require('../lib/valdsl');
 
 exports.notYetImplemented = function(req, res) {
   res.sendStatus(418);
@@ -110,6 +110,14 @@ ApiHelper.prototype.validate = function(value, callback, status) {
 
 ApiHelper.prototype.validateRequest = function(callback, status) {
   return this.validate(this.req, callback, status || 422);
+};
+
+ApiHelper.prototype.validateRequestBody = function() {
+  var callbacks = _.toArray(arguments);
+  return this.validate(this.req, function() {
+    callbacks = [ this.get('body'), this.type('object') ].concat(callbacks);
+    return this.validate.apply(this, callbacks);
+  }, 422);
 };
 
 ApiHelper.prototype.respond = function(record, policy, callback) {
