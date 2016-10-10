@@ -21,6 +21,10 @@ exports.forbidden = function(code, message) {
   return new ApiError(403, code, message || 'You are not authorized to access this resource. Authenticate with a user account that has more privileges.');
 };
 
+exports.forbiddenChange = function(description) {
+  return new ApiError(403, 'auth.forbiddenChange', 'You are not authorized to ' + description + '. Authenticate with a user account that has more privileges.');
+};
+
 exports.notFound = function(code, message) {
   return new ApiError(404, code || 'resource.notFound', message || 'No resource was found at this verb and URI.');
 };

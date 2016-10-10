@@ -1,5 +1,4 @@
 var auth = require('../auth'),
-    bcrypt = require('bcryptjs'),
     errors = require('../errors'),
     LocalStrategy = require('passport-local').Strategy,
     passport = require('passport'),
@@ -19,7 +18,7 @@ exports.authenticate = function(req, res, next) {
     req.user = user;
 
     res.json({
-      token: user.jwt(),
+      token: user.generateJwt(),
       user: policy.serialize(user, req)
     });
   })(req, res, next);
@@ -35,7 +34,7 @@ function setUpPassport() {
     }).fetch().then(function(user) {
       if (!user || !user.isActive()) {
         throw errors.unauthorized('auth.invalidUser', 'This user account does not exist or is inactive.');
-      } else if (!bcrypt.compareSync(password, user.get('password_hash'))) {
+      } else if (!user.hasPassword(password)) {
         throw errors.unauthorized('auth.invalidCredentials', 'The e-mail or password is invalid.');
       } else {
         done(undefined, user);

@@ -49,6 +49,8 @@ ApiBuilder.prototype.route = function(definition) {
       if (result === undefined) {
         throw new Error('Routes defined with ApiBuilder#route must return a value or promise');
       }
+
+      return result;
     }).catch(next);
   };
 };
@@ -94,14 +96,20 @@ function ApiHelper(req, res, next, logger) {
   this.logger = logger;
 }
 
-ApiHelper.prototype.validate = function(value, callback) {
+ApiHelper.prototype.validate = function(value, callback, status) {
   return valdsl(function() {
     return this.validate(this.value(value), this.unlessError(this.atCurrentLocation()), callback);
+  }).catch(function(err) {
+    if (!_.has(err, 'status')) {
+      err.status = status;
+    }
+
+    return Promise.reject(err);
   });
 };
 
-ApiHelper.prototype.validateRequest = function(callback) {
-  return this.validate(this.req, callback);
+ApiHelper.prototype.validateRequest = function(callback, status) {
+  return this.validate(this.req, callback, status || 422);
 };
 
 ApiHelper.prototype.respond = function(record, policy, callback) {
@@ -136,4 +144,21 @@ ApiHelper.prototype.serializer = function(policy) {
   return function(record) {
     return serialize(record, policy);
   };
+};
+
+ApiHelper.prototype.unserializeTo = function(record, properties, source) {
+  source = source || this.req.body;
+
+  if (_.isArray(properties)) {
+    properties = _.reduce(properties, function(memo, property) {
+      memo[property] = property;
+      return memo;
+    }, {});
+  }
+
+  _.each(properties, function(recordProperty, sourceProperty) {
+    if (_.has(source, sourceProperty)) {
+      record.set(recordProperty, source[sourceProperty]);
+    }
+  });
 };

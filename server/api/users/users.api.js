@@ -1,4 +1,5 @@
-var api = require('../utils'),
+var _ = require('lodash'),
+    api = require('../utils'),
     mailer = require('../../lib/mailer'),
     policy = require('./users.policy'),
     User = require('../../models/user');
@@ -47,17 +48,22 @@ exports.update = builder.route(function(req, res, helper) {
 
   function validate() {
     return helper.validateRequest(function() {
-      return this.validate(this.get('body'), this.type('object'), function() {
+      return this.validate(this.get('body'), this.type('object'), function(context) {
         return this.parallel(
-          this.validate(this.json('/password', this.type('string')))
+          this.validate(this.json('/password'), this.type('string'), this.presence())
         );
       });
     });
   }
 
   function update() {
-    var password = req.body.password;
-    if (password) {
+    helper.unserializeTo(user, [ 'active', 'email', 'role' ]);
+
+    var password = req.body.password,
+        previousPassword = req.body.previousPassword;
+    if (user.get('password_hash') && password && user.hasPassword(previousPassword)) {
+      user.set('password', password);
+    } else if (!user.get('password_hash') && password) {
       user.set('password', password);
     }
 

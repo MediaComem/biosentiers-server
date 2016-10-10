@@ -7,7 +7,7 @@ exports.user = function(data) {
   data = data || {};
   return spec.createRecord(User, {
     email: data.email || exports.email(),
-    password: data.password || 'changeme',
+    password: data.password,
     active: _.get(data, 'active', true),
     role: data.role || 'user',
     created_at: data.createdAt,

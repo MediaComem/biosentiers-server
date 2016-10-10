@@ -46,16 +46,39 @@ var User = Abstract.extend({
     return _.includes(availableRoles, role) && this.get('role') === role;
   },
 
+  hasPassword: function(password) {
+    return password && bcrypt.compareSync(password, this.get('password_hash'))
+  },
+
   isActive: function() {
     return !!this.get('active');
   },
 
-  jwt: function() {
-    return jwt.sign({
-      sub: this.get('api_id'),
-      iat: new Date().getTime()
-    }, config.jwtSecret);
+  isRegistered: function() {
+    return this.has('password_hash');
+  },
+
+  generateJwt: function() {
+    return generateJwt(this, {
+      authType: 'user'
+    });
+  },
+
+  generateRegistrationJwt: function() {
+    return generateJwt(this, {
+      authType: 'registrationOtp'
+    });
   }
 });
 
 module.exports = bookshelf.model('User', User);
+
+function generateJwt(user, options) {
+
+  var jwtOptions = _.extend({
+    sub: user.get('api_id'),
+    iat: new Date().getTime()
+  }, options);
+
+  return jwt.sign(jwtOptions, config.jwtSecret);
+}

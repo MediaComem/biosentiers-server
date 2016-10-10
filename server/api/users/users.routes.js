@@ -160,7 +160,7 @@ router.get('/:id',
  */
 router.patch('/:id',
   controller.fetchRecord,
-  utils.authorize(policy.canUpdate, controller.name),
+  utils.authorize(policy.canUpdate, controller.name, { authTypes: [ 'user', 'registrationOtp' ] }),
   controller.update);
 
 module.exports = router;

@@ -30,4 +30,50 @@ chai.use(function(chai, utils) {
   });
 });
 
+chai.use(function(chai, utils) {
+  chai.Assertion.addMethod('containErrors', function(expectedErrors) {
+
+    var obj = utils.flag(this, 'object');
+    new chai.Assertion(obj).to.be.an('array');
+
+    var missingErrors = [],
+        remainingErrors = obj.slice();
+
+    _.each(expectedErrors, function(expectedError) {
+      var error = _.find(remainingErrors, _.matches(expectedError));
+      if (error) {
+        remainingErrors.splice(remainingErrors.indexOf(error), 1);
+      } else {
+        missingErrors.push(expectedError);
+      }
+    });
+
+    this.assert(_.isEmpty(missingErrors) && _.isEmpty(remainingErrors),
+      buildErrorsAssertionMessage(true, missingErrors, remainingErrors),
+      buildErrorsAssertionMessage(false, expectedErrors));
+  });
+});
+
+function buildErrorsAssertionMessage(positive, missingErrors, extraErrors) {
+
+  var message = 'expected errors ' + (positive ? '' : 'not ') + 'to contain the following errors:';
+
+  _.each(missingErrors, function(error) {
+    message = message + '\n- ' + JSON.stringify(error);
+  });
+
+  if (!positive) {
+    return message + '\n\nBut it contains exactly these errors and no others.'
+  }
+
+  if (extraErrors.length) {
+    message = message + '\n\nThe following extra errors were found:';
+    _.each(extraErrors, function(error) {
+      message += '\n- ' + JSON.stringify(error);
+    });
+  }
+
+  return message;
+}
+
 module.exports = chai;

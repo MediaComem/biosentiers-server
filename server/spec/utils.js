@@ -184,17 +184,24 @@ function enrichResponseAssertionError(err, res) {
     }
   }
 
-  var firstEol = err.stack.indexOf('\n'),
-      message = err.stack.slice(0, firstEol),
-      rest = err.stack.slice(firstEol);
+  var rest,
+      message = 'AssertionError: ' + err.message;
+
+  if (err.stack.indexOf(message) === 0) {
+    rest = err.stack.slice(message.length + 1);
+  } else {
+    var firstEol = err.stack.indexOf('\n');
+    message = err.stack.slice(0, firstEol);
+    rest = err.stack.slice(firstEol);
+  }
 
   var indent = '',
       indentMatch = rest.match(/^\s+/);
   if (indentMatch) {
-    indent = Array(indentMatch[0].length).join(' ');
+    indent = Array(indentMatch[0].length + 1).join(' ');
   }
 
-  err.stack = message + '\n' + resDesc.replace(/^/gm, indent) + '\n' + rest;
+  err.stack = message + '\n' + resDesc.replace(/^/gm, indent) + '\n\n' + rest;
 
   return err;
 }

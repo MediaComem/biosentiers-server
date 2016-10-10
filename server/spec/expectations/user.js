@@ -37,9 +37,8 @@ module.exports.inDb = function(apiId, expected) {
     expect(user.get('updated_at'), 'db.user.updated_at').to.be.sameMoment(expected.updatedAt);
 
     if (expected.password) {
-      expect(bcrypt.compareSync(expected.password, user.get('password_hash'))).to.equal(true);
-    } else if (_.has(expected, 'password')) {
-      expect(user.get('password_hash'), 'db.user.password_hash').to.equal(expected.password);
+      expect(bcrypt.compareSync(expected.password, user.get('password_hash')), 'db.user.password_hash').to.equal(true);
+      expect(user.hasPassword(expected.password), 'db.user.password_hash').to.equal(true);
     }
   });
 };

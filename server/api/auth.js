@@ -6,7 +6,8 @@ var _ = require('lodash'),
     p = require('bluebird'),
     User = require('../models/user');
 
-var logger = config.logger('auth');
+var authTypes = [ 'user', 'registrationOtp' ],
+    logger = config.logger('auth');
 
 /**
  * Authenticates the user through the Authorization header.
@@ -20,15 +21,16 @@ var logger = config.logger('auth');
 exports.authenticate = function(options) {
 
   options = _.defaults({}, options, {
-    required: true
+    required: true,
+    active: true,
+    authTypes: [ 'user' ]
   });
 
   return compose()
-    .use(enrichRequest) // Add `req.authenticate`.
     .use(validateJwt()) // Parse the JWT bearer token (if any).
     .use(checkJwtError) // Respond with HTTP 401 Unauthorized if there is a token and it is invalid.
     .use(renameJwt)     // Move JWT token in `req.user` to `req.jwtToken`.
-    .use(loadAuthenticatedUser(options.required)); // Load the user corresponding to the JWT token (if any).
+    .use(loadAuthenticatedUser(options)); // Load the user corresponding to the JWT token (if any).
 };
 
 /**
@@ -48,6 +50,7 @@ exports.authorize = function(policy, resourceName, options) {
 
   options = _.defaults({}, options, {
     required: false,
+    active: false,
     resourceName: resourceName
   });
 
@@ -65,44 +68,40 @@ exports.authorize = function(policy, resourceName, options) {
     });
 };
 
-function enrichRequest(req, res, next) {
-  req.authenticated = function() {
-    if (req.user) {
-      return req.user;
-    } else if (!req.get('Authorization')) {
-      throw errors.unauthorized('auth.tokenRequired');
-    } else if (!req.jwtToken || !req.user) {
-      throw errors.unauthorized('auth.tokenInvalid', 'The submitted bearer token is invalid or has expired.');
-    } else {
-      throw new Error('An unexpected authentication error has occurred.');
-    }
-  };
-
-  next();
-}
-
-function loadAuthenticatedUser(required) {
+function loadAuthenticatedUser(options) {
   return function(req, res, next) {
+
+    var required = options.required,
+        active = options.active,
+        authTypes = options.authTypes;
+
     if (!req.jwtToken) {
-      return next();
+      return next(required ? missingAuthorizationError() : undefined);
+    } else if (!_.includes(authTypes, req.jwtToken.authType)) {
+      return next(invalidAuthorizationError());
+    }
+
+    if (authTypes && !_.isArray(authTypes)) {
+      return next(new Error('Authentication `authTypes` option must be an array'));
+    } else if (authTypes && !_.includes(authTypes, req.jwtToken.authType)) {
+      return next(invalidAuthorizationError());
     }
 
     User.where({
-      api_id: req.jwtToken.sub
+      api_id: req.jwtToken.sub || ''
     }).fetch().then(function(user) {
-      if (required && (!user || !user.get('active'))) {
-        return res.sendStatus(401);
+      if (!user) {
+        return next(invalidAuthorizationError());
+      } else if (active && !user.get('active')) {
+        return next(invalidAuthorizationError());
       }
 
-      if (user && user.get('active')) {
-        logger.debug('Authenticated with user ' + user.get('api_id'));
-        req.user = user;
-      }
-
+      logger.debug('Authenticated with user ' + user.get('api_id'));
+      req.user = user;
       next();
     }).catch(next);
   };
-};
+}
 
 // The express-jwt library stores the JWT token as `req.user`, but we want to put the user object
 // in that property, so this function moves the token to `req.jwtToken` for clarity.
@@ -123,14 +122,44 @@ function validateJwt() {
 }
 
 function checkJwtError(err, req, res, next) {
-  if (err) {
-    // TODO: use standard errors from server/api/errors
-    return res.status(401)
-      .type('text/plain')
-      .send(err.name == 'UnauthorizedError' ? err.message : 'Your authentication credentials are invalid');
+  if (!err) {
+    next();
+  } else if (err.code == 'credentials_required') {
+    next(missingAuthorizationError());
+  } else if (err.code == 'credentials_bad_format' || err.code == 'credentials_bad_scheme') {
+    next(malformedAuthorizationError());
+  } else {
+    next(invalidAuthorizationError());
   }
+}
 
-  next();
+function ensureRequestAuthenticated(req, options) {
+  options = _.defaults({}, options, {
+    active: true
+  });
+
+  if (!req.jwtToken) {
+    throw missingAuthorizationError();
+  } else if (req.jwtToken.authType != 'user') {
+    throw invalidAuthorizationError();
+  } else if (!req.user) {
+    throw invalidAuthorizationError();
+  } else if (options.active && !req.user.get('active')) {
+    throw invalidAuthorizationError();
+  } else {
+    return req.user;
+  }
+}
+
+function requestHasValidOtp(req, otpType, options) {
+  options = _.defaults({}, options, {
+    active: true
+  });
+
+  return req.jwtToken
+    && req.jwtToken.authType == otpType + 'Otp'
+    && req.user
+    && (!options.active || req.user.get('active'));
 }
 
 /**
@@ -141,15 +170,39 @@ function AuthorizationHelper(req) {
 }
 
 _.extend(AuthorizationHelper.prototype, {
-  authenticated: function() {
-    return this.req.authenticated();
+  authenticated: function(options) {
+    return ensureRequestAuthenticated(this.req, options);
+  },
+
+  validOtp: function(otpType, options) {
+    return requestHasValidOtp(this.req, otpType, options);
   },
 
   hasRole: function(role) {
-    return this.req.user && this.req.user.hasRole(role);
+    return this.req.user && this.req.user.get('active') && this.req.user.hasRole(role);
   },
 
   sameRecord: function(r1, r2) {
     return r1 && r2 && r1.constructor === r2.constructor && r1.get('id') && r1.get('id') === r2.get('id');
+  },
+
+  forbidChange: function(property, currentValue, description) {
+    if (_.has(this.req.body, property) && this.req.body[property] !== currentValue) {
+      throw errors.forbiddenChange(description);
+    } else {
+      return true;
+    }
   }
 });
+
+function missingAuthorizationError() {
+  return errors.unauthorized('auth.missingAuthorization');
+}
+
+function malformedAuthorizationError() {
+  return errors.unauthorized('auth.malformedAuthorization', 'The Authorization header is not in the correct format. It should be "Authorization: Bearer TOKEN".');
+}
+
+function invalidAuthorizationError() {
+  return errors.unauthorized('auth.invalidAuthorization', 'The Bearer token supplied in the Authorization header is invalid or has expired.');
+}
