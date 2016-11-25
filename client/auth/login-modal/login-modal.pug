@@ -1,0 +1,27 @@
+.modal-header
+  h3.modal-title Connexion
+
+form(name='loginModalCtrl.form', ng-submit='loginModalCtrl.form.$valid && loginModalCtrl.login()', novalidate)
+  .modal-body
+
+    .form-group(validates='loginModalCtrl.form.email')
+      label.control-label(for='user-email') Adresse e-mail
+      input#user-email.form-control(type='text', ng-model='loginModalCtrl.user.email', name='email', required, autofocus)
+
+      validation-error(for='loginModalCtrl.form.email', validation='required')
+        | Merci d'entrer votre adresse e-mail.
+
+    .form-group(validates='loginModalCtrl.form.password')
+      label.control-label(for='user-password') Mot de passe
+      input#user-password.form-control(type='password', ng-model='loginModalCtrl.user.password', name='password', required)
+
+      validation-error(for='loginModalCtrl.form.password', validation='required')
+        | Merci d'entrer votre mot de passe.
+
+    p.alert.alert-warning(ng-if='loginModalCtrl.apiError && loginModalCtrl.apiError.status == 401')
+      | Votre adresse e-mail ou votre mot de passe est incorrect.
+
+  .modal-footer
+    .btn-group
+      button.btn.btn-default(type='button', ng-click='$dismiss()') Annuler
+      button.btn.btn-primary(type='submit', ng-disabled='loginModalCtrl.form.$invalid') Connecter
