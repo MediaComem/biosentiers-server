@@ -6,6 +6,7 @@ This repository contains the Node.js Express server application for the BioSenti
 * [Development](#dev)
   * [First-time setup](#setup)
   * [Run it](#dev-run)
+  * [Create an admin user](#dev-create-admin)
   * [Test the production environment](#prod-run)
   * [Upgrade to the latest version](#upgrade)
 * [Configuration](#config)
@@ -71,6 +72,15 @@ How to set up your machine to contribute to the project.
 * Run the default gulp task:
 
         gulp
+
+
+
+<a name="dev-create-admin"></a>
+### Create an admin user
+
+* An admin user must be created to use the application:
+
+        ADMIN_EMAIL=jdoe@example.com ADMIN_PASSWORD=changeme node server/scripts/createAdmin.js
 
 
 
