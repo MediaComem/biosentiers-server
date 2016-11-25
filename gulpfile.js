@@ -270,6 +270,16 @@ gulp.task('dev:stylus', function() {
 });
 
 /**
+ * Watches the JavaScript files in `client` and automatically reloads the browser when changes are detected.
+ */
+gulp.task('dev:watch:js', function() {
+  return srcUtils.watch(src.js, function(file) {
+    var stream = gulpifySrc(file.path);
+    handleStaticAssetChangeStream(file, stream);
+  });
+});
+
+/**
  * Watches the Less files in `client` and automatically compiles them to `build/development/assets` when changes are detected.
  */
 gulp.task('dev:watch:less', function() {
@@ -340,7 +350,7 @@ gulp.task('dev:build', sequence('local:env', 'clean:dev', 'dev:lint', [ 'dev:fav
 /**
  * Runs all watch tasks (Less stylesheets, Stylus stylesheets, Pug templates and linting).
  */
-gulp.task('dev:watch', [ 'dev:watch:less', 'dev:watch:lint', 'dev:watch:templates', 'dev:watch:index', 'dev:watch:stylus', 'doc:watch' ]);
+gulp.task('dev:watch', [ 'dev:watch:js', 'dev:watch:less', 'dev:watch:lint', 'dev:watch:templates', 'dev:watch:index', 'dev:watch:stylus', 'doc:watch' ]);
 
 /**
  * Builds and runs the development environment:
@@ -786,6 +796,25 @@ var debouncedGenerateApiDoc = _.debounce(generateApiDoc, 500);
 
 function changedFileSrc(file, base) {
   return gulpifySrc({ files: file.path, base: base });
+}
+
+function handleStaticAssetChangeStream(file, stream) {
+  if (file.event == 'change') {
+    // In the case of an existing asset that was modified, simply save it.
+    stream
+      .pipe(livereload());
+  } else if (file.event == 'add') {
+    // If the asset is a new file, rebuild and reload the index to include it.
+    stream
+      .pipe(rebuildIndex());
+  } else if (file.event == 'unlink') {
+    // If the asset was deleted, rebuild and reload the index to omit it.
+    debouncedRebuildIndex();
+  } else if (!_.has(file, 'event')) {
+    throw new Error('File does not appear to be from gulp-watch (it has no `event` property)');
+  } else {
+    throw new Error('Unsupported gulp-watch event type ' + JSON.stringify(file.event));
+  }
 }
 
 function handleAssetChangeStream(file, stream) {
