@@ -3,7 +3,7 @@
 
   angular
     .module('bio.auth')
-    .factory('Auth', AuthService);
+    .factory('BioAuth', BioAuthService);
 
   /**
    * Authentication service to manage the logged user and API token.
@@ -11,7 +11,7 @@
    * The auth data returned by the server when the user logs in is
    * stored in the browser's local storage.
    */
-  function AuthService(BioStorage, $http, $log, rx) {
+  function BioAuthService(BioStorage, $http, $log, rx) {
 
     // RXJS behavior subject to allow other services and components
     // to react when the user logs in or out.
@@ -30,11 +30,16 @@
        * The user's API authentication token.
        */
       apiToken: null,
+      /**
+       * Available user roles.
+       */
+      roles: [ 'user', 'admin' ],
 
       // Methods
       initialize: initialize,
       logIn: authenticate,
-      logOut: unsetAuthData
+      logOut: unsetAuthData,
+      hasRole: loggedUserHasRole
     };
 
     return service;
@@ -103,6 +108,13 @@
       userSubject.onNext(null);
 
       $log.debug(user.email + ' logged out');
+    }
+
+    /**
+     * Returns true if a user is logged in who has the specified role.
+     */
+    function loggedUserHasRole(role) {
+      return role && service.user && service.user.role === role;
     }
   }
 })();

@@ -12,10 +12,23 @@
     $stateProvider
 
       .state('home', {
-        url: '/',
-        controller: 'BioHomeCtrl',
-        controllerAs: 'home',
-        templateUrl: '/assets/home/home.html'
+        url: '^/',
+        controller: 'BioHomePageCtrl',
+        controllerAs: 'homePageCtrl',
+        templateUrl: '/assets/home-page/home-page.html'
+      })
+
+      .state('admin', {
+        url: '^/admin',
+        abstract: true,
+        template: '<div ui-view></div>'
+      })
+
+      .state('admin.users', {
+        url: '/users',
+        controller: 'BioUsersPageCtrl',
+        controllerAs: 'usersPageCtrl',
+        templateUrl: '/assets/users-page/users-page.html'
       })
 
     ;

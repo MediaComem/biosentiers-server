@@ -1,4 +1,5 @@
-var auth = require('../auth'),
+var api = require('../utils'),
+    auth = require('../auth'),
     errors = require('../errors'),
     LocalStrategy = require('passport-local').Strategy,
     passport = require('passport'),
@@ -6,6 +7,11 @@ var auth = require('../auth'),
     User = require('../../models/user');
 
 setUpPassport();
+
+var builder = api.builder(User, 'api');
+
+// API resource name (used in some API errors).
+exports.name = 'auth';
 
 exports.authenticate = function(req, res, next) {
   passport.authenticate('local', function(err, user, info) {
@@ -23,6 +29,11 @@ exports.authenticate = function(req, res, next) {
     });
   })(req, res, next);
 };
+
+exports.createInvitation = builder.route(function(req, res, helper) {
+  res.sendStatus(501);
+  return false;
+});
 
 function setUpPassport() {
   passport.use(new LocalStrategy({

@@ -1,9 +1,12 @@
+var _ = require('lodash'),
+    User = require('../../models/user');
+
 exports.canCreate = function(req) {
   return true;
 };
 
 exports.canList = function(req) {
-  return this.authenticated();
+  return req.query.email || (this.authenticated() && this.hasRole('admin'));
 };
 
 exports.canRetrieve = function(req) {
@@ -23,13 +26,32 @@ exports.canUpdate = function(req) {
   }
 };
 
+exports.scope = function(req) {
+
+  var scope = new User();
+
+  if (req.query.email && (!req.user || !req.user.hasRole('admin'))) {
+    scope = scope.where('email', req.query.email);
+  }
+
+  return scope;
+};
+
 exports.serialize = function(user, req) {
-  return {
-    id: user.get('api_id'),
-    email: user.get('email'),
-    active: user.get('active'),
-    role: user.get('role'),
-    createdAt: user.get('created_at'),
-    updatedAt: user.get('updated_at')
+
+  var serialized = {
+    email: user.get('email')
   };
+
+  if (req.user && req.user.hasRole('admin')) {
+    _.extend(serialized, {
+      id: user.get('api_id'),
+      active: user.get('active'),
+      role: user.get('role'),
+      createdAt: user.get('created_at'),
+      updatedAt: user.get('updated_at')
+    });
+  }
+
+  return serialized;
 };

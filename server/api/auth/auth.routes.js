@@ -66,4 +66,6 @@ var router = express.Router();
  */
 router.post('/', controller.authenticate);
 
+router.post('/invitation', controller.createInvitation);
+
 module.exports = router;

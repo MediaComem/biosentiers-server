@@ -1,6 +1,7 @@
 var _ = require('lodash'),
     api = require('../utils'),
     mailer = require('../../lib/mailer'),
+    pagination = require('../pagination'),
     policy = require('./users.policy'),
     User = require('../../models/user');
 
@@ -32,7 +33,23 @@ exports.create = builder.route(function(req, res, helper) {
 });
 
 exports.list = builder.route(function(req, res, helper) {
-  return res.json([]);
+
+  var query = policy.scope(req);
+
+  function filter(query) {
+
+    if (req.query.email) {
+      query = query.where('email', req.query.email);
+    }
+
+    return {
+      query: query
+    };
+  }
+
+  return pagination(req, res, query, filter).then(function(users) {
+    res.json(_.map(users.models, helper.serializer(policy)));
+  });
 });
 
 exports.retrieve = builder.route(function(req, res, helper) {

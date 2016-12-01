@@ -3,13 +3,14 @@
 
   angular
     .module('bio')
-    .run(initialize);
+    .config(initialize);
 
   /**
    * Initializes the authentication service when the app starts,
    * e.g. to load the logged in user from local storage.
    */
-  function initialize(BioAuth) {
-    BioAuth.initialize();
+  function initialize(uiSelectConfig) {
+    uiSelectConfig.theme = 'bootstrap';
+    uiSelectConfig.resetSearchInput = true;
   }
 })();

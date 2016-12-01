@@ -1,4 +1,4 @@
 (function() {
   'use strict';
-  angular.module('bio.home', []);
+  angular.module('bio.users', []);
 })();

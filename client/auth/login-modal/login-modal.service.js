@@ -12,7 +12,7 @@
   function BioLoginModalService($uibModal) {
 
     var service = {
-      open: openLoginModal
+      open: openModal
     };
 
     return service;
@@ -20,7 +20,7 @@
     /**
      * Opens the login modal dialog.
      */
-    function openLoginModal() {
+    function openModal() {
       return $uibModal.open({
         controller: 'BioLoginModalCtrl',
         controllerAs: 'loginModalCtrl',
@@ -35,7 +35,7 @@
    * Authentication is delegated to the Auth service.
    * The modal closes automatically on a successful login.
    */
-  function BioLoginModalCtrl(Auth, $uibModalInstance) {
+  function BioLoginModalCtrl(BioAuth, $uibModalInstance) {
 
     var loginModalCtrl = this;
 
@@ -43,7 +43,7 @@
     loginModalCtrl.login = login;
 
     function login() {
-      Auth
+      BioAuth
         .logIn(loginModalCtrl.user)
         .then(closeModal)
         .catch(handleError);

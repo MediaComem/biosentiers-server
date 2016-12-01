@@ -4,14 +4,20 @@
   angular.module('bio', [
     // Angular modules
     'ngAnimate',
+    'ngSanitize',
     // Third-party dependencies
     'rx',
     'ui.bootstrap',
     'ui.router',
-    // Application modules
+    'ui.select',
+    // Application utilities
+    'bio.api',
     'bio.auth',
+    'bio.events',
     'bio.forms',
-    'bio.home',
-    'bio.navbar'
+    // Application content
+    'bio.home-page',
+    'bio.navbar',
+    'bio.users-page'
   ]);
 })();
