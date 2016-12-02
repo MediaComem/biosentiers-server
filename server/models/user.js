@@ -3,7 +3,7 @@ var _ = require('lodash'),
     bcrypt = require('bcryptjs'),
     bookshelf = require('../db'),
     config = require('../../config'),
-    jwt = require('jsonwebtoken');
+    jwt = require('../lib/jwt');
 
 var availableRoles = [ 'user', 'admin' ];
 
@@ -59,26 +59,20 @@ var User = Abstract.extend({
   },
 
   generateJwt: function() {
-    return generateJwt(this, {
-      authType: 'user'
+    return jwt.generateToken({
+      authType: 'user',
+      sub: this.get('api_id')
     });
   },
 
-  generateRegistrationJwt: function() {
-    return generateJwt(this, {
-      authType: 'registrationOtp'
-    });
+  format: function(attrs) {
+    if (_.isString(attrs.email)) {
+      // FIXME: test lowercase e-mail
+      attrs.email = attrs.email.toLowerCase();
+    }
   }
+}, {
+  roles: availableRoles
 });
 
 module.exports = bookshelf.model('User', User);
-
-function generateJwt(user, options) {
-
-  var jwtOptions = _.extend({
-    sub: user.get('api_id'),
-    iat: new Date().getTime()
-  }, options);
-
-  return jwt.sign(jwtOptions, config.jwtSecret);
-}

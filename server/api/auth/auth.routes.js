@@ -1,5 +1,6 @@
 var controller = require('./auth.api'),
     express = require('express'),
+    policy = require('./auth.policy'),
     utils = require('../utils');
 
 var router = express.Router();
@@ -66,6 +67,8 @@ var router = express.Router();
  */
 router.post('/', controller.authenticate);
 
-router.post('/invitation', controller.createInvitation);
+router.post('/invitation',
+  utils.authorize(policy.canInvite),
+  controller.createInvitation);
 
 module.exports = router;

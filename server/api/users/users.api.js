@@ -11,6 +11,7 @@ var builder = api.builder(User, 'users');
 exports.name = 'user';
 
 exports.create = builder.route(function(req, res, helper) {
+
   return validate().then(create);
 
   function validate() {
@@ -24,8 +25,6 @@ exports.create = builder.route(function(req, res, helper) {
       var record = User.parse(req);
       return record
         .save()
-        .then(sendRegistrationEmail)
-        .return(record)
         .then(helper.serializer(policy))
         .then(helper.created());
     });
@@ -88,11 +87,3 @@ exports.update = builder.route(function(req, res, helper) {
 });
 
 exports.fetchRecord = builder.fetcher(exports.name);
-
-function sendRegistrationEmail(user) {
-  return mailer.send({
-    to: user.get('email'),
-    subject: 'Registration',
-    text: 'Hello World!'
-  });
-}
