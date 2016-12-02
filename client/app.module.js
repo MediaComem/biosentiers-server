@@ -16,6 +16,7 @@
     'bio.events',
     'bio.forms',
     // Application content
+    'bio.auth.registration-page',
     'bio.home-page',
     'bio.navbar',
     'bio.users-page'

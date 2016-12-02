@@ -1,0 +1,20 @@
+.container
+
+  .page-header
+    h1 Nouveau compte
+
+  .col-lg-6.col-md-8.col-sm-10.col-xs-12
+    form(name='registrationPageCtrl.form', ng-submit='registrationPageCtrl.form.$valid && registrationPageCtrl.register()', novalidate)
+
+      .form-group
+        label.control-label(for='user-email') Adresse e-mail
+        input#user-email.form-control(type='text', ng-model='registrationPageCtrl.user.email', disabled)
+
+      .form-group(validates='registrationPageCtrl.form.password')
+        label.control-label(for='user-password') Mot de passe
+        input#user-password.form-control(type='password', ng-model='registrationPageCtrl.user.password', name='password', required)
+
+        validation-error(for='registrationPageCtrl.form.password', validation='required')
+          | Merci de choisir votre mot de passe.
+
+      button.btn.btn-primary.btn-lg(type='submit', ng-disabled='registrationPageCtrl.form.$invalid') Créer le compte

@@ -44,7 +44,7 @@ var router = express.Router();
  * }
  */
 router.post('/',
-  utils.authorize(policy.canCreate),
+  utils.authorize(policy.canCreate, { authTypes: [ 'user', 'invitation' ] }),
   controller.create);
 
 /**
@@ -160,7 +160,7 @@ router.get('/:id',
  */
 router.patch('/:id',
   controller.fetchRecord,
-  utils.authorize(policy.canUpdate, controller.name, { authTypes: [ 'user', 'registrationOtp' ] }),
+  utils.authorize(policy.canUpdate, controller.name),
   controller.update);
 
 module.exports = router;

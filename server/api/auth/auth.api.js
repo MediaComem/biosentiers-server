@@ -62,6 +62,7 @@ exports.createInvitation = builder.route(function(req, res, helper) {
     return jwt.generateToken(_.extend({}, invitation, {
       authType: 'invitation',
       iat: createdAt.getTime(),
+      exp: 60 * 60 * 24 * 2, // 2 days
       iss: req.user.get('api_id')
     }));
   }
@@ -86,6 +87,15 @@ exports.createInvitation = builder.route(function(req, res, helper) {
       createdAt: createdAt
     }));
   }
+});
+
+exports.retrieveInvitation = builder.route(function(req, res, helper) {
+
+  var invitation = _.extend(_.pick(req.jwtToken, 'email', 'role'), {
+    createdAt: new Date(req.jwtToken.iat * 1000)
+  });
+
+  return res.json(invitation);
 });
 
 function setUpPassport() {

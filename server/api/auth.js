@@ -6,7 +6,7 @@ var _ = require('lodash'),
     p = require('bluebird'),
     User = require('../models/user');
 
-var authTypes = [ 'user', 'registrationOtp' ],
+var authTypes = [ 'user', 'invitation' ],
     logger = config.logger('auth');
 
 /**
@@ -87,6 +87,11 @@ function loadAuthenticatedUser(options) {
       return next(invalidAuthorizationError());
     }
 
+    // No need to load the user for other auth types.
+    if (req.jwtToken.authType != 'user') {
+      return next();
+    }
+
     User.where({
       api_id: req.jwtToken.sub || ''
     }).fetch().then(function(user) {
@@ -135,20 +140,33 @@ function checkJwtError(err, req, res, next) {
 
 function ensureRequestAuthenticated(req, options) {
   options = _.defaults({}, options, {
+    authTypes: [ 'user' ],
     active: true
   });
 
+  // If no JWT token was provided, no one is authenticated.
   if (!req.jwtToken) {
     throw missingAuthorizationError();
-  } else if (req.jwtToken.authType != 'user') {
-    throw invalidAuthorizationError();
-  } else if (!req.user) {
-    throw invalidAuthorizationError();
-  } else if (options.active && !req.user.get('active')) {
-    throw invalidAuthorizationError();
-  } else {
-    return req.user;
   }
+
+  // If the JWT's auth type is not among the allowed types, authentication is invalid.
+  if (!_.includes(options.authTypes, req.jwtToken.authType)) {
+    throw invalidAuthorizationError();
+  }
+
+  var authType = req.jwtToken.authType;
+
+  // If the auth type is "user" and no user was loaded, authentication is invalid.
+  if (authType == 'user' && !req.user) {
+    throw invalidAuthorizationError();
+  }
+
+  // If the auth type is "user" and the user is inactive, authentication is invalid (unless the `active` option is set to false).
+  if (authType == 'user' && options.active && !req.user.get('active')) {
+    throw invalidAuthorizationError();
+  }
+
+  return req.user || req.jwtToken;
 }
 
 function requestHasValidOtp(req, otpType, options) {

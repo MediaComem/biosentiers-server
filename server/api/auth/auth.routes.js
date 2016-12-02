@@ -71,4 +71,8 @@ router.post('/invitation',
   utils.authorize(policy.canInvite),
   controller.createInvitation);
 
+router.get('/invitation',
+  utils.authorize(policy.canBeInvited, { authTypes: [ 'invitation' ] }),
+  controller.retrieveInvitation);
+
 module.exports = router;

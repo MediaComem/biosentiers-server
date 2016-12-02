@@ -18,6 +18,13 @@
         templateUrl: '/assets/home-page/home-page.html'
       })
 
+      .state('register', {
+        url: '^/register?invitation',
+        controller: 'BioRegistrationPageCtrl',
+        controllerAs: 'registrationPageCtrl',
+        templateUrl: '/assets/auth/registration-page/registration-page.html'
+      })
+
       .state('admin', {
         url: '^/admin',
         abstract: true,
