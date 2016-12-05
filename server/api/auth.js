@@ -9,6 +9,8 @@ var _ = require('lodash'),
 var authTypes = [ 'user', 'invitation' ],
     logger = config.logger('auth');
 
+exports.invalidAuthorizationError = invalidAuthorizationError;
+
 /**
  * Authenticates the user through the Authorization header.
  *

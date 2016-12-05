@@ -3,7 +3,8 @@ var _ = require('lodash'),
     mailer = require('../../lib/mailer'),
     pagination = require('../pagination'),
     policy = require('./users.policy'),
-    User = require('../../models/user');
+    User = require('../../models/user'),
+    validations = require('../users/users.validations');
 
 var builder = api.builder(User, 'users');
 
@@ -12,11 +13,24 @@ exports.name = 'user';
 
 exports.create = builder.route(function(req, res, helper) {
 
+  if (req.jwtToken.authType == 'invitation') {
+    _.extend(req.body, {
+      active: true,
+      email: req.jwtToken.email,
+      role: req.jwtToken.role
+    });
+  }
+
   return validate().then(create);
 
   function validate() {
     return helper.validateRequestBody(function() {
-      return this.validate(this.json('/email'), this.type('string'), this.presence(), this.email());
+      return this.parallel(
+        this.validate(this.json('/active'), this.type('boolean')),
+        this.validate(this.json('/email'), this.type('string'), this.presence(), this.email(), validations.emailAvailable()),
+        this.validate(this.json('/password'), this.type('string'), this.presence()),
+        this.validate(this.json('/role'), this.type('string'), this.inclusion({ in: User.roles }))
+      );
     });
   }
 

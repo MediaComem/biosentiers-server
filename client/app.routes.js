@@ -13,16 +13,12 @@
 
       .state('home', {
         url: '^/',
-        controller: 'BioHomePageCtrl',
-        controllerAs: 'homePageCtrl',
-        templateUrl: '/assets/home-page/home-page.html'
+        component: 'bioHomePage'
       })
 
       .state('register', {
         url: '^/register?invitation',
-        controller: 'BioRegistrationPageCtrl',
-        controllerAs: 'registrationPageCtrl',
-        templateUrl: '/assets/auth/registration-page/registration-page.html'
+        component: 'bioRegistrationPage'
       })
 
       .state('admin', {
@@ -33,9 +29,7 @@
 
       .state('admin.users', {
         url: '/users',
-        controller: 'BioUsersPageCtrl',
-        controllerAs: 'usersPageCtrl',
-        templateUrl: '/assets/users-page/users-page.html'
+        component: 'bioUsersPage'
       })
 
     ;

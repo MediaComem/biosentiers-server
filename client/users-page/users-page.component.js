@@ -3,7 +3,12 @@
 
   angular
     .module('bio.users-page')
-    .controller('BioUsersPageCtrl', BioUsersPageCtrl);
+    .controller('BioUsersPageCtrl', BioUsersPageCtrl)
+    .component('bioUsersPage', {
+      controller: 'BioUsersPageCtrl',
+      controllerAs: 'usersPageCtrl',
+      templateUrl: '/assets/users-page/users-page.html'
+    });
 
   function BioUsersPageCtrl(BioInvitationModal) {
 

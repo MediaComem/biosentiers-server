@@ -14,7 +14,7 @@
     });
 
   /**
-   * Controls the navbar, mostly the login/logout and user profile links.
+   * Controls the navbar, mostly login/logout and the user profile link.
    */
   function BioNavbarCtrl(BioAuth, BioEvents, BioLoginModal) {
 

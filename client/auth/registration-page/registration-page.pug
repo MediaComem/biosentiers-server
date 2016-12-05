@@ -3,12 +3,13 @@
   .page-header
     h1 Nouveau compte
 
-  .col-lg-6.col-md-8.col-sm-10.col-xs-12
+  //- Registration form
+  .col-lg-4.col-md-6.col-sm-8.col-xs-12(ng-if='registrationPageCtrl.invitation && !registrationPageCtrl.existingUser')
     form(name='registrationPageCtrl.form', ng-submit='registrationPageCtrl.form.$valid && registrationPageCtrl.register()', novalidate)
 
       .form-group
         label.control-label(for='user-email') Adresse e-mail
-        input#user-email.form-control(type='text', ng-model='registrationPageCtrl.user.email', disabled)
+        input#user-email.form-control(type='text', ng-model='registrationPageCtrl.invitation.email', disabled)
 
       .form-group(validates='registrationPageCtrl.form.password')
         label.control-label(for='user-password') Mot de passe
@@ -18,3 +19,11 @@
           | Merci de choisir votre mot de passe.
 
       button.btn.btn-primary.btn-lg(type='submit', ng-disabled='registrationPageCtrl.form.$invalid') Créer le compte
+
+  //- Error: user is already logged in
+  p.alert.alert-danger(ng-if='registrationPageCtrl.existingUser')
+    | Déconnectez-vous pour créer un nouveau compte.
+
+  //- Error: invitation link is invalid or hsa expired
+  p.alert.alert-danger(ng-if='registrationPageCtrl.invitationInvalid && !registrationPageCtrl.existingUser')
+    | Le lien d'invitation que vous avez suivi a expiré ou n'est pas valide.

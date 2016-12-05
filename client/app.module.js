@@ -6,6 +6,7 @@
     'ngAnimate',
     'ngSanitize',
     // Third-party dependencies
+    'angular-loading-bar',
     'rx',
     'ui.bootstrap',
     'ui.router',

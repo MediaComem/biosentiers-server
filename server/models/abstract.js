@@ -68,7 +68,7 @@ function resolveParsingAttributes(record) {
       config = record.parsing;
 
   if (_.isObject(config)) {
-    attrs = config[record.isNew() ? 'create' : 'update'];
+    attrs = config[record.isNew() ? 'create' : 'update'] || config.default;
   } else if (_.isString(config) || _.isArray(config)) {
     attrs = config;
   } else {

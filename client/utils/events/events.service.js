@@ -75,7 +75,7 @@
      */
     function unsubscriber(subscription) {
       return function() {
-        subscription.unsubscribe();
+        subscription.dispose();
       };
     }
   }

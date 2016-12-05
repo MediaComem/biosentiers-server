@@ -4,7 +4,17 @@
   angular
     .module('bio.auth.invitation-modal')
     .factory('BioInvitationModal', BioInvitationModalService)
-    .controller('BioInvitationModalCtrl', BioInvitationModalCtrl);
+    .controller('BioInvitationModalCtrl', BioInvitationModalCtrl)
+    .component('bioInvitationModal', {
+      controller: 'BioInvitationModalCtrl',
+      controllerAs: 'invitationModalCtrl',
+      templateUrl: '/assets/auth/invitation-modal/invitation-modal.html',
+      bindings: {
+        close: '&',
+        dismiss: '&',
+        modalInstance: '<'
+      }
+    });
 
   /**
    * Service to manage the invitation modal.
@@ -22,9 +32,7 @@
      */
     function openModal() {
       return $uibModal.open({
-        controller: 'BioInvitationModalCtrl',
-        controllerAs: 'invitationModalCtrl',
-        templateUrl: '/assets/auth/invitation-modal/invitation-modal.html'
+        component: 'bioInvitationModal'
       });
     }
   }
@@ -32,7 +40,7 @@
   /**
    * Controls the invitation form.
    */
-  function BioInvitationModalCtrl(BioAuth, BioApi, $uibModalInstance) {
+  function BioInvitationModalCtrl(BioAuth, BioApi) {
 
     var invitationModalCtrl = this;
 
@@ -47,7 +55,7 @@
 
       delete invitationModalCtrl.apiError;
 
-      BioApi({
+      return BioApi({
         method: 'POST',
         url: '/auth/invitation',
         data: invitationModalCtrl.user
@@ -57,7 +65,9 @@
     }
 
     function closeModal(result) {
-      $uibModalInstance.close(result);
+      invitationModalCtrl.modalInstance.close({
+        $value: result
+      });
     }
 
     function handleError(err) {

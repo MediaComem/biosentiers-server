@@ -19,8 +19,7 @@ var User = Abstract.extend({
   },
 
   parsing: {
-    create: 'email',
-    update: 'active email password'
+    default: 'active email password role'
   },
 
   virtuals: {
@@ -58,11 +57,11 @@ var User = Abstract.extend({
     return this.has('password_hash');
   },
 
-  generateJwt: function() {
-    return jwt.generateToken({
+  generateJwt: function(options) {
+    return jwt.generateToken(_.extend({
       authType: 'user',
       sub: this.get('api_id')
-    });
+    }, options));
   },
 
   format: function(attrs) {
@@ -70,6 +69,8 @@ var User = Abstract.extend({
       // FIXME: test lowercase e-mail
       attrs.email = attrs.email.toLowerCase();
     }
+
+    return attrs;
   }
 }, {
   roles: availableRoles

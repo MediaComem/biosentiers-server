@@ -2,7 +2,16 @@ var _ = require('lodash'),
     User = require('../../models/user');
 
 exports.canCreate = function(req) {
-  return true;
+  this.authenticated({ authTypes: [ 'user', 'invitation' ] });
+
+  if (req.jwtToken.authType == 'invitation') {
+    this.forbidChange('active', true, 'set the status of an invited user');
+    this.forbidChange('email', req.jwtToken.email, 'set the e-mail of an invited user');
+    this.forbidChange('role', req.jwtToken.role, 'set the role of an invited user');
+    return true;
+  } else {
+    return req.user && req.user.hasRole('admin');
+  }
 };
 
 exports.canList = function(req) {
@@ -14,15 +23,13 @@ exports.canRetrieve = function(req) {
 };
 
 exports.canUpdate = function(req) {
-  if (this.validOtp('registration', { active: false }) && !req.user.isRegistered()) {
-    this.forbidChange('email', req.user.get('email'), 'change the e-mail');
-    return this.sameRecord(req.user, req.record);
-  } else if (this.hasRole('admin')) {
+  if (this.hasRole('admin')) {
     return true;
   } else if (this.authenticated() && this.sameRecord(req.user, req.record)) {
-    return this.forbidChange('active', req.user.get('active'), 'change the status of a user')
-      && this.forbidChange('email', req.user.get('email'), 'change the e-mail of a user')
-      && this.forbidChange('role', req.user.get('role'), 'change the role of a user');
+    this.forbidChange('active', req.user.get('active'), 'change the status of a user');
+    this.forbidChange('email', req.user.get('email'), 'change the e-mail of a user');
+    this.forbidChange('role', req.user.get('role'), 'change the role of a user');
+    return true;
   }
 };
 

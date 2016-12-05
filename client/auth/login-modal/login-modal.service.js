@@ -4,7 +4,17 @@
   angular
     .module('bio.auth.login-modal')
     .factory('BioLoginModal', BioLoginModalService)
-    .controller('BioLoginModalCtrl', BioLoginModalCtrl);
+    .controller('BioLoginModalCtrl', BioLoginModalCtrl)
+    .component('bioLoginModal', {
+      controller: 'BioLoginModalCtrl',
+      controllerAs: 'loginModalCtrl',
+      templateUrl: '/assets/auth/login-modal/login-modal.html',
+      bindings: {
+        close: '&',
+        dismiss: '&',
+        modalInstance: '<'
+      }
+    });
 
   /**
    * Service to manage the login modal.
@@ -22,9 +32,7 @@
      */
     function openModal() {
       return $uibModal.open({
-        controller: 'BioLoginModalCtrl',
-        controllerAs: 'loginModalCtrl',
-        templateUrl: '/assets/auth/login-modal/login-modal.html'
+        component: 'bioLoginModal'
       });
     }
   }
@@ -35,7 +43,7 @@
    * Authentication is delegated to the Auth service.
    * The modal closes automatically on a successful login.
    */
-  function BioLoginModalCtrl(BioAuth, $uibModalInstance) {
+  function BioLoginModalCtrl(BioAuth) {
 
     var loginModalCtrl = this;
 
@@ -50,7 +58,9 @@
     }
 
     function closeModal(result) {
-      $uibModalInstance.close(result);
+      loginModalCtrl.modalInstance.close({
+        $value: result
+      });
     }
 
     function handleError(err) {

@@ -62,7 +62,7 @@ exports.createInvitation = builder.route(function(req, res, helper) {
     return jwt.generateToken(_.extend({}, invitation, {
       authType: 'invitation',
       iat: createdAt.getTime(),
-      exp: 60 * 60 * 24 * 2, // 2 days
+      exp: createdAt.getTime() + (1000 * 60 * 60 * 24 * 2), // 2 days
       iss: req.user.get('api_id')
     }));
   }
@@ -91,11 +91,31 @@ exports.createInvitation = builder.route(function(req, res, helper) {
 
 exports.retrieveInvitation = builder.route(function(req, res, helper) {
 
-  var invitation = _.extend(_.pick(req.jwtToken, 'email', 'role'), {
-    createdAt: new Date(req.jwtToken.iat * 1000)
-  });
+  return checkExistingUser().then(respond);
 
-  return res.json(invitation);
+  /**
+   * If a user already exists with the same e-mail, then the invitation
+   * has already been used and is no longer valid.
+   */
+  function checkExistingUser() {
+    return new User().where('email', req.jwtToken.email.toLowerCase()).fetch().then(function(user) {
+      if (user) {
+        throw auth.invalidAuthorizationError();
+      }
+    });
+  }
+
+  /**
+   * Returns a pseudo-resource containing the invitation's data.
+   */
+  function respond() {
+
+    var invitation = _.extend(_.pick(req.jwtToken, 'email', 'role'), {
+      createdAt: new Date(req.jwtToken.iat * 1000)
+    });
+
+    return res.json(invitation);
+  }
 });
 
 function setUpPassport() {
