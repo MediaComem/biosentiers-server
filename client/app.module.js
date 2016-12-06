@@ -7,6 +7,7 @@
     'ngSanitize',
     // Third-party dependencies
     'angular-loading-bar',
+    'angularMoment',
     'rx',
     'ui.bootstrap',
     'ui.router',
@@ -22,6 +23,7 @@
     'bio.auth.registration-page',
     'bio.home-page',
     'bio.navbar',
+    'bio.profile-page',
     'bio.users-page'
   ]);
 })();

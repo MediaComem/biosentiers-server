@@ -17,6 +17,11 @@
     // other services and components to react when the user logs in or out.
     var userSubject = new rx.BehaviorSubject();
 
+    // User roles determining their privileges within the application.
+    // IMPORTANT: roles are ordered by increasing privileges, so a user
+    // with the "admin" role implicitly has the "user" role.
+    var userRoles = [ 'user', 'admin' ];
+
     var service = {
 
       // The logged in user.
@@ -26,7 +31,7 @@
       // The user's API authentication token.
       apiToken: null,
       // Available user roles.
-      roles: [ 'user', 'admin' ],
+      roles: userRoles.slice(),
 
       // Methods
       initialize: initialize,
@@ -117,11 +122,33 @@
     /**
      * Returns true if a user is logged in who has the specified role.
      *
+     * This method will return true if the user has a role with greater
+     * privileges than the specified role (e.g. a user with the "admin"
+     * role implicitly has the "user" role).
+     *
      * @param {String} role - The required role.
      * @returns {Boolean}
      */
     function loggedUserHasRole(role) {
-      return role && service.user && service.user.role === role;
+      if (!role || !service.user) {
+        // No role was given or no user is logged in.
+        return false;
+      } else if (service.user.role === role) {
+        // The logged user has the specified role.
+        return true;
+      }
+
+      var roleIndex = userRoles.indexOf(role),
+          userRoleIndex = userRoles.indexOf(service.user.role);
+
+      if (roleIndex < 0 || userRoleIndex < 0) {
+        // The specified role or the role of the logged user are unknown.
+        return false;
+      }
+
+      // The logged user is considered to have the specified role
+      // because if it has a role with greater privileges.
+      return userRoleIndex > roleIndex;
     }
   }
 })();

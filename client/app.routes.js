@@ -24,6 +24,14 @@
         component: 'bioRegistrationPage'
       })
 
+      .state('profile', {
+        url: '^/profile',
+        component: 'bioProfilePage',
+        data: {
+          requiredRole: 'user'
+        }
+      })
+
       .state('admin', {
         url: '^/admin',
         abstract: true,

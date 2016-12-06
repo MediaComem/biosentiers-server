@@ -34,8 +34,8 @@ nav.navbar.navbar-default.navbar-fixed-top
             | Connexion
 
         // Profile
-        li(ng-if='navbarCtrl.user')
-          a(href='#')
+        li(ng-if='navbarCtrl.user', ui-sref-active='active')
+          a(href='#', ui-sref='profile')
             span.glyphicon.glyphicon-user
             = ' '
             | {{ navbarCtrl.user.email }}

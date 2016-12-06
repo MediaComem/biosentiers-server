@@ -1,0 +1,12 @@
+.container
+
+  .page-header
+    h1 Profil utilisateur
+
+  dl
+    dt Adresse e-mail
+    dd {{ profilePageCtrl.user.email }}
+    dt(ng-if='profilePageCtrl.hasRole("admin")') Rôle
+    dd(ng-if='profilePageCtrl.hasRole("admin")') {{ profilePageCtrl.user.role }}
+    dt Inscrit depuis le
+    dd {{ profilePageCtrl.user.createdAt | amDateFormat: 'LLL' }}
