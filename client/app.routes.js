@@ -1,6 +1,9 @@
 (function() {
   'use strict';
 
+  /**
+   * All application routes.
+   */
   angular
     .module('bio')
     .config(defineRoutes);

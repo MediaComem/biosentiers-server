@@ -1,6 +1,9 @@
 (function() {
   'use strict';
 
+  /**
+   * The users management page for administrators.
+   */
   angular
     .module('bio.users-page')
     .controller('BioUsersPageCtrl', BioUsersPageCtrl)
@@ -10,10 +13,16 @@
       templateUrl: '/assets/users-page/users-page.html'
     });
 
-  function BioUsersPageCtrl(BioInvitationModal) {
+  function BioUsersPageCtrl(BioModals) {
 
     var usersPageCtrl = this;
 
-    usersPageCtrl.openInvitationModal = BioInvitationModal.open;
+    usersPageCtrl.openInvitationModal = openInvitationModal;
+
+    function openInvitationModal() {
+      return BioModals.open({
+        component: 'bioInvitationModal'
+      });
+    }
   }
 })();

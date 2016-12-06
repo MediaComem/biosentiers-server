@@ -1,22 +1,28 @@
 .modal-header
   h3.modal-title Invitation d'un nouvel utilisateur
 
+// Invitation form
 form(name='invitationModalCtrl.form', ng-submit='invitationModalCtrl.form.$valid && invitationModalCtrl.invite()', novalidate)
   .modal-body
 
+    // User e-mail
     .form-group(validates='invitationModalCtrl.form.email')
       label.control-label(for='user-email') Adresse e-mail
       input#user-email.form-control(type='email', ng-model='invitationModalCtrl.user.email', name='email', required, unique-user-email, autofocus)
 
+      // Error: the e-mail is missing
       validation-error(for='invitationModalCtrl.form.email', validation='required')
         | Merci d'entrer l'adresse e-mail de la personne à inviter.
 
+      // Error: the e-mail is invalid
       validation-error(for='invitationModalCtrl.form.email', validation='email')
         | Merci d'entrer une adresse e-mail valide.
 
+      // Error: the e-mail is already taken
       validation-error(for='invitationModalCtrl.form.email', validation='uniqueUserEmail')
         | Cette adresse e-mail est déjà utilisée.
 
+    // User role
     .form-group
       label.control-label(for='user-role') Rôle
       ui-select#user-role(ng-model='invitationModalCtrl.user.role', name='role', required)
@@ -25,9 +31,11 @@ form(name='invitationModalCtrl.form', ng-submit='invitationModalCtrl.form.$valid
         ui-select-choices(repeat='role in invitationModalCtrl.userRoles')
           div(ng-bind-html='role | highlight: $select.search')
 
+    // Error: server error
     p.alert.alert-danger(ng-if='invitationModalCtrl.apiError')
       | L'invitation n'a pas pu être envoyée. Merci de réessayer plus tard.
 
+  // Form controls
   .modal-footer
     .btn-group
       button.btn.btn-default(type='button', ng-click='invitationModalCtrl.dismiss()') Annuler

@@ -16,15 +16,22 @@
   /**
    * Controls the navbar, mostly login/logout and the user profile link.
    */
-  function BioNavbarCtrl(BioAuth, BioEvents, BioLoginModal) {
+  function BioNavbarCtrl(BioAuth, BioEvents, BioModals) {
 
     var navbarCtrl = this;
 
     navbarCtrl.collapsed = true;
-    navbarCtrl.openLoginModal = BioLoginModal.open;
+    navbarCtrl.openLoginModal = openLoginModal;
+    navbarCtrl.logOut = BioAuth.logOut;
+    navbarCtrl.hasRole = BioAuth.hasRole;
 
-    _.extend(navbarCtrl, _.pick(BioAuth, 'logOut', 'hasRole'));
-
+    // Keep track of the logged user so the profile link can be displayed (or removed).
     BioEvents.attach(BioAuth.userObs, navbarCtrl, 'user');
+
+    function openLoginModal() {
+      return BioModals.open({
+        component: 'bioLoginModal'
+      });
+    }
   }
 })();

@@ -1,6 +1,9 @@
 (function() {
   'use strict';
 
+  /**
+   * The landing page of the application.
+   */
   angular
     .module('bio.home-page')
     .controller('BioHomePageCtrl', BioHomePageCtrl)

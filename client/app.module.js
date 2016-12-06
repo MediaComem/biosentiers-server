@@ -16,6 +16,8 @@
     'bio.auth',
     'bio.events',
     'bio.forms',
+    'bio.modals',
+    'bio.users',
     // Application content
     'bio.auth.registration-page',
     'bio.home-page',

@@ -1,9 +1,13 @@
 (function() {
   'use strict';
 
+  /**
+   * The login modal is displayed when an anonymous user clicks on the
+   * login button in the navbar. It allows the user to log in with an
+   * e-mail and password.
+   */
   angular
     .module('bio.auth.login-modal')
-    .factory('BioLoginModal', BioLoginModalService)
     .controller('BioLoginModalCtrl', BioLoginModalCtrl)
     .component('bioLoginModal', {
       controller: 'BioLoginModalCtrl',
@@ -15,27 +19,6 @@
         modalInstance: '<'
       }
     });
-
-  /**
-   * Service to manage the login modal.
-   */
-  function BioLoginModalService($uibModal) {
-
-    var service = {
-      open: openModal
-    };
-
-    return service;
-
-    /**
-     * Opens the login modal dialog.
-     */
-    function openModal() {
-      return $uibModal.open({
-        component: 'bioLoginModal'
-      });
-    }
-  }
 
   /**
    * Controls the login form.
@@ -50,6 +33,10 @@
     loginModalCtrl.user = {};
     loginModalCtrl.login = login;
 
+    /**
+     * Logs in the user with the credentials supplied in the form,
+     * closing the modal if it succeeds, or displaying the error.
+     */
     function login() {
       BioAuth
         .logIn(loginModalCtrl.user)
@@ -57,12 +44,18 @@
         .catch(handleError);
     }
 
+    /**
+     * Closes the modal and provides the logged in user object to the caller.
+     */
     function closeModal(result) {
       loginModalCtrl.modalInstance.close({
         $value: result
       });
     }
 
+    /**
+     * Attaches any error to the controller so it can be displayed.
+     */
     function handleError(err) {
       loginModalCtrl.apiError = err;
     }

@@ -6,8 +6,7 @@
     .config(initialize);
 
   /**
-   * Initializes the authentication service when the app starts,
-   * e.g. to load the logged in user from local storage.
+   * Configures the ui-select library.
    */
   function initialize(uiSelectConfig) {
     uiSelectConfig.theme = 'bootstrap';

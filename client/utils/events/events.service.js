@@ -1,6 +1,9 @@
 (function() {
   'use strict';
 
+  /**
+   * A service to simplify working with events and RxJS observables.
+   */
   angular
     .module('bio.events')
     .factory('BioEvents', BioEventsService);

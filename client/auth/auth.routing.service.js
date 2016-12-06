@@ -11,6 +11,9 @@
    *
    * It also automatically redirects the user to an accessible page
    * when logging out on a protected page.
+   *
+   * Authorization is configured via the data properties of UI Router
+   * state definitions.
    */
   function BioAuthRoutingService(BioAuth, $log, $state, $transitions) {
 
@@ -51,7 +54,7 @@
       // authorization to access the current page.
       BioAuth.userObs.subscribe(function(user) {
         if (!user && !isStateAuthorized(currentState)) {
-          $state.go(getUnauthorizedRedirectState(state));
+          $state.go(getUnauthorizedRedirectState(currentState));
         }
       });
     }

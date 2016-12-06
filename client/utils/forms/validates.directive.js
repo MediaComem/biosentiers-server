@@ -1,10 +1,6 @@
 (function() {
   'use strict';
 
-  angular
-    .module('bio.forms')
-    .directive('validates', validatesDirective);
-
   /**
    * Directive to automatically add error classes and tags to a Bootstrap form group.
    *
@@ -17,6 +13,10 @@
    *
    * Fields are considered valid if they have not yet been modified.
    */
+  angular
+    .module('bio.forms')
+    .directive('validates', validatesDirective);
+
   function validatesDirective() {
     return {
       restrict: 'A',

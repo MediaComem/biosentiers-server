@@ -35,7 +35,7 @@
     // Check if the user is already logged in (to hide the registration form).
     BioEvents.attach(BioAuth.userObs, registrationPageCtrl, 'existingUser');
 
-    // Retrieve the invitation with the link's token.
+    // When the page opens, retrieve the invitation with the link's token.
     retrieveInvitation();
 
     /**
@@ -68,7 +68,7 @@
     }
 
     /**
-     * Creates the new user account.
+     * Creates the new user account on the server.
      */
     function createUser() {
       return BioApi({

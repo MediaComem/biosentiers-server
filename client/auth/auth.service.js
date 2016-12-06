@@ -43,7 +43,7 @@
     function initialize() {
       var authData = BioStorage.get('auth');
       if (authData) {
-        setAuthData(authData);
+        applyAuthData(authData);
       }
     }
 
@@ -61,13 +61,13 @@
         url: '/api/auth',
         data: credentials
       }).then(function(res) {
-        setAuthData(res.data);
+        saveAuthData(res.data);
         return res.data.user;
       });
     }
 
     /**
-     * Attaches the current authentication data to the service and stores it into the browser's local storage.
+     * Attaches the specified authentication data to the service.
      *
      * This will trigger an update of the user's RXJS observable.
      *
@@ -75,15 +75,26 @@
      * @param {Object} authData.user - The logged in user.
      * @param {Object} authData.token - The user's API authentication token.
      */
-    function setAuthData(authData) {
+    function applyAuthData(authData) {
 
       service.user = authData.user;
       service.apiToken = authData.token;
 
-      BioStorage.set('auth', authData);
       userSubject.onNext(service.user);
 
       $log.debug('Logged in as ' + service.user.email);
+    }
+
+    /**
+     * Calls `applyAuthData` and also saves the authentication data to the browser's local storage.
+     *
+     * @param {Object} authData
+     * @param {Object} authData.user - The logged in user.
+     * @param {Object} authData.token - The user's API authentication token.
+     */
+    function saveAuthData(authData) {
+      applyAuthData(authData);
+      BioStorage.set('auth', authData);
     }
 
     /**
@@ -105,6 +116,9 @@
 
     /**
      * Returns true if a user is logged in who has the specified role.
+     *
+     * @param {String} role - The required role.
+     * @returns {Boolean}
      */
     function loggedUserHasRole(role) {
       return role && service.user && service.user.role === role;
