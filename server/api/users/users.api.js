@@ -29,7 +29,7 @@ exports.create = builder.route(function(req, res, helper) {
         this.validate(this.json('/active'), this.type('boolean')),
         this.validate(this.json('/email'), this.type('string'), this.presence(), this.email(), validations.emailAvailable()),
         this.validate(this.json('/password'), this.type('string'), this.presence()),
-        this.validate(this.json('/role'), this.type('string'), this.inclusion({ in: User.roles }))
+        this.validate(this.json('/role'), this.ifSet(), this.type('string'), this.inclusion({ in: User.roles }))
       );
     });
   }
@@ -51,8 +51,8 @@ exports.list = builder.route(function(req, res, helper) {
 
   function filter(query) {
 
-    if (req.query.email) {
-      query = query.where('email', req.query.email);
+    if (_.isString(req.query.email)) {
+      query = query.whereEmail(req.query.email);
     }
 
     return {

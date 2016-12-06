@@ -23,9 +23,11 @@
    * * If the link's token is expired or is invalid.
    * * If the user is already logged in.
    */
-  function BioRegistrationPageCtrl(BioApi, BioAuth, BioEvents, $state, $stateParams) {
+  function BioRegistrationPageCtrl(BioApi, BioAuth, BioEvents, $state) {
 
     var registrationPageCtrl = this;
+
+    var invitationLinkToken = $state.params.invitation;
 
     registrationPageCtrl.user = {};
     registrationPageCtrl.register = register;
@@ -43,7 +45,7 @@
       return BioApi({
         url: '/auth/invitation',
         headers: {
-          Authorization: 'Bearer ' + $stateParams.invitation
+          Authorization: 'Bearer ' + invitationLinkToken
         }
       }).then(function(res) {
         registrationPageCtrl.invitation = res.data;
@@ -74,7 +76,7 @@
         url: '/users',
         data: registrationPageCtrl.user,
         headers: {
-          Authorization: 'Bearer ' + $stateParams.invitation
+          Authorization: 'Bearer ' + invitationLinkToken
         }
       });
     }

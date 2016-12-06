@@ -24,7 +24,10 @@
       .state('admin', {
         url: '^/admin',
         abstract: true,
-        template: '<div ui-view></div>'
+        template: '<div ui-view></div>',
+        data: {
+          requiredRole: 'admin'
+        }
       })
 
       .state('admin.users', {

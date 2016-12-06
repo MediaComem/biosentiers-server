@@ -2,6 +2,7 @@ var _ = require('lodash'),
     valdsl = require('valdsl');
 
 valdsl.ValidationContext.extend({
+  ifSet: ifSet,
   patchMode: patchMode
 });
 
@@ -14,6 +15,14 @@ proto.serializeError = function() {
 };
 
 module.exports = valdsl;
+
+function ifSet() {
+  return function(context) {
+    context.conditions.push(function(context) {
+      return context.state.valueSet;
+    });
+  };
+}
 
 function patchMode(changed) {
   if (!_.isFunction(changed)) {

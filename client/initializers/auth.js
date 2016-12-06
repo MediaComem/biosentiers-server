@@ -9,7 +9,8 @@
    * Initializes the authentication service when the app starts,
    * e.g. to load the logged in user from local storage.
    */
-  function initialize(BioAuth) {
+  function initialize(BioAuth, BioAuthRouting) {
     BioAuth.initialize();
+    BioAuthRouting.initialize();
   }
 })();

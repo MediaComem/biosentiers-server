@@ -98,7 +98,7 @@ exports.retrieveInvitation = builder.route(function(req, res, helper) {
    * has already been used and is no longer valid.
    */
   function checkExistingUser() {
-    return new User().where('email', req.jwtToken.email.toLowerCase()).fetch().then(function(user) {
+    return new User().whereEmail(req.jwtToken.email).fetch().then(function(user) {
       if (user) {
         throw auth.invalidAuthorizationError();
       }
@@ -123,9 +123,7 @@ function setUpPassport() {
     usernameField: 'email',
     passwordField: 'password'
   }, function(email, password, done) {
-    User.where({
-      email: email.toLowerCase()
-    }).fetch().then(function(user) {
+    new User().whereEmail(email).fetch().then(function(user) {
       if (!user || !user.isActive()) {
         throw errors.unauthorized('auth.invalidUser', 'This user account does not exist or is inactive.');
       } else if (!user.hasPassword(password)) {

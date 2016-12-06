@@ -38,7 +38,7 @@ var User = Abstract.extend({
           this.unset('password_hash');
         }
       }
-    },
+    }
   },
 
   hasRole: function(role) {
@@ -64,13 +64,10 @@ var User = Abstract.extend({
     }, options));
   },
 
-  format: function(attrs) {
-    if (_.isString(attrs.email)) {
-      // FIXME: test lowercase e-mail
-      attrs.email = attrs.email.toLowerCase();
-    }
-
-    return attrs;
+  whereEmail: function(email) {
+    return this.query(function(builder) {
+      return builder.whereRaw('LOWER(email) = LOWER(?)', email);
+    });
   }
 }, {
   roles: availableRoles

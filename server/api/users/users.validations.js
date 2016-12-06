@@ -9,7 +9,8 @@ exports.emailAvailable = function(existingUser) {
       return;
     }
 
-    var query = new User().where('email', email.toLowerCase());
+    var query = new User().whereEmail(email);
+
     if (existingUser) {
       query = query.query(function(queryBuilder) {
         queryBuilder.whereNot('id', existingUser.get('id'));

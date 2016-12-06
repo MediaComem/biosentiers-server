@@ -1,6 +1,7 @@
 var _ = require('lodash'),
     expectRes = require('../../spec/expectations/response'),
     expectUser = require('../../spec/expectations/user'),
+    jwt = require('../../lib/jwt'),
     moment = require('moment'),
     spec = require('../../spec/utils'),
     userFixtures = require('../../spec/fixtures/user');
@@ -15,43 +16,85 @@ describe('Users API', function() {
   describe('POST /api/users', function() {
     beforeEach(function() {
       data.reqBody = {
-        email: 'test@example.com'
+        email: 'test@example.com',
+        password: 'letmein'
       };
-
-      return spec.setUp(data);
     });
 
-    it('should create a user', function() {
+    describe('for an admin', function() {
+      beforeEach(function() {
+        data.admin = userFixtures.admin();
+        return spec.setUp(data);
+      });
 
-      var expected = _.extend({
-        password: null,
-        active: false,
-        role: 'user',
-        createdAfter: data.now,
-        updatedAt: 'createdAt'
-      }, data.reqBody);
+      it('should create a user', function() {
 
-      return spec
-        .testCreate('/users', data.reqBody)
-        .then(expectUser.inBody(expected));
+        var expected = _.extend({
+          active: false,
+          role: 'user',
+          createdAfter: data.now,
+          updatedAt: 'createdAt'
+        }, data.reqBody);
+
+        return spec
+          .testCreate('/users', data.reqBody)
+          .set('Authorization', 'Bearer ' + data.admin.generateJwt())
+          .then(expectUser.inBody(expected));
+      });
+
+      it('should not accept invalid properties', function() {
+
+        var body = {
+          email: 'foo'
+        };
+
+        return spec
+          .testApi('POST', '/users')
+          .set('Authorization', 'Bearer ' + data.admin.generateJwt())
+          .send(body)
+          .then(expectRes.invalid([
+            {
+              code: 'validation.email.invalid',
+              type: 'json',
+              location: '/email',
+              message: 'Value must be a valid e-mail address.'
+            },
+            {
+              code: 'validation.presence.missing',
+              type: 'json',
+              location: '/password',
+              message: 'Value is required.'
+            }
+          ]));
+      });
     });
 
-    it('should not accept invalid properties', function() {
+    describe('for an invited user', function() {
+      beforeEach(function() {
+        data.invitation = jwt.generateToken({
+          authType: 'invitation',
+          email: data.reqBody.email,
+          role: 'user'
+        });
 
-      var body = {
-        email: 'foo'
-      };
+        return spec.setUp(data);
+      });
 
-      return spec.testApi('POST', '/users')
-        .send(body)
-        .then(expectRes.invalid([
-          {
-            code: 'validation.email.invalid',
-            type: 'json',
-            location: '/email',
-            message: 'Value must be a valid e-mail address.'
-          }
-        ]));
+      it('should create a user', function() {
+
+        var expected = _.extend({
+          password: 'letmein',
+          active: true,
+          role: 'user',
+          createdAfter: data.now,
+          updatedAt: 'createdAt'
+        }, data.reqBody);
+
+        return spec
+          .testCreate('/users', data.reqBody)
+          .set('Authorization', 'Bearer ' + data.invitation)
+          .then(expectUser.inBody(expected));
+      });
     });
   });
 
@@ -132,32 +175,6 @@ describe('Users API', function() {
         updatedAfter: data.now
       }, changes));
     }
-
-    describe('with a newly registered user', function() {
-
-      beforeEach(function() {
-        addExistingUserData({
-          active: false,
-          password: null
-        });
-
-        return spec.setUp(data);
-      });
-
-      it('should set the password and activate a newly registered user', function() {
-
-        var changes = {
-          active: true,
-          password: 'changeme'
-        };
-
-        return spec
-          .testUpdate('/users/' + data.user.get('api_id'))
-          .set('Authorization', 'Bearer ' + data.user.generateRegistrationJwt())
-          .send(changes)
-          .then(expectUser.inBody(getExpectedPatchedUser(changes)));
-      });
-    });
 
     describe('with an existing user', function() {
 

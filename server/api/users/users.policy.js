@@ -38,7 +38,7 @@ exports.scope = function(req) {
   var scope = new User();
 
   if (req.query.email && (!req.user || !req.user.hasRole('admin'))) {
-    scope = scope.where('email', req.query.email);
+    scope = scope.whereEmail(req.query.email);
   }
 
   return scope;
@@ -50,7 +50,11 @@ exports.serialize = function(user, req) {
     email: user.get('email')
   };
 
-  if (req.user && req.user.hasRole('admin')) {
+  var admin = req.user && req.user.hasRole('admin'),
+      sameUser = req.user && req.user.get('api_id') == user.get('api_id'),
+      invitedUser = req.jwtToken && req.jwtToken.authType == 'invitation' && req.jwtToken.email.toLowerCase() == user.get('email').toLowerCase();
+
+  if (admin || sameUser || invitedUser) {
     _.extend(serialized, {
       id: user.get('api_id'),
       active: user.get('active'),

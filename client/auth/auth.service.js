@@ -11,28 +11,21 @@
    * The auth data returned by the server when the user logs in is
    * stored in the browser's local storage.
    */
-  function BioAuthService(BioStorage, $http, $log, rx) {
+  function BioAuthService(BioStorage, $http, $log, rx, $state, $transitions) {
 
-    // RXJS behavior subject to allow other services and components
-    // to react when the user logs in or out.
+    // RXJS behavior subject (keeps the last published value) to allow
+    // other services and components to react when the user logs in or out.
     var userSubject = new rx.BehaviorSubject();
 
     var service = {
-      /**
-       * The logged in user.
-       */
+
+      // The logged in user.
       user: null,
-      /**
-       * An RXJS observable of the logged in user.
-       */
+      // An RXJS read-only observable of the logged in user.
       userObs: userSubject.asObservable(),
-      /**
-       * The user's API authentication token.
-       */
+      // The user's API authentication token.
       apiToken: null,
-      /**
-       * Available user roles.
-       */
+      // Available user roles.
       roles: [ 'user', 'admin' ],
 
       // Methods
