@@ -10,7 +10,7 @@ exports.canCreate = function(req) {
     this.forbidChange('role', req.jwtToken.role, 'set the role of an invited user');
     return true;
   } else {
-    return req.user && req.user.hasRole('admin');
+    return this.hasRole('admin');
   }
 };
 

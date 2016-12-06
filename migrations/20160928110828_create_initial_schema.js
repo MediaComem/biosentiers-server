@@ -31,7 +31,7 @@ function createUserAccountTable(knex) {
   })
     .raw('create unique index user_account_api_id_unique on user_account (lower(api_id));')
     .raw('create unique index user_account_email_unique on user_account (lower(email));');
-};
+}
 
 function dropUserAccountRoleEnum(knex) {
   return knex.raw('drop type user_account_role;');

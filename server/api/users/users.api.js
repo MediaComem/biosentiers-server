@@ -27,8 +27,8 @@ exports.create = builder.route(function(req, res, helper) {
     return helper.validateRequestBody(function() {
       return this.parallel(
         this.validate(this.json('/active'), this.type('boolean')),
-        this.validate(this.json('/email'), this.type('string'), this.presence(), this.email(), validations.emailAvailable()),
-        this.validate(this.json('/password'), this.type('string'), this.presence()),
+        this.validate(this.json('/email'), this.presence(), this.type('string'), this.email(), validations.emailAvailable()),
+        this.validate(this.json('/password'), this.presence(), this.type('string')),
         this.validate(this.json('/role'), this.ifSet(), this.type('string'), this.inclusion({ in: User.roles }))
       );
     });

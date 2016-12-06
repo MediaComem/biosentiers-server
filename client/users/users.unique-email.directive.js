@@ -30,7 +30,7 @@
               limit: 1
             }
           }, attrs.uniqueUserId);
-        }
+        };
       }
     };
   }
