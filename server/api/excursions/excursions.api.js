@@ -17,7 +17,7 @@ exports.create = builder.route(function(req, res, helper) {
   function validate() {
     return helper.validateRequestBody(function() {
       return this.parallel(
-        this.validate(this.json('/trailId'), this.presence(), this.type('string')),
+        this.validate(this.json('/trailId'), this.presence(), this.type('string'), this.foreignKey(Trail)),
         this.validate(this.json('/plannedAt'), this.presence(), this.type('string'))
       );
     });
@@ -25,20 +25,10 @@ exports.create = builder.route(function(req, res, helper) {
 
   function create() {
     return Excursion.transaction(function() {
-      return new Trail({ api_id: req.body.trailId }).fetch().then(function(trail) {
-
-        var record = new Excursion({
-          planned_at: req.body.plannedAt
-        });
-
-        record.relations.trail = trail;
-        record.set('trail_id', trail.get('id'));
-
-        return record
-          .save()
-          .then(helper.serializer(policy))
-          .then(helper.created());
-      });
+      return Excursion.parse(req)
+        .save()
+        .then(helper.serializer(policy))
+        .then(helper.created());
     });
   }
 });

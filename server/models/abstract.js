@@ -1,5 +1,6 @@
 var _ = require('lodash'),
     bookshelf = require('../db'),
+    inflection = require('inflection'),
     uuid = require('uuid');
 
 var proto = bookshelf.Model.prototype;
@@ -50,7 +51,12 @@ var Abstract = bookshelf.Model.extend({
       attrs = resolveParsingAttributes(record);
     }
 
-    record.set(_.pick(req.body, attrs));
+    var underscored = _.reduce(req.body, function(memo, value, key) {
+      memo[inflection.underscore(key)] = value;
+      return memo;
+    }, {});
+
+    record.set(_.pick(underscored, attrs));
 
     return record;
   },

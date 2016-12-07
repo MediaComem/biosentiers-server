@@ -1,6 +1,8 @@
 var Abstract = require('./abstract'),
     bookshelf = require('../db');
 
+var proto = Abstract.prototype;
+
 var Excursion = Abstract.extend({
   tableName: 'excursion',
 
@@ -8,11 +10,24 @@ var Excursion = Abstract.extend({
   timestamps: true,
 
   parsing: {
-    default: 'planned_at'
+    default: 'trail planned_at'
+  },
+
+  virtuals: {
+    trail: {
+      get: function() {
+        return this.related('trail');
+      },
+
+      set: function(trail) {
+        this.relations.trail = trail;
+        this.set('trail_id', trail.get('id'));
+      }
+    }
   },
 
   trail: function() {
-    return this.belongsTo('Trail')
+    return this.belongsTo('Trail');
   }
 });
 

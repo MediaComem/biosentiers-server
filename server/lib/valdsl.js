@@ -1,12 +1,9 @@
 var _ = require('lodash'),
     valdsl = require('valdsl');
 
-valdsl.ValidationContext.extend({
-  ifSet: ifSet,
-  patchMode: patchMode
-});
+var dsl = valdsl();
 
-var proto = valdsl.ValidationContext.prototype,
+var proto = dsl.ValidationContext.prototype,
     serializeError = proto.serializeError;
 
 proto.serializeError = function() {
@@ -14,7 +11,32 @@ proto.serializeError = function() {
   return _.pick(base, 'code', 'type', 'location', 'message');
 };
 
-module.exports = valdsl;
+dsl.ValidationContext.extendDsl({
+  ifSet: ifSet,
+  patchMode: patchMode,
+  foreignKey: foreignKey
+});
+
+module.exports = dsl;
+
+function foreignKey(model, options) {
+  options = _.extend({}, options);
+
+  return function(context) {
+    return new model({ api_id: context.state.value }).fetch().then(function(record) {
+      if (!record) {
+        return context.addError({
+          code: 'validation.related.invalid',
+          message: 'Related resource not found.'
+        });
+      }
+
+      if (_.isFunction(context.state.setValue)) {
+        context.state.setValue(record, context.state.location.replace(/Id$/, ''));
+      }
+    });
+  };
+}
 
 function ifSet() {
   return function(context) {
