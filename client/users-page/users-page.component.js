@@ -19,7 +19,7 @@
 
     usersPageCtrl.usersTableOptions = {
       url: '/users',
-      pageSize: 2,
+      pageSize: 10,
       defaultSort: 'createdAt',
       defaultSortReversed: true
     };

@@ -17,8 +17,8 @@
     table.table.table-striped.table-hover
       thead
         tr
-          th(st-sort='email', st-skip-natural='true') E-mail
-          th(st-sort='createdAt', st-skip-natural='true') Inscrit depuis le
+          th.email(st-sort='email', st-skip-natural='true') E-mail
+          th.created-at(st-sort='createdAt', st-skip-natural='true') Inscrit depuis le
       tbody
         tr(ng-if='!usersPageCtrl.table.records.length')
           td(colspan=2)

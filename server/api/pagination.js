@@ -1,6 +1,3 @@
-var _ = require('lodash'),
-    Promise = require('bluebird');
-
 exports.setUpPagination = setUpPagination;
 exports.setPaginationTotal = setPaginationTotal;
 exports.setPaginationFilteredTotal = setPaginationFilteredTotal;
