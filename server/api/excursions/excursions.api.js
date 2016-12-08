@@ -17,7 +17,7 @@ exports.create = builder.route(function(req, res, helper) {
   function validate() {
     return helper.validateRequestBody(function() {
       return this.parallel(
-        this.validate(this.json('/trailId'), this.presence(), this.type('string'), this.foreignKey(Trail)),
+        this.validate(this.json('/trailId'), this.presence(), this.type('string'), this.resource(fetchTrailByApiId).moveTo('/trail')),
         this.validate(this.json('/plannedAt'), this.presence(), this.type('string'))
       );
     });
@@ -32,3 +32,9 @@ exports.create = builder.route(function(req, res, helper) {
     });
   }
 });
+
+function fetchTrailByApiId(apiId) {
+  return new Trail({
+    api_id: apiId
+  }).fetch();
+}

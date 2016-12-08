@@ -77,7 +77,7 @@ exports.update = builder.route(function(req, res, helper) {
   function validate() {
     return helper.validateRequestBody(function() {
       return this.parallel(
-        this.validate(this.json('/password'), this.patchMode(), this.type('string'), this.presence())
+        this.validate(this.json('/password'), this.ifChanged(), this.type('string'), this.presence())
       );
     });
   }
