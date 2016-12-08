@@ -1,7 +1,6 @@
 var _ = require('lodash'),
     api = require('../utils'),
     Excursion = require('../../models/excursion'),
-    pagination = require('../pagination'),
     policy = require('./excursions.policy'),
     Trail = require('../../models/trail');
 

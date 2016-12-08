@@ -17,6 +17,13 @@
 
     var usersPageCtrl = this;
 
+    usersPageCtrl.usersTableOptions = {
+      url: '/users',
+      pageSize: 2,
+      defaultSort: 'createdAt',
+      defaultSortReversed: true
+    };
+
     usersPageCtrl.openInvitationModal = openInvitationModal;
 
     function openInvitationModal() {

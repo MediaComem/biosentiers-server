@@ -1,9 +1,36 @@
 .container
   .page-header
+
+    // Invite button
     button.btn.btn-success.btn-lg.pull-right(type='button', ng-click='usersPageCtrl.openInvitationModal()')
       span.glyphicon.glyphicon-send
       = ' '
       | Inviter un nouvel utilisateur
-    h1 Utilisateurs
 
-  p Hello World!
+    h1
+      | Utilisateurs
+      = ' '
+      small(ng-if='usersPageCtrl.table.filteredTotal') ({{ usersPageCtrl.table.filteredTotal | number }})
+
+  // Users table
+  bio-table.users-table(table='usersPageCtrl.table', table-options='usersPageCtrl.usersTableOptions')
+    table.table.table-striped.table-hover
+      thead
+        tr
+          th(st-sort='email', st-skip-natural='true') E-mail
+          th(st-sort='createdAt', st-skip-natural='true') Inscrit depuis le
+      tbody
+        tr(ng-if='!usersPageCtrl.table.records.length')
+          td(colspan=2)
+            span.loading(ng-if='!usersPageCtrl.table.initialized') Chargement en cours...
+            span.empty(ng-if='usersPageCtrl.table.initialized && !usersPageCtrl.table.total') Aucun utilisateur n'est enregistré.
+            span.empty(ng-if='usersPageCtrl.table.initialized && usersPageCtrl.table.total') Aucun utilisateur ne correspond à ces critères de recherche.
+        tr(ng-repeat='user in usersPageCtrl.table.records')
+          td
+            | {{ user.email }}
+          td
+            | {{ user.createdAt | amDateFormat: 'LL' }}
+      tfoot
+        tr
+          td(auto-colspan)
+            bio-table-pagination

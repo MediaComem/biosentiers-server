@@ -78,7 +78,7 @@ exports.createInvitation = builder.route(function(req, res, helper) {
     return mailer.send({
       to: invitation.email,
       subject: 'Invitation BioSentiers',
-      text: 'Bienvenue dans BioSentiers!\n===========================\n\nVeuillez suivre ce lien pour créer votre compte: ' + invitationLink
+      text: 'Bienvenue sur BioSentiers!\n===========================\n\nVeuillez suivre ce lien pour créer votre compte: ' + invitationLink
     }).return(token);
   }
 

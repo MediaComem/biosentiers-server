@@ -1,6 +1,5 @@
 var _ = require('lodash'),
     api = require('../utils'),
-    pagination = require('../pagination'),
     policy = require('./trails.policy'),
     Trail = require('../../models/trail');
 

@@ -9,6 +9,7 @@
     'angular-loading-bar',
     'angularMoment',
     'rx',
+    'smart-table',
     'ui.bootstrap',
     'ui.router',
     'ui.select',
@@ -18,6 +19,7 @@
     'bio.events',
     'bio.forms',
     'bio.modals',
+    'bio.tables',
     'bio.users',
     // Application content
     'bio.auth.registration-page',

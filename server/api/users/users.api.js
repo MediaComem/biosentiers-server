@@ -1,8 +1,8 @@
 var _ = require('lodash'),
     api = require('../utils'),
     mailer = require('../../lib/mailer'),
-    pagination = require('../pagination'),
     policy = require('./users.policy'),
+    QueryBuilder = require('../query-builder'),
     User = require('../../models/user'),
     validations = require('../users/users.validations');
 
@@ -47,7 +47,13 @@ exports.create = builder.route(function(req, res, helper) {
 
 exports.list = builder.route(function(req, res, helper) {
 
-  var query = policy.scope(req);
+  return new QueryBuilder(req, res, policy.scope(req))
+    .paginate()
+    .filter(filter)
+    .sort('email', 'createdAt')
+    .fetch()
+    .map(helper.serializer(policy))
+    .then(helper.ok());
 
   function filter(query) {
 
@@ -55,14 +61,8 @@ exports.list = builder.route(function(req, res, helper) {
       query = query.whereEmail(req.query.email);
     }
 
-    return {
-      query: query
-    };
+    return query;
   }
-
-  return pagination(req, res, query, filter).then(function(users) {
-    res.json(_.map(users.models, helper.serializer(policy)));
-  });
 });
 
 exports.retrieve = builder.route(function(req, res, helper) {

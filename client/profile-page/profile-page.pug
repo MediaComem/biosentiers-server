@@ -9,4 +9,4 @@
     dt(ng-if='profilePageCtrl.hasRole("admin")') Rôle
     dd(ng-if='profilePageCtrl.hasRole("admin")') {{ profilePageCtrl.user.role }}
     dt Inscrit depuis le
-    dd {{ profilePageCtrl.user.createdAt | amDateFormat: 'LLL' }}
+    dd {{ profilePageCtrl.user.createdAt | amDateFormat: 'LL' }}
