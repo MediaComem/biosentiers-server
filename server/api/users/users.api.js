@@ -49,19 +49,16 @@ exports.list = builder.route(function(req, res, helper) {
 
   return new QueryBuilder(req, res, policy.scope(req))
     .paginate()
-    .filter(filter)
+    .filter(filterByEmail)
     .sort('email', 'createdAt')
     .fetch()
     .map(helper.serializer(policy))
     .then(helper.ok());
 
-  function filter(query) {
-
+  function filterByEmail(query) {
     if (_.isString(req.query.email)) {
-      query = query.whereEmail(req.query.email);
+      return query.whereEmail(req.query.email);
     }
-
-    return query;
   }
 });
 

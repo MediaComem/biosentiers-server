@@ -8,11 +8,12 @@ function QueryBuilder(req, res, base) {
   this.res = res;
   this.query = base;
   this.paginated = false;
+  this.filters = [];
 }
 
 _.extend(QueryBuilder.prototype, {
   paginate: activePagination,
-  filter: setFilter,
+  filter: addFilters,
   sort: setPossibleSorts,
   fetch: fetch
 });
@@ -24,14 +25,8 @@ function activePagination() {
   return this;
 }
 
-function setFilter(filter) {
-
-  this.filter = function(query) {
-    return {
-      query: filter(query)
-    };
-  };
-
+function addFilters() {
+  this.filters.push(Array.prototype.slice.call(arguments));
   return this;
 }
 
@@ -62,7 +57,7 @@ function fetch() {
     req: this.req,
     res: this.res,
     query: this.query,
-    filter: this.filter,
+    filters: this.filters,
     sorts: this.sorts
   };
 
@@ -117,19 +112,35 @@ function applyPagination(data) {
 }
 
 function checkFiltered(data) {
-  if (!data.filter) {
+  if (_.isEmpty(data.filters)) {
     pagination.setPaginationFilteredTotal(data.res, data.total);
     return;
   }
 
-  return Promise.resolve(data.filter(data.query)).then(function(result) {
-    if (result && result.query) {
-      data.query = result.query;
+  return applyFiltersRecursively(data, data.filters.slice()).then(function() {
+    if (data.filtered) {
       return countFilteredTotal(data);
     } else {
       pagination.setPaginationFilteredTotal(data.res, data.total);
     }
   });
+}
+
+function applyFiltersRecursively(data, filters) {
+
+  var currentFilters = filters.shift();
+  if (!currentFilters) {
+    return;
+  }
+
+  return Promise.map(currentFilters, function(filter) {
+    return Promise.resolve(filter(data.query)).then(function(result) {
+      if (result) {
+        data.query = result;
+        data.filtered = true;
+      }
+    });
+  }).return(data).then(_.partial(applyFiltersRecursively, _, filters));
 }
 
 function applySorting(data) {
