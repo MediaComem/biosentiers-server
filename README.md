@@ -62,7 +62,7 @@ How to set up your machine to contribute to the project.
 
 * Migrate the database:
 
-        knex migrate:latest
+        npm run migrate
 
 
 
