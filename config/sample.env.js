@@ -6,12 +6,14 @@ module.exports = function(env) {
     HOST: 'localhost',
     PORT: '3000',
     DATABASE_URI: 'postgres://localhost/biosentiers',
-    OPEN: 'true',
-    OPEN_BROWSER: 'chrome'
+    APIDOC_OPEN: 'true',
+    APIDOC_HOST: 'localhost',
+    APIDOC_PORT: '3001',
+    BROWSER: 'chrome'
   };
 
   if (env == 'production') {
-    vars.PORT = '3001';
+    vars.PORT = '3002';
     vars.DATABASE_URI = 'postgres://localhost/biosentiers-production';
   }
 
@@ -26,7 +28,7 @@ module.exports = function(env) {
   }
 
   if (env == 'test') {
-    vars.PORT = '3002';
+    vars.PORT = '3003';
     vars.DATABASE_URI = 'postgres://localhost/biosentiers-test';
   }
 

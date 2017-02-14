@@ -63,7 +63,7 @@ function buildErrorsAssertionMessage(positive, missingErrors, extraErrors) {
   });
 
   if (!positive) {
-    return message + '\n\nBut it contains exactly these errors and no others.'
+    return message + '\n\nBut it contains exactly these errors and no others.';
   }
 
   if (extraErrors.length) {

@@ -16,7 +16,7 @@ if (!_.includes(envs, env)) {
 var envVars = _.clone(process.env);
 try {
   if (fs.statSync(path.join(__dirname, 'local.env.js'))) {
-    _.extend(envVars, require('./local.env')(env));
+    _.defaults(envVars, require('./local.env')(env));
   }
 } catch (e) {
   // ignore
@@ -48,8 +48,13 @@ var config = {
 
   logLevel: envVars.LOG_LEVEL,
 
-  open: parseConfigBoolean(envVars.OPEN, false),
-  openBrowser: envVars.OPEN_BROWSER,
+  browser: envVars.BROWSER,
+
+  apiDoc: {
+    open: parseConfigBoolean(envVars.APIDOC_OPEN, false),
+    host: envVars.APIDOC_HOST || 'localhost',
+    port: parseConfigInt(envVars.APIDOC_PORT) || 3001
+  },
 
   mail: {
     enabled: parseConfigBoolean(envVars.SMTP_ENABLED, true),
@@ -67,7 +72,9 @@ if (env == 'development') {
   // Development overrides.
   _.merge(config, {
     logLevel: config.logLevel || 'TRACE',
-    open: parseConfigBoolean(envVars.OPEN, true)
+    apiDoc: {
+      open: parseConfigBoolean(envVars.APIDOC_OPEN, true)
+    }
   });
 } else if (env == 'production') {
   // Production overrides.

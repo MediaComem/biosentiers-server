@@ -176,10 +176,10 @@ function requestHasValidOtp(req, otpType, options) {
     active: true
   });
 
-  return req.jwtToken
-    && req.jwtToken.authType == otpType + 'Otp'
-    && req.user
-    && (!options.active || req.user.get('active'));
+  return req.jwtToken &&
+    req.jwtToken.authType == otpType + 'Otp' &&
+    req.user &&
+    (!options.active || req.user.get('active'));
 }
 
 /**

@@ -3,14 +3,18 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "apidoc": "apidoc -i server/api -o doc/api",
-    "apidoc:watch": "onchange server/api/**/*.js -- npm run apidoc",
-    "dev": "concurrently \"npm run apidoc:watch\" \"npm run lint:watch\" \"npm run dev:server\"",
-    "dev:server": "nodemon",
+    "apidoc": "npm run apidoc:clean && npm run apidoc:build && concurrently \"npm run apidoc:watch\" \"npm run apidoc:serve\"",
+    "apidoc:build": "apidoc -i server/api -o doc/api",
+    "apidoc:clean": "rimraf doc/api",
+    "apidoc:serve": "node lib/serve-apidoc.js",
+    "apidoc:watch": "onchange server/api/**/*.js -- npm run apidoc:build",
+    "dev": "npm run lint && concurrently \"npm run server\" \"npm run apidoc\" \"npm run lint:watch\"",
+    "doctoc": "doctoc --notitle --github README.md",
     "lint": "jshint --reporter=node_modules/jshint-stylish .",
-    "lint:watch": "onchange **/*.js -e doc/**/*.js -- npm run lint",
+    "lint:watch": "onchange bin/www knexfile.js config/**/*.js lib/**/*.js migrations/**/*.js server/**/*.js -e doc/**/*.js -- npm run lint",
     "migrate": "knex migrate:latest",
     "migrate:test": "NODE_ENV=test knex migrate:latest",
+    "server": "nodemon",
     "start": "node ./bin/www",
     "test": "NODE_ENV=test mocha server/**/*.spec.js"
   },
@@ -44,13 +48,19 @@
     "chai": "^3.5.0",
     "chai-moment": "^0.1.0",
     "concurrently": "^3.3.0",
+    "doctoc": "^1.2.0",
     "http-status": "^0.2.3",
     "jshint": "^2.9.3",
     "jshint-stylish": "^2.2.1",
+    "live-server": "^1.2.0",
     "mocha": "^3.1.0",
     "moment": "^2.17.1",
     "onchange": "^3.2.1",
+    "rimraf": "^2.5.4",
     "supertest": "^2.0.0",
     "supertest-as-promised": "^4.0.0"
+  },
+  "engines": {
+    "node": ">= 6.0.0"
   }
 }

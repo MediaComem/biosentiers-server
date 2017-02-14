@@ -43,7 +43,7 @@ function createTransport() {
       pass: config.mail.password
     }
   }));
-};
+}
 
 function sendEmail(email) {
   if (!config.mail.enabled) {

@@ -46,7 +46,7 @@ var User = Abstract.extend({
   },
 
   hasPassword: function(password) {
-    return password && bcrypt.compareSync(password, this.get('password_hash'))
+    return password && bcrypt.compareSync(password, this.get('password_hash'));
   },
 
   isActive: function() {

@@ -26,4 +26,4 @@ exports.emailAvailable = function(existingUser) {
       }
     });
   };
-}
+};

@@ -66,7 +66,7 @@ exports.cleanDatabase = function() {
     db.knex.raw('TRUNCATE user_account;')
   ]).then(function() {
     var duration = moment().diff(start) / 1000;
-    logger.debug('Cleaned database in ' + duration + 's')
+    logger.debug('Cleaned database in ' + duration + 's');
   });
 };
 
@@ -108,7 +108,7 @@ exports.responseExpectationFactory = function(func) {
       args.unshift(res);
       return func.apply(undefined, args);
     });
-  }
+  };
 };
 
 exports.expectTimestamp = function(actual, expected, type) {
@@ -126,7 +126,7 @@ exports.expectTimestamp = function(actual, expected, type) {
   } else if (expected[beforeName]) {
     expect(actual[name], 'user.' + name).to.be.iso8601('justBefore', expected[beforeName]);
   } else {
-    throw new Error('User expectation requires either `' + type + 'At`, `' + type + 'Before` or `' + type + 'After` to be specified to check the ' + name + ' timestamp')
+    throw new Error('User expectation requires either `' + type + 'At`, `' + type + 'Before` or `' + type + 'After` to be specified to check the ' + name + ' timestamp');
   }
 };
 

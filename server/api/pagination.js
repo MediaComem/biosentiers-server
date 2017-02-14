@@ -32,4 +32,4 @@ function setUpPagination(req, res) {
     offset: offset,
     limit: limit
   };
-};
+}

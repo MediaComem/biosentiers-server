@@ -2,46 +2,47 @@
 
 This repository contains the Node.js Express server application for the BioSentiers project.
 
-* [Requirements](#requirements)
-* [Development](#dev)
-  * [First-time setup](#setup)
-  * [Run it](#dev-run)
-  * [Create an admin user](#dev-create-admin)
-  * [Test the production environment](#prod-run)
-  * [Upgrade to the latest version](#upgrade)
-* [Configuration](#config)
-  * [Server options](#config-server)
-  * [Development options](#config-dev)
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Requirements](#requirements)
+- [Development](#development)
+  - [First-time setup](#first-time-setup)
+  - [Run it](#run-it)
+  - [Create an admin user](#create-an-admin-user)
+  - [Upgrade to the latest version](#upgrade-to-the-latest-version)
+- [Configuration](#configuration)
+  - [Server options](#server-options)
+  - [Development options](#development-options)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 
 
 
 
-<a name="requirements"></a>
 ## Requirements
 
-* [Node.js](https://nodejs.org) 4.x
+* [Node.js](https://nodejs.org) 6.x
 * [npm](https://www.npmjs.com) (usually bundled with Node.js)
 * [PostgreSQL](https://www.postgresql.org) 9.5+
 * [PostGIS](http://postgis.net) 2.2+
 
 Additional development requirements:
 
-* [Gulp](http://gulpjs.com) (install with `npm install -g gulp-cli`)
 * [Knex](http://knexjs.org) (install with `npm install -g knex`)
 
 
 
 
 
-<a name="dev"></a>
 ## Development
 
 How to set up your machine to contribute to the project.
 
 
 
-<a name="setup"></a>
 ### First-time setup
 
 * Clone this repository:
@@ -66,16 +67,14 @@ How to set up your machine to contribute to the project.
 
 
 
-<a name="dev-run"></a>
 ### Run it
 
-* Run the default gulp task:
+* Run the dev npm script:
 
-        gulp
+        npm run dev
 
 
 
-<a name="dev-create-admin"></a>
 ### Create an admin user
 
 * An admin user must be created to use the application:
@@ -84,16 +83,6 @@ How to set up your machine to contribute to the project.
 
 
 
-<a name="prod-run"></a>
-### Test the production environment
-
-* Run the production gulp task which will concatenate and minify all assets:
-
-        gulp prod
-
-
-
-<a name="upgrade"></a>
 ### Upgrade to the latest version
 
 * Update your branch (and resolve any conflicts):
@@ -110,16 +99,28 @@ How to set up your machine to contribute to the project.
 
 
 
+### Scripts
+
+| Script           | Purpose                                                                |
+| :---             | :---                                                                   |
+| `npm run apidoc` | Build and serve the API documentation in your browser with live reload |
+| `npm run dev`    | Validate the code, run the server and serve the API documentation      |
+| `npm run doctoc` | Re-generate the table of contents in README.md                         |
+| `npm run lint`   | Validate all JavaScript code with JSHint                               |
+| `npm run server` | Run the server (for development) with live reload                      |
+| `npm start`      | Run the server (for production)                                        |
+| `npm test`       | Run automated tests                                                    |
 
 
-<a name="config"></a>
+
+
+
 ## Configuration
 
 The application is configured through environment variables which are listed here.
 
 
 
-<a name="config-server"></a>
 ### Server options
 
 * `NODE_ENV` - The runtime environment, either `development`, `production` or `test`.
@@ -137,14 +138,11 @@ The application is configured through environment variables which are listed her
 
 
 
-<a name="config-dev"></a>
 ### Development options
 
-* `LIVERELOAD` - Whether to use automatically reload the page when a change occurs while developing.
-                 Defaults to `true` in the development environment, `false` in other environments.
-* `LIVERELOAD_PORT` - The port to run the livereload server on.
-                      Defaults to `35729` in the development environment.
-* `OPEN` - Whether to automatically open the running application in the browser when running the application.
-           Defaults to `true` in the development environment, `false` in other environments.
-* `OPEN_BROWSER` - The name of the browser to open.
-                   Defaults to your default system browser.
+* `APIDOC_OPEN` - Whether to automatically open the API documentation in your browser.
+                  Defaults to `true` in the development environment, `false` in other environments.
+* `APIDOC_HOST` - The host to serve the API documentation on. Defaults to `localhost`.
+* `APIDOC_PORT` - The port to serve the API documentation on. Defaults to `3001`.
+* `BROWSER` - The name of the browser to open to read the API documentation.
+              Defaults to your default system browser.

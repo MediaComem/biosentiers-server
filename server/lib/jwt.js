@@ -11,7 +11,7 @@ exports.generateToken = function(options) {
   }, options);
 
   if (!_.includes(authTypes, jwtOptions.authType)) {
-    throw new Error('JWT authentication type is required (one of ' + authTypes.join(', ') + ')')
+    throw new Error('JWT authentication type is required (one of ' + authTypes.join(', ') + ')');
   }
 
   return jwt.sign(jwtOptions, config.jwtSecret);
