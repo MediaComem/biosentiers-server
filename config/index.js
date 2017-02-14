@@ -1,5 +1,6 @@
 // FIXME: validate config (e.g. required properties)
 var _ = require('lodash'),
+    fs = require('fs'),
     log4js = require('log4js'),
     path = require('path');
 
@@ -12,13 +13,22 @@ if (!_.includes(envs, env)) {
   throw new Error('Unsupported environment ' + JSON.stringify(env) + '; must be one of ' + envs.join(', '));
 }
 
+var envVars = _.clone(process.env);
+try {
+  if (fs.statSync(path.join(__dirname, 'local.env.js'))) {
+    _.extend(envVars, require('./local.env')(env));
+  }
+} catch (e) {
+  // ignore
+}
+
 var fixed = {
   // Immutable config data.
   env: env,
   root: root,
   version: pkg.version,
   mainAngularModule: 'bio',
-  buildDir: path.join(root, 'build', env),
+  publicDir: path.join(root, 'public'),
   // Utility functions.
   logger: createLogger,
   path: joinPathSegments,
@@ -27,42 +37,37 @@ var fixed = {
 };
 
 var config = {
-  protocol: process.env.PROTOCOL || 'http',
-  host: process.env.HOST || 'localhost',
-  port: parseConfigInt(process.env.PORT) || 3000,
+  protocol: envVars.PROTOCOL || 'http',
+  host: envVars.HOST || 'localhost',
+  port: parseConfigInt(envVars.PORT) || 3000,
 
-  db: process.env.DATABASE_URI || 'postgres://localhost/biosentiers',
+  db: envVars.DATABASE_URI || 'postgres://localhost/biosentiers',
 
-  jwtSecret: process.env.SECRET || 'changeme', // FIXME: no production default, validate
-  bcryptCost: parseConfigInt(process.env.BCRYPT_COST) || 10,
+  jwtSecret: envVars.SECRET || 'changeme', // FIXME: no production default, validate
+  bcryptCost: parseConfigInt(envVars.BCRYPT_COST) || 10,
 
-  logLevel: process.env.LOG_LEVEL,
+  logLevel: envVars.LOG_LEVEL,
 
-  liveReload: parseConfigBoolean(process.env.LIVERELOAD, false),
-  open: parseConfigBoolean(process.env.OPEN, false),
-  openBrowser: process.env.OPEN_BROWSER,
+  open: parseConfigBoolean(envVars.OPEN, false),
+  openBrowser: envVars.OPEN_BROWSER,
 
   mail: {
-    enabled: parseConfigBoolean(process.env.SMTP_ENABLED, true),
-    host: process.env.SMTP_HOST,
-    port: parseConfigInt(process.env.SMTP_PORT) || 0,
-    secure: !!(process.env.SMTP_SECURE || '0').match(/^(1|y|yes|t|true)$/i),
-    username: process.env.SMTP_USERNAME,
-    password: process.env.SMTP_PASSWORD,
-    fromName: process.env.SMTP_FROM_NAME,
-    fromAddress: process.env.SMTP_FROM_ADDRESS
+    enabled: parseConfigBoolean(envVars.SMTP_ENABLED, true),
+    host: envVars.SMTP_HOST,
+    port: parseConfigInt(envVars.SMTP_PORT) || 0,
+    secure: !!(envVars.SMTP_SECURE || '0').match(/^(1|y|yes|t|true)$/i),
+    username: envVars.SMTP_USERNAME,
+    password: envVars.SMTP_PASSWORD,
+    fromName: envVars.SMTP_FROM_NAME,
+    fromAddress: envVars.SMTP_FROM_ADDRESS
   }
 };
 
 if (env == 'development') {
   // Development overrides.
-  var liveReloadPort = parseConfigInt(process.env.LIVERELOAD_PORT) || 35729;
-
   _.merge(config, {
     logLevel: config.logLevel || 'TRACE',
-    liveReload: parseConfigBoolean(process.env.LIVERELOAD, true),
-    liveReloadUrl: config.protocol + '://' + config.host + ':' + liveReloadPort + '/livereload.js',
-    open: parseConfigBoolean(process.env.OPEN, true)
+    open: parseConfigBoolean(envVars.OPEN, true)
   });
 } else if (env == 'production') {
   // Production overrides.
@@ -72,7 +77,7 @@ if (env == 'development') {
 } else if (env == 'test') {
   // Test overrides.
   _.merge(config, {
-    bcryptCost: parseConfigInt(process.env.BCRYPT_COST) || 1,
+    bcryptCost: parseConfigInt(envVars.BCRYPT_COST) || 1,
     logLevel: config.logLevel || 'WARN',
     mail: {
       enabled: false

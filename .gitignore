@@ -1,9 +1,8 @@
 /*.log
+/.idea
 /.screenrc
-/build
 /config/*.env.js
 !/config/sample.env.js
 /doc/api
 /node_modules
 /tmp
-/.idea

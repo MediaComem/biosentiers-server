@@ -2,7 +2,7 @@ var config = require('../../config'),
     express = require('express');
 
 function serveIndex(req, res) {
-  res.sendFile('index.html', { root: config.buildDir });
+  res.sendFile('index.html', { root: config.publicDir });
 }
 
 var router = express.Router();

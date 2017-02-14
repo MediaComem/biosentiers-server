@@ -13,9 +13,9 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
-// Configure initial middleware.
-if (config.env != 'test') {
-  app.use(favicon(path.join(config.buildDir, 'favicon.ico')));
+// Serve favicon in production
+if (config.env == 'production') {
+  app.use(favicon(path.join(config.publicDir, 'favicon.ico')));
 }
 
 app.use(bodyParser.json());
@@ -23,15 +23,10 @@ app.use(bodyParser.json());
 // Log all HTTP requests.
 app.use(require('./lib/express-logger'));
 
-// Serve static files.
-if (config.env != 'production') {
-  app.use(express.static(config.buildDir));
-  // Serve files directly out of `client` and `node_modules` in development.
-  app.use('/client', express.static(config.path('client')));
-  app.use('/node_modules', express.static(config.path('node_modules')));
-} else {
-  // In production, all files are copied or compiled to the build directory.
-  app.use(express.static(config.buildDir));
+// Serve static files in production
+// (In development, the server is only an API)
+if (config.env == 'production') {
+  app.use(express.static(config.publicDir));
 }
 
 // Serve API requests.
