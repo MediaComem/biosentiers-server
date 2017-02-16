@@ -1,8 +1,16 @@
 var _ = require('lodash'),
-    excursion = require('../../models/excursion');
+    Excursion = require('../../models/excursion');
 
 exports.canCreate = function(req) {
   return this.authenticated();
+};
+
+exports.canList = function(req) {
+  return this.authenticated();
+};
+
+exports.scope = function(req) {
+  return new Excursion();
 };
 
 exports.serialize = function(excursion, req) {

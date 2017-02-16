@@ -2,6 +2,7 @@ var _ = require('lodash'),
     api = require('../utils'),
     Excursion = require('../../models/excursion'),
     policy = require('./excursions.policy'),
+    QueryBuilder = require('../query-builder'),
     Trail = require('../../models/trail');
 
 var builder = api.builder(Excursion, 'excursions');
@@ -30,6 +31,15 @@ exports.create = builder.route(function(req, res, helper) {
         .then(helper.created());
     });
   }
+});
+
+exports.list = builder.route(function(req, res, helper) {
+  return new QueryBuilder(req, res, policy.scope(req))
+    .paginate()
+    .sort('createdAt', 'plannedAt', 'updatedAt')
+    .fetch()
+    .map(helper.serializer(policy))
+    .then(helper.ok());
 });
 
 function fetchTrailByApiId(apiId) {

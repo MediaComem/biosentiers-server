@@ -12,13 +12,6 @@ router.use('/excursions', require('./excursions/excursions.routes'));
 router.use('/trails', require('./trails/trails.routes'));
 router.use('/users', require('./users/users.routes'));
 
-// Future API routes (only documentation for now).
-router.use('/flower-pollinators', require('./flower-pollinators/flower-pollinators.routes'));
-router.use('/flower-species', require('./flower-species/flower-species.routes'));
-router.use('/paths', require('./paths/paths.routes'));
-router.use('/pois', require('./pois/pois.routes'));
-router.use('/tours', require('./tours/tours.routes'));
-
 // Catch API 404.
 router.all('/*', function(req, res, next) {
   next(errors.notFound());
