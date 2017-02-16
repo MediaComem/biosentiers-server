@@ -1,17 +1,13 @@
-var _ = require('lodash'),
-    bookshelf = require('bookshelf'),
-    config = require('../config'),
-    knex = require('knex');
+const _ = require('lodash');
+const bookshelf = require('bookshelf');
+const config = require('../config');
+const knex = require('knex');
 
-var logger = config.logger('db');
+const logger = config.logger('db');
 
 // Initialize knex.
-var db = knex({
-  client: 'postgresql',
-  connection: config.db
-});
-
-db.on('query', logDbQueries);
+let db = createDatabase();
+let dbDestroyed = false;
 
 // Initialize and export bookshelf.
 module.exports = bookshelf(db);
@@ -24,6 +20,12 @@ module.exports.plugin('virtuals');
  * @returns Promise A promise that will be resolved if the connection is working, or rejected otherwise.
  */
 module.exports.ensureConnected = function() {
+  if (dbDestroyed) {
+    db = createDatabase();
+    module.exports.knex = db;
+    dbDestroyed = false;
+  }
+
   return db.raw('select 1+1 as n').then(function(result) {
     if (result.rowCount !== 1 || result.rows[0].n !== 2) {
       throw new Error('Could not get expected result from the database');
@@ -32,8 +34,22 @@ module.exports.ensureConnected = function() {
 };
 
 module.exports.disconnect = function() {
-  db.destroy();
+  return db.destroy().then(function(result) {
+    dbDestroyed = true;
+    return result;
+  });
 };
+
+function createDatabase() {
+  const newDb = knex({
+    client: 'postgresql',
+    connection: config.db
+  });
+
+  newDb.on('query', logDbQueries);
+
+  return newDb;
+}
 
 function logDbQueries(query) {
 

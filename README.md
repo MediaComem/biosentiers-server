@@ -79,7 +79,7 @@ How to set up your machine to contribute to the project.
 
 * An admin user must be created to use the application:
 
-        ADMIN_EMAIL=jdoe@example.com ADMIN_PASSWORD=changeme node server/scripts/createAdmin.js
+        ADMIN_EMAIL=jdoe@example.com ADMIN_PASSWORD=changeme node server/scripts/create-admin.js
 
 
 
