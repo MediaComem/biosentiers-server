@@ -2,7 +2,8 @@
   "ext": "js",
   "ignore": [
     ".git",
-    "node_modules"
+    "node_modules",
+    "server/scripts"
   ],
   "script": "bin/www",
   "watch": [
