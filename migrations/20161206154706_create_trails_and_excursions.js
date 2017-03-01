@@ -20,7 +20,7 @@ function createTrailTable(knex) {
     t.string('name', 50).notNull();
     t.timestamps();
   })
-    .raw('create unique index trail_api_id_unique on user_account (lower(api_id));');
+    .raw('create unique index trail_api_id_unique on trail (lower(api_id));');
 }
 
 function createExcursionTable(knex) {
@@ -31,5 +31,5 @@ function createExcursionTable(knex) {
     t.timestamp('planned_at').notNull();
     t.timestamps();
   })
-    .raw('create unique index excursion_api_id_unique on user_account (lower(api_id));');
+    .raw('create unique index excursion_api_id_unique on excursion (lower(api_id));');
 }

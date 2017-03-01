@@ -38,9 +38,12 @@ exports.list = builder.route(function(req, res, helper) {
     .paginate()
     .sort('createdAt', 'plannedAt', 'updatedAt')
     .fetch()
+    .map(excursion => excursion.load([ 'trail' ]))
     .map(helper.serializer(policy))
     .then(helper.ok());
 });
+
+exports.fetchRecord = builder.fetcher(exports.name);
 
 function fetchTrailByApiId(apiId) {
   return new Trail({

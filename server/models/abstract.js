@@ -1,5 +1,6 @@
 var _ = require('lodash'),
     bookshelf = require('../db'),
+    BPromise = require('bluebird'),
     inflection = require('inflection'),
     uuid = require('uuid');
 
@@ -23,9 +24,15 @@ var Abstract = bookshelf.Model.extend({
     }
   },
 
+  generateApiId: function() {
+    return uuid.v4();
+  },
+
   _setApiId: function() {
     if (this.apiId && !this.has('api_id')) {
-      this.set('api_id', uuid.v4());
+      return BPromise.resolve().then(this.generateApiId.bind(this)).then(apiId => {
+        this.set('api_id', apiId);
+      });
     }
   },
 

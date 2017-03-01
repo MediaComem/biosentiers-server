@@ -1,5 +1,6 @@
 var controller = require('./excursions.api'),
     express = require('express'),
+    participantsRoutes = require('../participants/participants.routes'),
     policy = require('./excursions.policy'),
     utils = require('../utils');
 
@@ -12,5 +13,9 @@ router.post('/',
 router.get('/',
   utils.authorize(policy.canList),
   controller.list);
+
+router.use('/:id',
+  controller.fetchRecord,
+  participantsRoutes);
 
 module.exports = router;
