@@ -71,6 +71,12 @@ exports.update = builder.route(function(req, res, helper) {
   }
 });
 
+exports.delete = builder.route(function(req, res, helper) {
+  return req.record
+    .destroy()
+    .then(helper.noContent());
+});
+
 exports.fetchRecord = builder.fetcher(exports.name, (query, req) => query.where('excursion_id', req.record.get('id')));
 
 function fetchExcursionByApiId(apiId) {

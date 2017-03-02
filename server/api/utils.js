@@ -88,7 +88,7 @@ ApiBuilder.prototype.fetcher = function(resourceName, queryHandler) {
 
 exports.helper = function(req, res, next, logger) {
   var helper = new ApiHelper(req, res, next, logger);
-  _.bindAll(helper, 'created', 'ok', 'respond', 'serialize', 'serializer');
+  _.bindAll(helper, 'created', 'ok', 'noContent', 'respond', 'serialize', 'serializer');
   return helper;
 };
 
@@ -142,6 +142,13 @@ ApiHelper.prototype.ok = function() {
   var res = this.res;
   return function(data) {
     res.json(data);
+  };
+};
+
+ApiHelper.prototype.noContent = function() {
+  var res = this.res;
+  return function(data) {
+    res.sendStatus(204);
   };
 };
 

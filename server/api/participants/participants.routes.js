@@ -18,4 +18,9 @@ router.patch('/:id',
   utils.authorize(policy.canUpdate, controller.name),
   controller.update);
 
+router.delete('/:id',
+  controller.fetchRecord,
+  utils.authorize(policy.canDelete, controller.name),
+  controller.delete);
+
 module.exports = router;

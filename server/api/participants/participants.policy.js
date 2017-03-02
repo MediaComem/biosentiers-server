@@ -16,6 +16,11 @@ exports.canUpdate = function(req) {
   return this.authenticated();
 };
 
+exports.canDelete = function(req) {
+  // TODO: only an admin or the creator of the excursion should be allowed to delete participants
+  return this.authenticated();
+};
+
 exports.scope = function(req) {
   // TODO: only the participants of excursions created by the user should be visible to non-admins
   return new Participant();
