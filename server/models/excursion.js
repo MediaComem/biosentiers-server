@@ -10,20 +10,7 @@ var Excursion = Abstract.extend({
   timestamps: true,
 
   parsing: {
-    default: 'trail planned_at'
-  },
-
-  virtuals: {
-    trail: {
-      get: function() {
-        return this.related('trail');
-      },
-
-      set: function(trail) {
-        this.relations.trail = trail;
-        this.set('trail_id', trail.get('id'));
-      }
-    }
+    default: 'trail_id planned_at'
   },
 
   trail: function() {

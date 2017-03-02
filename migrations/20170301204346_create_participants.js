@@ -19,5 +19,6 @@ function createParticipantTable(knex) {
     t.string('name', 30).notNull();
     t.timestamps();
   })
-    .raw('create unique index participant_api_id_unique on participant (lower(api_id), excursion_id);');
+    .raw('create unique index participant_api_id_unique on participant (lower(api_id), excursion_id);')
+    .raw('create unique index participant_name_unique on participant (lower(name), excursion_id);');
 }

@@ -62,17 +62,20 @@ ApiBuilder.prototype.route = function(definition) {
  * @param {String} resourceName - The name of the API resource (used in error messages).
  * @returns Function A middleware function.
  */
-ApiBuilder.prototype.fetcher = function(resourceName) {
+ApiBuilder.prototype.fetcher = function(resourceName, queryHandler) {
 
-  var model = this.model;
+  var Model = this.model;
 
   return function(req, res, next) {
 
     var apiId = req.params.id;
 
-    new model({
-      api_id: apiId
-    }).fetch().then(function(record) {
+    let query = new Model({ api_id: apiId });
+    if (_.isFunction(queryHandler)) {
+      query = queryHandler(query, req);
+    }
+
+    query.fetch().then(function(record) {
       if (!record) {
         throw errors.recordNotFound(resourceName, apiId);
       }

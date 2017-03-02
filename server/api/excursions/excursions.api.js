@@ -17,7 +17,7 @@ exports.create = builder.route(function(req, res, helper) {
   function validate() {
     return helper.validateRequestBody(function() {
       return this.parallel(
-        this.validate(this.json('/trailId'), this.presence(), this.type('string'), this.resource(fetchTrailByApiId).moveTo('/trail')),
+        this.validate(this.json('/trailId'), this.presence(), this.type('string'), this.resource(fetchTrailByApiId).replace(trail => trail.get('id'))),
         this.validate(this.json('/plannedAt'), this.presence(), this.type('string'))
       );
     });
@@ -41,6 +41,10 @@ exports.list = builder.route(function(req, res, helper) {
     .map(excursion => excursion.load([ 'trail' ]))
     .map(helper.serializer(policy))
     .then(helper.ok());
+});
+
+exports.retrieve = builder.route(function(req, res, helper) {
+  return helper.respond(req.record, policy);
 });
 
 exports.fetchRecord = builder.fetcher(exports.name);

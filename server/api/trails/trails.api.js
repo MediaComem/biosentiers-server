@@ -1,6 +1,7 @@
 var _ = require('lodash'),
     api = require('../utils'),
     policy = require('./trails.policy'),
+    QueryBuilder = require('../query-builder'),
     Trail = require('../../models/trail');
 
 var builder = api.builder(Trail, 'trails');
@@ -29,4 +30,13 @@ exports.create = builder.route(function(req, res, helper) {
         .then(helper.created());
     });
   }
+});
+
+exports.list = builder.route(function(req, res, helper) {
+  return new QueryBuilder(req, res, policy.scope(req))
+    .paginate()
+    .sort('createdAt', 'updatedAt')
+    .fetch()
+    .map(helper.serializer(policy))
+    .then(helper.ok());
 });

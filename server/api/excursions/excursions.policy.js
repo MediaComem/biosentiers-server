@@ -9,6 +9,10 @@ exports.canList = function(req) {
   return this.authenticated();
 };
 
+exports.canRetrieve = function(req) {
+  return this.authenticated();
+};
+
 exports.scope = function(req) {
   return new Excursion();
 };

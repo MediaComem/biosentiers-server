@@ -14,7 +14,12 @@ router.get('/',
   utils.authorize(policy.canList),
   controller.list);
 
-router.use('/:id',
+router.get('/:id',
+  controller.fetchRecord,
+  utils.authorize(policy.canRetrieve, controller.name),
+  controller.retrieve);
+
+router.use('/:id/participants',
   controller.fetchRecord,
   participantsRoutes);
 

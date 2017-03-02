@@ -14,19 +14,6 @@ var Participant = Abstract.extend({
     default: 'excursion name'
   },
 
-  virtuals: {
-    excursion: {
-      get: function() {
-        return this.related('excursion');
-      },
-
-      set: function(excursion) {
-        this.relations.excursion = excursion;
-        this.set('excursion_id', excursion.get('id'));
-      }
-    }
-  },
-
   excursion: function() {
     return this.belongsTo('Excursion');
   },
@@ -34,6 +21,12 @@ var Participant = Abstract.extend({
   generateApiId: function() {
     const excursionId = this.get('excursion_id');
     return excursionId ? generateUniqueApiId(excursionId) : undefined;
+  },
+
+  whereName: function(name) {
+    return this.query(function(builder) {
+      return builder.whereRaw('LOWER(name) = LOWER(?)', name);
+    });
   }
 });
 
