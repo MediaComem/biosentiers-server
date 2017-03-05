@@ -29,7 +29,7 @@ exports.create = builder.route(function(req, res, helper) {
         this.validate(this.json('/active'), this.type('boolean')),
         this.validate(this.json('/email'), this.presence(), this.type('string'), this.email(), validations.emailAvailable()),
         this.validate(this.json('/password'), this.presence(), this.type('string')),
-        this.validate(this.json('/role'), this.ifSet(), this.type('string'), this.inclusion({ in: User.roles }))
+        this.validate(this.json('/role'), this.while(this.isSet()), this.type('string'), this.inclusion({ in: User.roles }))
       );
     });
   }
@@ -74,7 +74,7 @@ exports.update = builder.route(function(req, res, helper) {
   function validate() {
     return helper.validateRequestBody(function() {
       return this.parallel(
-        this.validate(this.json('/password'), this.ifChanged(), this.type('string'), this.presence())
+        this.validate(this.json('/password'), this.while(this.hasChanged()), this.type('string'), this.presence())
       );
     });
   }

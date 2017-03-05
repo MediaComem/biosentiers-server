@@ -101,7 +101,7 @@ function ApiHelper(req, res, next, logger) {
 
 ApiHelper.prototype.validate = function(value, callback, status) {
   return valdsl(function() {
-    return this.validate(this.value(value), this.unlessError(this.atCurrentLocation()), callback);
+    return this.validate(this.value(value), this.while(this.hasNoError(this.atCurrentLocation())), callback);
   }).catch(function(err) {
     if (!_.has(err, 'status')) {
       err.status = status;

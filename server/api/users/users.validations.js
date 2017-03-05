@@ -4,7 +4,7 @@ var _ = require('lodash'),
 exports.emailAvailable = function(existingUser) {
   return function(context) {
 
-    var email = context.state.value;
+    var email = context.get('value');
     if (!_.isString(email) || _.isEmpty(email.trim())) {
       return;
     }
@@ -20,8 +20,8 @@ exports.emailAvailable = function(existingUser) {
     return query.fetch().then(function(user) {
       if (user) {
         context.addError({
-          code: 'validation.email.taken',
-          message: (context.state.valueDescription || 'Value') + ' is already taken.'
+          validator: 'user.emailAvailable',
+          message: 'is already taken'
         });
       }
     });

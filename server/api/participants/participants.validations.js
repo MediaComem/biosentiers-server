@@ -4,7 +4,7 @@ var _ = require('lodash'),
 exports.nameAvailable = function(existingParticipant) {
   return function(context) {
 
-    var name = context.state.value;
+    var name = context.get('value');
     if (!_.isString(name) || _.isEmpty(name.trim())) {
       return;
     }
@@ -20,8 +20,8 @@ exports.nameAvailable = function(existingParticipant) {
     return query.fetch().then(function(user) {
       if (user) {
         context.addError({
-          code: 'validation.name.taken',
-          message: (context.state.valueDescription || 'Value') + ' is already taken.'
+          validator: 'participant.nameAvailable',
+          message: 'is already taken'
         });
       }
     });

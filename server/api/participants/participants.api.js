@@ -13,15 +13,7 @@ var builder = api.builder(Participant, 'participants');
 exports.name = 'participant';
 
 exports.create = builder.route(function(req, res, helper) {
-  return validate().then(create);
-
-  function validate() {
-    return helper.validateRequestBody(function() {
-      return this.parallel(
-        this.validate(this.json('/name'), this.presence(), this.type('string'), validations.nameAvailable())
-      );
-    });
-  }
+  return validateParticipant(helper).then(create);
 
   function create() {
     return Participant.transaction(function() {
@@ -51,15 +43,7 @@ exports.list = builder.route(function(req, res, helper) {
 exports.update = builder.route(function(req, res, helper) {
 
   var participant = req.record;
-  return validate().then(update);
-
-  function validate() {
-    return helper.validateRequestBody(function() {
-      return this.parallel(
-        this.validate(this.json('/name'), this.ifChanged(), this.presence(), this.type('string'), validations.nameAvailable(participant))
-      );
-    });
-  }
+  return validateParticipant(helper, true).then(update);
 
   function update() {
     helper.unserializeTo(participant, [ 'name' ]);
@@ -78,6 +62,15 @@ exports.delete = builder.route(function(req, res, helper) {
 });
 
 exports.fetchRecord = builder.fetcher(exports.name, (query, req) => query.where('excursion_id', req.record.get('id')));
+
+function validateParticipant(helper, patchMode) {
+  var participant = helper.req.record;
+  return helper.validateRequestBody(function() {
+    return this.parallel(
+      this.validate(this.json('/name'), this.if(patchMode, this.while(this.hasChanged(participant.get('name')))), this.presence(), this.type('string'), validations.nameAvailable(participant))
+    );
+  });
+}
 
 function fetchExcursionByApiId(apiId) {
   return new Excursion({
