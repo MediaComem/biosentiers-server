@@ -1,7 +1,7 @@
 var _ = require('lodash'),
     Participant = require('../../models/participant');
 
-exports.nameAvailable = function(existingParticipant) {
+exports.nameAvailable = function(excursion, existingParticipant) {
   return function(context) {
 
     var name = context.get('value');
@@ -9,7 +9,7 @@ exports.nameAvailable = function(existingParticipant) {
       return;
     }
 
-    var query = new Participant().whereName(name);
+    var query = new Participant().whereName(name).where('excursion_id', excursion.get('id'))
 
     if (existingParticipant) {
       query = query.query(function(queryBuilder) {

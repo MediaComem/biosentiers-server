@@ -76,7 +76,7 @@ ApiBuilder.prototype.route = function(definition) {
  * @param {String} resourceName - The name of the API resource (used in error messages).
  * @returns Function A middleware function.
  */
-ApiBuilder.prototype.fetcher = function(resourceName, queryHandler) {
+ApiBuilder.prototype.fetcher = function(resourceName, queryHandler, name) {
 
   var Model = this.model;
 
@@ -94,7 +94,8 @@ ApiBuilder.prototype.fetcher = function(resourceName, queryHandler) {
         throw errors.recordNotFound(resourceName, apiId);
       }
 
-      req.record = record;
+      // TODO: use resource name by default
+      req[name || 'record'] = record;
       next();
     }).catch(next);
   };
@@ -117,7 +118,7 @@ ApiHelper.prototype.validate = function(value, callback, status) {
   return valdsl(function() {
     return this.validate(this.value(value), this.while(this.hasNoError(this.atCurrentLocation())), callback);
   }).catch(function(err) {
-    if (!_.has(err, 'status')) {
+    if (err.errors && !_.has(err, 'status')) {
       err.status = status;
     }
 

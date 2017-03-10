@@ -42,7 +42,7 @@ exports.list = builder.route(function(req, res, helper) {
 
 exports.update = builder.route(function(req, res, helper) {
 
-  var participant = req.record;
+  var participant = req.participant;
   return validateParticipant(helper, true).then(update);
 
   function update() {
@@ -56,18 +56,22 @@ exports.update = builder.route(function(req, res, helper) {
 });
 
 exports.delete = builder.route(function(req, res, helper) {
-  return req.record
+  return req.participant
     .destroy()
     .then(helper.noContent());
 });
 
-exports.fetchRecord = builder.fetcher(exports.name, (query, req) => query.where('excursion_id', req.record.get('id')));
+exports.fetchRecord = builder.fetcher(exports.name, (query, req) => query.where('excursion_id', req.record.get('id')), exports.name);
 
 function validateParticipant(helper, patchMode) {
-  var participant = helper.req.record;
+
+  var excursion = helper.req.record,
+      participant = helper.req.participant,
+      name = participant ? participant.get('name') : '';
+
   return helper.validateRequestBody(function() {
     return this.parallel(
-      this.validate(this.json('/name'), this.if(patchMode, this.while(this.hasChanged(participant.get('name')))), this.presence(), this.type('string'), validations.nameAvailable(participant))
+      this.validate(this.json('/name'), this.if(patchMode, this.while(this.hasChanged(name))), this.presence(), this.type('string'), validations.nameAvailable(excursion, participant))
     );
   });
 }
