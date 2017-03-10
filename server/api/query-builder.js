@@ -9,13 +9,15 @@ function QueryBuilder(req, res, base) {
   this.query = base;
   this.paginated = false;
   this.filters = [];
+  this.related = [];
 }
 
 _.extend(QueryBuilder.prototype, {
   paginate: activePagination,
   filter: addFilters,
   sort: setPossibleSorts,
-  fetch: fetch
+  fetch: fetch,
+  eagerLoad: loadRelated
 });
 
 module.exports = QueryBuilder;
@@ -58,7 +60,8 @@ function fetch() {
     res: this.res,
     query: this.query,
     filters: this.filters,
-    sorts: this.sorts
+    sorts: this.sorts,
+    related: this.related
   };
 
   var promise = Promise.resolve();
@@ -75,11 +78,23 @@ function fetch() {
       .then(applySorting);
   }
 
-  return promise
+  promise = promise
     .return(data)
     .get('query')
-    .call('fetchAll')
-    .get('models');
+    .call('fetchAll');
+
+  if (this.related && this.related.length) {
+    promise = promise.then(function(collection) {
+      return collection.load(data.related);
+    });
+  }
+
+  return promise.get('models');
+}
+
+function loadRelated(related) {
+  this.related = related;
+  return this;
 }
 
 function paginate(data) {

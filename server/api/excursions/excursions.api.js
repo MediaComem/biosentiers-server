@@ -37,14 +37,17 @@ exports.list = builder.route(function(req, res, helper) {
   return new QueryBuilder(req, res, policy.scope(req))
     .paginate()
     .sort('createdAt', 'plannedAt', 'updatedAt')
+    .eagerLoad([ 'trail' ])
     .fetch()
-    .map(excursion => excursion.load([ 'trail' ]))
     .map(helper.serializer(policy))
     .then(helper.ok());
 });
 
 exports.retrieve = builder.route(function(req, res, helper) {
-  return helper.respond(req.record, policy);
+  return Promise
+    .resolve(req.record.load([ 'trail' ]))
+    .then(helper.serializer(policy))
+    .then(helper.ok());
 });
 
 exports.fetchRecord = builder.fetcher(exports.name);
