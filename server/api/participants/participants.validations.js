@@ -9,7 +9,7 @@ exports.nameAvailable = function(excursion, existingParticipant) {
       return;
     }
 
-    var query = new Participant().whereName(name).where('excursion_id', excursion.get('id'))
+    var query = new Participant().whereName(name).where('excursion_id', excursion.get('id'));
 
     if (existingParticipant) {
       query = query.query(function(queryBuilder) {
