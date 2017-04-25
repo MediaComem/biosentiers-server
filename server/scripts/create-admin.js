@@ -8,6 +8,8 @@ const logger = config.logger('script:create-admin');
 // Take input from environment variables
 const adminEmail = process.env.ADMIN_EMAIL;
 const adminPassword = process.env.ADMIN_PASSWORD;
+const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Admin';
+const adminLastName = process.env.ADMIN_LAST_NAME || 'Admin';
 
 let adminAlreadyExists = false;
 
@@ -44,7 +46,9 @@ function createAdmin(existingUser) {
     active: true,
     role: 'admin',
     email: adminEmail,
-    password: adminPassword
+    password: adminPassword,
+    first_name: adminFirstName,
+    last_name: adminLastName
   }).save();
 }
 

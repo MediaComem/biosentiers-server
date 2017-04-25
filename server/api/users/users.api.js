@@ -17,7 +17,12 @@ exports.create = builder.route(function(req, res, helper) {
     _.extend(req.body, {
       active: true,
       email: req.jwtToken.email,
-      role: req.jwtToken.role
+      role: req.jwtToken.role,
+    });
+
+    _.defaults(req.body, {
+      firstName: req.jwtToken.firstName,
+      lastName: req.jwtToken.lastName
     });
   }
 
@@ -80,7 +85,7 @@ exports.update = builder.route(function(req, res, helper) {
   }
 
   function update() {
-    helper.unserializeTo(user, [ 'active', 'email', 'role' ]);
+    helper.unserializeTo(user, [ 'active', 'email', 'role', 'firstName', 'lastName' ]);
 
     var password = req.body.password,
         previousPassword = req.body.previousPassword;

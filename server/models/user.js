@@ -19,7 +19,7 @@ var User = Abstract.extend({
   },
 
   parsing: {
-    default: 'active email password role'
+    default: 'active email password role first_name last_name'
   },
 
   virtuals: {

@@ -18,7 +18,9 @@ const sampleTrail = {
 
 const sampleUser = {
   email: 'user@example.com',
-  password: 'test'
+  password: 'test',
+  first_name: 'John',
+  last_name: 'Doe'
 };
 
 module.exports = BPromise

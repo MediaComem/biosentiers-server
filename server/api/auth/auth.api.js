@@ -39,7 +39,7 @@ exports.authenticate = function(req, res, next) {
 exports.createInvitation = builder.route(function(req, res, helper) {
 
   var createdAt,
-      invitation = _.pick(req.body, 'email', 'role');
+      invitation = _.pick(req.body, 'email', 'role', 'firstName', 'lastName');
 
   return validate()
     .then(generateInvitationToken)
@@ -110,7 +110,7 @@ exports.retrieveInvitation = builder.route(function(req, res, helper) {
    */
   function respond() {
 
-    var invitation = _.extend(_.pick(req.jwtToken, 'email', 'role'), {
+    var invitation = _.extend(_.pick(req.jwtToken, 'email', 'role', 'firstName', 'lastName'), {
       createdAt: new Date(req.jwtToken.iat * 1000)
     });
 
