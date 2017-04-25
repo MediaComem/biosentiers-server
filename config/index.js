@@ -60,7 +60,7 @@ var config = {
     enabled: parseConfigBoolean(envVars.SMTP_ENABLED, true),
     host: envVars.SMTP_HOST,
     port: parseConfigInt(envVars.SMTP_PORT) || 0,
-    secure: !!(envVars.SMTP_SECURE || '0').match(/^(1|y|yes|t|true)$/i),
+    secure: parseConfigBoolean(envVars.SMTP_SECURE, false),
     username: envVars.SMTP_USERNAME,
     password: envVars.SMTP_PASSWORD,
     fromName: envVars.SMTP_FROM_NAME,
