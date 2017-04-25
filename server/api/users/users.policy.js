@@ -59,6 +59,8 @@ exports.serialize = function(user, req) {
       id: user.get('api_id'),
       active: user.get('active'),
       role: user.get('role'),
+      firstName: user.get('first_name'),
+      lastName: user.get('last_name'),
       createdAt: user.get('created_at'),
       updatedAt: user.get('updated_at')
     });

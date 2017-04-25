@@ -11,7 +11,7 @@ var Excursion = Abstract.extend({
   timestamps: true,
 
   parsing: {
-    default: 'trail_id planned_at'
+    default: 'trail_id planned_at name'
   },
 
   trail: function() {

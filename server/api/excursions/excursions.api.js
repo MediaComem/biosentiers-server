@@ -18,6 +18,7 @@ exports.create = builder.route(function(req, res, helper) {
     return helper.validateRequestBody(function() {
       return this.parallel(
         this.validate(this.json('/trailId'), this.presence(), this.type('string'), this.resource(fetchTrailByApiId).replace(trail => trail.get('id'))),
+        this.validate(this.json('/name'), this.type('string')),
         this.validate(this.json('/plannedAt'), this.presence(), this.type('string'))
       );
     });
@@ -36,7 +37,7 @@ exports.create = builder.route(function(req, res, helper) {
 exports.list = builder.route(function(req, res, helper) {
   return new QueryBuilder(req, res, policy.scope(req))
     .paginate()
-    .sort('createdAt', 'plannedAt', 'updatedAt')
+    .sort('name', 'createdAt', 'plannedAt', 'updatedAt')
     .eagerLoad([ 'trail' ])
     .fetch()
     .map(helper.serializer(policy))
