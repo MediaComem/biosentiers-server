@@ -15,6 +15,10 @@ exports.canRetrieve = function(req) {
   return this.authenticated();
 };
 
+exports.canUpdate = function(req) {
+  return this.authenticated();
+};
+
 exports.scope = function(req) {
   return new Excursion();
 };
@@ -24,6 +28,8 @@ exports.serialize = function(excursion, req) {
     id: excursion.get('api_id'),
     trailId: excursion.related('trail').get('api_id'),
     name: excursion.get('name'),
+    themes: excursion.get('themes'),
+    zones: excursion.get('zones'),
     plannedAt: excursion.get('planned_at'),
     createdAt: excursion.get('created_at'),
     updatedAt: excursion.get('updated_at')

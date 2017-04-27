@@ -1,9 +1,10 @@
-var _ = require('lodash'),
-    auth = require('./auth'),
-    config = require('../../config'),
-    errors = require('./errors'),
-    Promise = require('bluebird'),
-    valdsl = require('../lib/valdsl');
+const _ = require('lodash');
+const auth = require('./auth');
+const config = require('../../config');
+const errors = require('./errors');
+const inflection = require('inflection');
+const Promise = require('bluebird');
+const valdsl = require('../lib/valdsl');
 
 exports.notYetImplemented = function(req, res) {
   res.sendStatus(418);
@@ -184,7 +185,7 @@ ApiHelper.prototype.unserializeTo = function(record, properties, source) {
 
   if (_.isArray(properties)) {
     properties = _.reduce(properties, function(memo, property) {
-      memo[property] = property;
+      memo[inflection.underscore(property)] = property;
       return memo;
     }, {});
   }

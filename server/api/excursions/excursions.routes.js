@@ -19,6 +19,11 @@ router.get('/:id',
   utils.authorize(policy.canRetrieve, controller.name),
   controller.retrieve);
 
+router.patch('/:id',
+  controller.fetchRecord,
+  utils.authorize(policy.canUpdate, controller.name),
+  controller.update);
+
 router.use('/:id/participants',
   controller.fetchRecord,
   participantsRoutes);
