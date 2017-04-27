@@ -17,7 +17,11 @@ exports.create = builder.route(function(req, res, helper) {
 
   function create() {
     return Excursion.transaction(function() {
-      return Excursion.parse(req)
+
+      const excursion = Excursion.parse(req);
+      excursion.set('creator_id', req.user.get('id'));
+
+      return excursion
         .save()
         .then(helper.serializer(policy))
         .then(helper.created());
@@ -29,7 +33,7 @@ exports.list = builder.route(function(req, res, helper) {
   return new QueryBuilder(req, res, policy.scope(req))
     .paginate()
     .sort('name', 'createdAt', 'plannedAt', 'updatedAt')
-    .eagerLoad([ 'trail' ])
+    .eagerLoad([ 'creator', 'trail' ])
     .fetch()
     .map(helper.serializer(policy))
     .then(helper.ok());
@@ -37,7 +41,7 @@ exports.list = builder.route(function(req, res, helper) {
 
 exports.retrieve = builder.route(function(req, res, helper) {
   return Promise
-    .resolve(req.record.load([ 'trail' ]))
+    .resolve(req.record.load([ 'creator', 'trail' ]))
     .then(helper.serializer(policy))
     .then(helper.ok());
 });
@@ -46,7 +50,7 @@ exports.update = builder.route(function(req, res, helper) {
 
   var excursion = req.record;
   return Promise
-    .resolve(req.record.load('trail'))
+    .resolve(req.record.load([ 'creator', 'trail' ]))
     .then(_.partial(validateExcursion, _, helper, true))
     .then(update);
 

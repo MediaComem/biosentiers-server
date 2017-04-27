@@ -17,6 +17,10 @@ const Excursion = Abstract.extend({
     default: 'trail_id planned_at name themes zones'
   },
 
+  creator: function() {
+    return this.belongsTo('User', 'creator_id');
+  },
+
   trail: function() {
     return this.belongsTo('Trail');
   },
