@@ -37,34 +37,33 @@ var fixed = {
 };
 
 var config = {
-  protocol: envVars.PROTOCOL || 'http',
-  host: envVars.HOST || 'localhost',
-  port: parseConfigInt(envVars.PORT) || 3000,
+  port: parseConfigInt(get('PORT')) || 3000,
+  baseUrl: get('BASE_URL') || buildBaseUrl(),
 
-  db: envVars.DATABASE_URI || 'postgres://localhost/biosentiers',
+  db: get('DATABASE_URI') || buildDatabaseUrl(),
 
-  jwtSecret: envVars.SECRET || 'changeme', // FIXME: no production default, validate
-  bcryptCost: parseConfigInt(envVars.BCRYPT_COST) || 10,
+  jwtSecret: get('SECRET') || 'changeme', // FIXME: no production default, validate
+  bcryptCost: parseConfigInt(get('BCRYPT_COST')) || 10,
 
-  logLevel: envVars.LOG_LEVEL,
+  logLevel: get('LOG_LEVEL'),
 
-  browser: envVars.BROWSER,
+  browser: get('BROWSER'),
 
   apiDoc: {
-    open: parseConfigBoolean(envVars.APIDOC_OPEN, false),
-    host: envVars.APIDOC_HOST || 'localhost',
-    port: parseConfigInt(envVars.APIDOC_PORT) || 3001
+    open: parseConfigBoolean(get('APIDOC_OPEN'), false),
+    host: get('APIDOC_HOST') || 'localhost',
+    port: parseConfigInt(get('APIDOC_PORT')) || 3001
   },
 
   mail: {
-    enabled: parseConfigBoolean(envVars.SMTP_ENABLED, true),
-    host: envVars.SMTP_HOST,
-    port: parseConfigInt(envVars.SMTP_PORT) || 0,
-    secure: parseConfigBoolean(envVars.SMTP_SECURE, false),
-    username: envVars.SMTP_USERNAME,
-    password: envVars.SMTP_PASSWORD,
-    fromName: envVars.SMTP_FROM_NAME,
-    fromAddress: envVars.SMTP_FROM_ADDRESS
+    enabled: parseConfigBoolean(get('SMTP_ENABLED'), true),
+    host: get('SMTP_HOST'),
+    port: parseConfigInt(get('SMTP_PORT')) || 0,
+    secure: parseConfigBoolean(get('SMTP_SECURE'), false),
+    username: get('SMTP_USERNAME'),
+    password: get('SMTP_PASSWORD'),
+    fromName: get('SMTP_FROM_NAME'),
+    fromAddress: get('SMTP_FROM_ADDRESS')
   }
 };
 
@@ -73,7 +72,7 @@ if (env == 'development') {
   _.merge(config, {
     logLevel: config.logLevel || 'TRACE',
     apiDoc: {
-      open: parseConfigBoolean(envVars.APIDOC_OPEN, true)
+      open: parseConfigBoolean(get('APIDOC_OPEN'), true)
     }
   });
 } else if (env == 'production') {
@@ -84,18 +83,12 @@ if (env == 'development') {
 } else if (env == 'test') {
   // Test overrides.
   _.merge(config, {
-    bcryptCost: parseConfigInt(envVars.BCRYPT_COST) || 1,
+    bcryptCost: parseConfigInt(get('BCRYPT_COST')) || 1,
     logLevel: config.logLevel || 'WARN',
     mail: {
       enabled: false
     }
   });
-}
-
-// Build the application's base URL.
-config.url = config.protocol + '://' + config.host;
-if (config.port && config.port != 80 && config.port != 443) {
-  config.url = config.url + ':' + config.port;
 }
 
 // Export the configuration.
@@ -138,4 +131,50 @@ function parseConfigInt(value) {
   }
 
   return parsed;
+}
+
+function buildBaseUrl() {
+
+  let url = (get('PROTOCOL') || 'http') + '://' + (get('HOST') || 'localhost');
+
+  const port = parseConfigInt(get('PORT')) || 3000;
+  if (port && port != 80 && port != 443) {
+    url = url + ':' + port;
+  }
+
+  return url;
+}
+
+function buildDatabaseUrl() {
+
+  let url = 'postgres://';
+
+  const username = get('DATABASE_USERNAME');
+  const password = get('DATABASE_PASSWORD');
+  if (username && password) {
+    url += `${username}:${password}@`
+  }
+
+  return `${url}${get('DATABASE_HOST') || 'localhost'}:${get('DATABASE_PORT') || '5432'}/${get('DATABASE_NAME') || 'biosentiers'}`
+}
+
+function get(varName) {
+  if (_.has(envVars, varName)) {
+    return envVars[varName];
+  }
+
+  const fileVarName = `${varName}_FILE`;
+  if (!_.has(envVars, fileVarName)) {
+    return undefined;
+  }
+
+  const file = envVars[fileVarName];
+
+  try {
+    if (fs.statSync(file).isFile()) {
+      return fs.readFileSync(file, 'utf8');
+    }
+  } catch (err) {
+    // ignore
+  }
 }
