@@ -94,10 +94,6 @@ if (env == 'development') {
 // Export the configuration.
 module.exports = _.merge(config, fixed);
 
-console.log(process.env.DATABASE_PASSWORD_FILE);
-console.log(get('DATABASE_PASSWORD'));
-console.log(module.exports);
-
 function createLogger(name) {
 
   var logger = log4js.getLogger(name);
@@ -176,7 +172,7 @@ function get(varName) {
 
   try {
     if (fs.statSync(file).isFile()) {
-      return fs.readFileSync(file, 'utf8');
+      return fs.readFileSync(file, 'utf8').trim();
     }
   } catch (err) {
     // ignore
