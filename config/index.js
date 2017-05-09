@@ -94,6 +94,11 @@ if (env == 'development') {
 // Export the configuration.
 module.exports = _.merge(config, fixed);
 
+const logger = createLogger('config');
+if (logger.isLevelEnabled('TRACE')) {
+  logger.trace(module.exports);
+}
+
 function createLogger(name) {
 
   var logger = log4js.getLogger(name);
