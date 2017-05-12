@@ -1,0 +1,10 @@
+.*
+apidoc.json
+config/local*
+config/sample*
+doc
+Dockerfile
+local
+node_modules
+nodemon.json
+README.md
