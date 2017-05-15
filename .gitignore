@@ -1,4 +1,5 @@
 /*.log
+/.env*
 /.idea
 /.screenrc
 /config/*.env.js

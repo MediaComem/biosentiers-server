@@ -1,5 +1,6 @@
 // FIXME: validate config (e.g. required properties)
 var _ = require('lodash'),
+    dotenv = require('dotenv'),
     fs = require('fs'),
     log4js = require('log4js'),
     path = require('path');
@@ -12,6 +13,8 @@ var envs = 'development production test'.split(/\s+/);
 if (!_.includes(envs, env)) {
   throw new Error('Unsupported environment ' + JSON.stringify(env) + '; must be one of ' + envs.join(', '));
 }
+
+dotenv.config();
 
 var envVars = _.clone(process.env);
 try {
@@ -149,13 +152,15 @@ function buildDatabaseUrl() {
 
   let url = 'postgres://';
 
-  const username = get('DATABASE_USERNAME');
+  const username = get('DATABASE_USERNAME') || 'biosentiers';
+  url += username;
+
   const password = get('DATABASE_PASSWORD');
-  if (username && password) {
-    url += `${username}:${password}@`
+  if (password) {
+    url += `:${password}`;
   }
 
-  return `${url}${get('DATABASE_HOST') || 'localhost'}:${get('DATABASE_PORT') || '5432'}/${get('DATABASE_NAME') || 'biosentiers'}`
+  return `${url}@${get('DATABASE_HOST') || 'localhost'}:${get('DATABASE_PORT') || '5432'}/${get('DATABASE_NAME') || 'biosentiers'}`
 }
 
 function get(varName) {
