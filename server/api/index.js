@@ -1,7 +1,8 @@
 var _ = require('lodash'),
     config = require('../../config'),
     errors = require('./errors'),
-    express = require('express');
+    express = require('express'),
+    pkg = require('../../package');
 
 var logger = config.logger('api'),
     router = express.Router();
@@ -11,6 +12,12 @@ router.use('/auth', require('./auth/auth.routes'));
 router.use('/excursions', require('./excursions/excursions.routes'));
 router.use('/trails', require('./trails/trails.routes'));
 router.use('/users', require('./users/users.routes'));
+
+router.get('/', function(req, res) {
+  res.send({
+    version: pkg.version
+  });
+});
 
 // Catch API 404.
 router.all('/*', function(req, res, next) {
