@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 
-REPO_URL=https://github.com/MediaComem/biosentiers-backend.git
+DEPLOY_REPO=https://github.com/MediaComem/biosentiers-backend.git
 DEPLOY_REF=deploy
 
 if [[ -z "$SSH_PORT" ]]; then SSH_PORT=22; fi
 if [[ -z "$SSH_USER" ]]; then SSH_USER=biosentiers; fi
 
 ROOT_DIR=/var/www/biosentiers/backend
+
+CACHE_DIR="${ROOT_DIR}/cache"
 CURRENT_DIR="${ROOT_DIR}/current"
 RELEASES_DIR="${ROOT_DIR}/releases"
 REPO_DIR="${ROOT_DIR}/repo"
@@ -25,27 +27,43 @@ function run() {
 }
 
 function setup() {
-  run "mkdir -p $RELEASES_DIR $TMP_DIR \
+  run "mkdir -p $CACHE_DIR $RELEASES_DIR $TMP_DIR \
     && cd $ROOT_DIR \
     && test -d repo \
-    || git clone --bare $REPO_URL repo"
+    || git clone --bare $DEPLOY_REPO repo"
 }
 
 function deploy() {
   local RELEASE=`date -u '+%Y%m%d%H%M%S'`
   local RELEASE_DIR="${RELEASES_DIR}/${RELEASE}"
 
-  run "cd $ROOT_DIR \
+  run "echo Deploying release ${RELEASE}... \
+    && cd $ROOT_DIR \
     && mkdir -p tmp $RELEASE_DIR \
     && cd $REPO_DIR \
+    && echo Fetching latest changes... \
     && git fetch origin '+refs/heads/*:refs/heads/*' \
+    && echo Extracting source at version ${DEPLOY_REF}... \
     && git archive --output ${TMP_DIR}/release-${RELEASE}.tar $DEPLOY_REF \
     && tar -C ${RELEASE_DIR} -x --file ${TMP_DIR}/release-${RELEASE}.tar \
     && rm -f ${TMP_DIR}/release-*.tar \
-    && ln -s $RELEASE_DIR $CURRENT_DIR \
+    && echo Copying cache from previous build... \
+    && test -f ${CACHE_DIR}/node_modules.tar.gz \
+    && tar -xzf ${CACHE_DIR}/node_modules.tar.gz -C $RELEASE_DIR \
+    || echo No build cache \
+    && echo Installing dependencies... \
+    && cd $RELEASE_DIR
+    && PATH=\$HOME/.nodenv/shims:\$PATH npm install --production \
+    && echo Caching node_modules for next build... \
+    && rm -f ${CACHE_DIR}/node_modules.tar.gz \
+    && tar -czf ${CACHE_DIR}/node_modules.tar.gz -C $RELEASE_DIR node_modules \
+    && echo Linking shared files... \
+    && ln -s ${ROOT_DIR}/.env ${RELEASE_DIR}/.env \
+    && echo Linking current release... \
+    && ln -fns $RELEASE_DIR $CURRENT_DIR \
     && cd $CURRENT_DIR \
-    && export PATH=\$HOME/.nodenv/shims:\$PATH \
-    && npm install --production"
+    && PATH=\$HOME/.nodenv/shims:\$PATH pm2 reload pm2.config.js \
+    && PATH=\$HOME/.nodenv/shims:\$PATH pm2 save"
 }
 
 while test $# -ne 0; do
