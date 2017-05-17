@@ -1,6 +1,6 @@
 {
   "name": "biosentiers-server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "apidoc": "npm run apidoc:clean && npm run apidoc:build && concurrently \"npm run apidoc:watch\" \"npm run apidoc:serve\"",
