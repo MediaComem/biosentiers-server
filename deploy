@@ -62,7 +62,7 @@ function deploy() {
     && echo Linking current release... \
     && ln -fns $RELEASE_DIR $CURRENT_DIR \
     && cd $CURRENT_DIR \
-    && PATH=\$HOME/.nodenv/shims:\$PATH pm2 reload pm2.config.js \
+    && PATH=\$HOME/.nodenv/shims:\$PATH pm2 startOrRestart pm2.config.js \
     && PATH=\$HOME/.nodenv/shims:\$PATH pm2 save"
 }
 
