@@ -43,7 +43,7 @@ var config = {
   port: parseConfigInt(get('PORT')) || 3000,
   baseUrl: get('BASE_URL') || buildBaseUrl(),
 
-  db: get('DATABASE_URI') || buildDatabaseUrl(),
+  db: get('DATABASE_URL') || buildDatabaseUrl(),
 
   jwtSecret: get('SECRET') || 'changeme', // FIXME: no production default, validate
   bcryptCost: parseConfigInt(get('BCRYPT_COST')) || 10,
@@ -65,7 +65,7 @@ var config = {
     secure: parseConfigBoolean(get('SMTP_SECURE'), false),
     username: get('SMTP_USERNAME'),
     password: get('SMTP_PASSWORD'),
-    fromName: get('SMTP_FROM_NAME'),
+    fromName: get('SMTP_FROM_NAME') || 'BioSentiers',
     fromAddress: get('SMTP_FROM_ADDRESS')
   }
 };
@@ -152,7 +152,7 @@ function buildDatabaseUrl() {
 
   let url = 'postgres://';
 
-  const username = get('DATABASE_USERNAME') || 'biosentiers';
+  const username = get('DATABASE_USERNAME');
   url += username;
 
   const password = get('DATABASE_PASSWORD');
