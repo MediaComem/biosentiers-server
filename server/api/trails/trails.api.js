@@ -2,40 +2,44 @@ const _ = require('lodash');
 const api = require('../utils');
 const policy = require('./trails.policy');
 const QueryBuilder = require('../query-builder');
+const route = require('../route');
+const serialize = require('../serialize');
 const Trail = require('../../models/trail');
+const validate = require('../validate');
 
 const builder = api.builder(Trail, 'trails');
 
-// API resource name (used in some API errors).
-exports.name = 'trail';
+// API resource name (used in some API errors)
+exports.resourceName = 'trail';
 
-exports.create = builder.route(function(req, res, helper) {
+exports.create = route(function*(req, res) {
+  yield validateTrail(req);
 
-  return validate().then(create);
+  const trail = yield Trail.transaction(function() {
+    return Trail.parse(req).save();
+  });
 
-  function validate() {
-    return helper.validateRequestBody(function() {
-      return this.parallel(
-        this.validate(this.json('/name'), this.presence(), this.type('string'))
-      );
-    });
-  }
-
-  function create() {
-    return Trail.transaction(function() {
-      return Trail.parse(req)
-        .save()
-        .then(helper.serializer(policy))
-        .then(helper.created());
-    });
-  }
+  res.status(201).send(serialize(req, trail, policy));
 });
 
-exports.list = builder.route(function(req, res, helper) {
-  return new QueryBuilder(req, res, policy.scope(req))
+exports.list = route(function*(req, res) {
+
+  const trails = yield new QueryBuilder(req, res, policy.scope(req))
     .paginate()
     .sort('createdAt', 'updatedAt')
-    .fetch()
-    .map(helper.serializer(policy))
-    .then(helper.ok());
+    .fetch();
+
+  res.send(serialize(req, trails, policy));
 });
+
+function validateTrail(req) {
+  return validate.requestBody(req, function() {
+    return this.parallel(
+      this.validate(
+        this.json('/name'),
+        this.presence(),
+        this.type('string')
+      )
+    );
+  });
+}

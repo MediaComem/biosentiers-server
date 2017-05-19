@@ -9,6 +9,6 @@ module.exports = function(routeFunc) {
 
   return function(req, res, next) {
     const helper = new RouteHelper(req, res);
-    BPromise.coroutine(routeFunc)(req, res, helper, next).catch(next);
+    BPromise.coroutine(routeFunc)(req, res, next, helper).catch(next);
   };
 };

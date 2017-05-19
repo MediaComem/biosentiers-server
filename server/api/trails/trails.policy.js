@@ -14,7 +14,7 @@ exports.scope = function(req) {
   return new Trail();
 };
 
-exports.serialize = function(trail, req) {
+exports.serialize = function(req, trail) {
   return {
     id: trail.get('api_id'),
     name: trail.get('name'),

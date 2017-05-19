@@ -12,10 +12,10 @@ const validations = require('./participants.validations');
 
 const builder = api.builder(Participant, 'participants');
 
-// API resource name (used in some API errors).
+// API resource name (used in some API errors)
 exports.resourceName = 'participant';
 
-exports.create = route(function*(req, res, helper) {
+exports.create = route(function*(req, res, next, helper) {
   yield validateParticipant(req);
 
   const participant = yield Participant.transaction(function() {
@@ -29,7 +29,7 @@ exports.create = route(function*(req, res, helper) {
   return helper.created(participant, policy);
 });
 
-exports.list = route(function*(req, res, helper) {
+exports.list = route(function*(req, res, next, helper) {
 
   const query = policy.scope(req).where('excursion_id', req.excursion.get('id'));
   const participants = yield new QueryBuilder(req, res, query)
@@ -41,14 +41,14 @@ exports.list = route(function*(req, res, helper) {
   return helper.ok(participants, policy);
 });
 
-exports.update = route(function*(req, res, helper) {
+exports.update = route(function*(req, res, next, helper) {
   yield validateParticipant(req, true);
   policy.parseRequestIntoRecord(req, req.participant);
   yield req.participant.save();
   helper.ok(req.participant, policy);
 });
 
-exports.delete = route(function*(req, res, helper) {
+exports.delete = route(function*(req, res, next, helper) {
   yield req.participant.destroy();
   helper.noContent();
 });
