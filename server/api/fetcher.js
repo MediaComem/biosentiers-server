@@ -6,6 +6,7 @@ const errors = require('./errors');
  * If no record is found, an HTTP 404 Not Found response will be sent.
  *
  * @param {Object} options
+ * @param {String} [options.idParameter] - The URL parameter containing the resource identifier (defaults to `id`).
  * @param {Function} options.model - The model to use to fetch the resource.
  * @param {Function} [options.queryHandler] - An optional function to modify the database query
  *                                            (it will receive the query and the request as arguments,
@@ -39,16 +40,21 @@ module.exports = function(options) {
 
     const apiId = req.params[options.idParameter];
 
+    // Prepare the query to fetch the record
     let query = new Model({ api_id: apiId });
+
+    // Pass the query through the handler (if any)
     if (_.isFunction(queryHandler)) {
       query = queryHandler(query, req);
     }
 
+    // Perform the query
     query.fetch().then(function(record) {
       if (!record) {
         throw errors.recordNotFound(resourceName, apiId);
       }
 
+      // Attach the record to the request object
       req[target] = record;
       next();
     }).catch(next);
