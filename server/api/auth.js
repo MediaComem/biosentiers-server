@@ -31,7 +31,6 @@ exports.authenticate = function(options) {
   return compose()
     .use(validateJwt()) // Parse the JWT bearer token (if any).
     .use(checkJwtError) // Respond with HTTP 401 Unauthorized if there is a token and it is invalid.
-    .use(renameJwt)     // Move JWT token in `req.user` to `req.jwtToken`.
     .use(loadAuthenticatedUser(options)); // Load the user corresponding to the JWT token (if any).
 };
 
@@ -110,20 +109,10 @@ function loadAuthenticatedUser(options) {
   };
 }
 
-// The express-jwt library stores the JWT token as `req.user`, but we want to put the user object
-// in that property, so this function moves the token to `req.jwtToken` for clarity.
-function renameJwt(req, res, next) {
-  if (_.has(req, 'user')) {
-    req.jwtToken = req.user;
-    delete req.user;
-  }
-
-  next();
-}
-
 function validateJwt() {
   return jwt({
     credentialsRequired: false,
+    requestProperty: 'jwtToken',
     secret: config.jwtSecret
   });
 }
