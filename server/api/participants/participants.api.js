@@ -5,78 +5,75 @@ const fetcher = require('../fetcher');
 const policy = require('./participants.policy');
 const QueryBuilder = require('../query-builder');
 const Participant = require('../../models/participant');
+const route = require('../route');
 const Trail = require('../../models/trail');
+const validate = require('../validate');
 const validations = require('./participants.validations');
 
 const builder = api.builder(Participant, 'participants');
 
 // API resource name (used in some API errors).
-exports.name = 'participant';
+exports.resourceName = 'participant';
 
-exports.create = builder.route(function(req, res, helper) {
-  return validateParticipant(helper).then(create);
+exports.create = route(function*(req, res, helper) {
+  yield validateParticipant(req);
 
-  function create() {
-    return Participant.transaction(function() {
+  const participant = yield Participant.transaction(function() {
 
-      const participant = Participant.parse(req);
-      participant.set('excursion_id', req.excursion.get('id'));
+    const newParticipant = Participant.parse(req);
+    newParticipant.set('excursion_id', req.excursion.get('id'));
 
-      return participant
-        .save()
-        .then(helper.serializer(policy))
-        .then(helper.created());
-    });
-  }
+    return newParticipant.save();
+  });
+
+  return helper.created(participant, policy);
 });
 
-exports.list = builder.route(function(req, res, helper) {
+exports.list = route(function*(req, res, helper) {
+
   const query = policy.scope(req).where('excursion_id', req.excursion.get('id'));
-  return new QueryBuilder(req, res, query)
+  const participants = yield new QueryBuilder(req, res, query)
     .paginate()
     .sort('createdAt', 'updatedAt')
-    .fetch()
-    .map(participant => participant.load([ 'excursion' ]))
-    .map(helper.serializer(policy))
-    .then(helper.ok());
+    .eagerLoad([ 'excursion' ])
+    .fetch();
+
+  return helper.ok(participants, policy);
 });
 
-exports.update = builder.route(function(req, res, helper) {
-
-  const participant = req.participant;
-  return validateParticipant(helper, true).then(update);
-
-  function update() {
-    helper.unserializeTo(participant, [ 'name' ]);
-
-    return participant
-      .save()
-      .then(helper.serializer(policy))
-      .then(helper.ok());
-  }
+exports.update = route(function*(req, res, helper) {
+  yield validateParticipant(req, true);
+  policy.parseRequestIntoRecord(req, req.participant);
+  yield req.participant.save();
+  helper.ok(req.participant, policy);
 });
 
-exports.delete = builder.route(function(req, res, helper) {
-  return req.participant
-    .destroy()
-    .then(helper.noContent());
+exports.delete = route(function*(req, res, helper) {
+  yield req.participant.destroy();
+  helper.noContent();
 });
 
 exports.fetchParticipant = fetcher({
   model: Participant,
-  resourceName: 'participant',
+  resourceName: exports.resourceName,
   queryHandler: (query, req) => query.where('excursion_id', req.excursion.get('id'))
-})
+});
 
-function validateParticipant(helper, patchMode) {
+function validateParticipant(req, patchMode) {
 
-  const excursion = helper.req.excursion;
-  const participant = helper.req.participant;
+  const excursion = req.excursion;
+  const participant = req.participant;
   const name = participant ? participant.get('name') : '';
 
-  return helper.validateRequestBody(function() {
+  return validate.requestBody(req, function() {
     return this.parallel(
-      this.validate(this.json('/name'), this.if(patchMode, this.while(this.hasChanged(name))), this.presence(), this.type('string'), validations.nameAvailable(excursion, participant))
+      this.validate(
+        this.json('/name'),
+        this.if(patchMode, this.while(this.isSet()), this.while(this.hasChanged(name))),
+        this.presence(),
+        this.type('string'),
+        validations.nameAvailable(excursion, participant)
+      )
     );
   });
 }

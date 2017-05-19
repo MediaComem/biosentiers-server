@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const parsing = require('../parsing');
 const Participant = require('../../models/participant');
 const policy = require('../policy');
 
@@ -27,7 +28,11 @@ exports.scope = function(req) {
   return new Participant();
 };
 
-exports.serialize = function(participant, req) {
+exports.parseRequestIntoRecord = function(req, participant) {
+  return parsing.parseJsonIntoRecord(req.body, participant, [ 'name' ]);
+};
+
+exports.serialize = function(req, participant) {
   return {
     id: participant.get('api_id'),
     name: participant.get('name'),

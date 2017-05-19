@@ -7,32 +7,33 @@ const pkg = require('../../package');
 const logger = config.logger('api');
 const router = express.Router();
 
-// Plug in API routes.
+// Plug in API routes
 router.use('/auth', require('./auth/auth.routes'));
 router.use('/excursions', require('./excursions/excursions.routes'));
 router.use('/trails', require('./trails/trails.routes'));
 router.use('/users', require('./users/users.routes'));
 
+// API metadata route
 router.get('/', function(req, res) {
   res.send({
     version: pkg.version
   });
 });
 
-// Catch API 404.
+// Catch API 404
 router.all('/*', function(req, res, next) {
   next(errors.notFound());
 });
 
-// Return a JSON error response for API calls.
+// Return a JSON error response for API calls
 router.use(function(err, req, res, next) {
 
   let errors;
   if (err.errors) {
-    // If the error contains a list of errors, send it in the response.
+    // If the error contains a list of errors, send it in the response
     errors = err.errors;
   } else {
-    // Otherwise, build a one-element array with the error's properties.
+    // Otherwise, build a one-element array with the error's properties
     errors = [
       _.pick(err, 'code', 'message')
     ];

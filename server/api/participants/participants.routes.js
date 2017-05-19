@@ -15,12 +15,12 @@ router.get('/',
 
 router.patch('/:id',
   controller.fetchParticipant,
-  utils.authorize(policy.canUpdate, controller.name),
+  utils.authorize(policy.canUpdate, controller.resourceName),
   controller.update);
 
 router.delete('/:id',
   controller.fetchParticipant,
-  utils.authorize(policy.canDelete, controller.name),
+  utils.authorize(policy.canDelete, controller.resourceName),
   controller.delete);
 
 module.exports = router;

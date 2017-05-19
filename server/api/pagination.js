@@ -1,16 +1,12 @@
-exports.setUpPagination = setUpPagination;
-exports.setPaginationTotal = setPaginationTotal;
-exports.setPaginationFilteredTotal = setPaginationFilteredTotal;
-
-function setPaginationTotal(res, count) {
+exports.setPaginationTotal = function(res, count) {
   res.set('Pagination-Total', count);
-}
+};
 
-function setPaginationFilteredTotal(res, count) {
+exports.setPaginationFilteredTotal = function(res, count) {
   res.set('Pagination-Filtered', count);
-}
+};
 
-function setUpPagination(req, res) {
+exports.setUpPagination = function(req, res) {
 
   let offset = req.query.offset;
   let limit = req.query.limit;
@@ -32,4 +28,4 @@ function setUpPagination(req, res) {
     offset: offset,
     limit: limit
   };
-}
+};
