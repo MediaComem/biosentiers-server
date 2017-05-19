@@ -27,8 +27,6 @@ exports.authenticate = function(req, res, next) {
       return next(new Error('Could not authenticate user'));
     }
 
-    req.user = user;
-
     res.json({
       token: user.generateJwt(),
       user: policy.serialize(user, req)
@@ -63,7 +61,7 @@ exports.createInvitation = builder.route(function(req, res, helper) {
       authType: 'invitation',
       iat: createdAt.getTime(),
       exp: createdAt.getTime() + (1000 * 60 * 60 * 24 * 2), // 2 days
-      iss: req.user.get('api_id')
+      iss: req.currentUser.get('api_id')
     }));
   }
 

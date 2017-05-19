@@ -19,7 +19,7 @@ exports.create = builder.route(function(req, res, helper) {
     return Excursion.transaction(function() {
 
       const excursion = Excursion.parse(req);
-      excursion.set('creator_id', req.user.get('id'));
+      excursion.set('creator_id', req.currentUser.get('id'));
 
       return excursion
         .save()

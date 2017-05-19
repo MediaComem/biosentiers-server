@@ -19,16 +19,16 @@ exports.canList = function(req) {
 };
 
 exports.canRetrieve = function(req) {
-  return this.authenticated() && (this.hasRole('admin') || this.sameRecord(req.user, req.record));
+  return this.authenticated() && (this.hasRole('admin') || this.sameRecord(req.currentUser, req.record));
 };
 
 exports.canUpdate = function(req) {
   if (this.hasRole('admin')) {
     return true;
-  } else if (this.authenticated() && this.sameRecord(req.user, req.record)) {
-    this.forbidChange('active', req.user.get('active'), 'change the status of a user');
-    this.forbidChange('email', req.user.get('email'), 'change the e-mail of a user');
-    this.forbidChange('role', req.user.get('role'), 'change the role of a user');
+  } else if (this.authenticated() && this.sameRecord(req.currentUser, req.record)) {
+    this.forbidChange('active', req.currentUser.get('active'), 'change the status of a user');
+    this.forbidChange('email', req.currentUser.get('email'), 'change the e-mail of a user');
+    this.forbidChange('role', req.currentUser.get('role'), 'change the role of a user');
     return true;
   }
 };
@@ -37,7 +37,7 @@ exports.scope = function(req) {
 
   var scope = new User();
 
-  if (req.query.email && (!req.user || !req.user.hasRole('admin'))) {
+  if (req.query.email && (!req.currentUser || !req.currentUser.hasRole('admin'))) {
     scope = scope.whereEmail(req.query.email);
   }
 
@@ -50,8 +50,8 @@ exports.serialize = function(user, req) {
     email: user.get('email')
   };
 
-  var admin = req.user && req.user.hasRole('admin'),
-      sameUser = req.user && req.user.get('api_id') == user.get('api_id'),
+  var admin = req.currentUser && req.currentUser.hasRole('admin'),
+      sameUser = req.currentUser && req.currentUser.get('api_id') == user.get('api_id'),
       invitedUser = req.jwtToken && req.jwtToken.authType == 'invitation' && req.jwtToken.email.toLowerCase() == user.get('email').toLowerCase();
 
   if (admin || sameUser || invitedUser) {

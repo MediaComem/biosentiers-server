@@ -104,7 +104,7 @@ function loadAuthenticatedUser(options) {
       }
 
       logger.debug('Authenticated with user ' + user.get('api_id'));
-      req.user = user;
+      req.currentUser = user;
       next();
     }).catch(next);
   };
@@ -159,16 +159,16 @@ function ensureRequestAuthenticated(req, options) {
   var authType = req.jwtToken.authType;
 
   // If the auth type is "user" and no user was loaded, authentication is invalid.
-  if (authType == 'user' && !req.user) {
+  if (authType == 'user' && !req.currentUser) {
     throw invalidAuthorizationError();
   }
 
   // If the auth type is "user" and the user is inactive, authentication is invalid (unless the `active` option is set to false).
-  if (authType == 'user' && options.active && !req.user.get('active')) {
+  if (authType == 'user' && options.active && !req.currentUser.get('active')) {
     throw invalidAuthorizationError();
   }
 
-  return req.user || req.jwtToken;
+  return req.currentUser || req.jwtToken;
 }
 
 function requestHasValidOtp(req, otpType, options) {
@@ -178,8 +178,8 @@ function requestHasValidOtp(req, otpType, options) {
 
   return req.jwtToken &&
     req.jwtToken.authType == otpType + 'Otp' &&
-    req.user &&
-    (!options.active || req.user.get('active'));
+    req.currentUser &&
+    (!options.active || req.currentUser.get('active'));
 }
 
 /**
@@ -199,7 +199,7 @@ _.extend(AuthorizationHelper.prototype, {
   },
 
   hasRole: function(role) {
-    return this.req.user && this.req.user.get('active') && this.req.user.hasRole(role);
+    return this.req.currentUser && this.req.currentUser.get('active') && this.req.currentUser.hasRole(role);
   },
 
   sameRecord: function(r1, r2) {
