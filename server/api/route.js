@@ -1,6 +1,5 @@
 const BPromise = require('bluebird');
 const isGenerator = require('is-generator').fn;
-const RouteHelper = require('./route-helper');
 
 module.exports = function(routeFunc) {
   if (!isGenerator(routeFunc)) {
@@ -8,7 +7,6 @@ module.exports = function(routeFunc) {
   }
 
   return function(req, res, next) {
-    const helper = new RouteHelper(req, res);
-    BPromise.coroutine(routeFunc)(req, res, next, helper).catch(next);
+    BPromise.coroutine(routeFunc)(req, res, next).catch(next);
   };
 };

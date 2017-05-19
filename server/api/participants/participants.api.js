@@ -6,6 +6,7 @@ const policy = require('./participants.policy');
 const QueryBuilder = require('../query-builder');
 const Participant = require('../../models/participant');
 const route = require('../route');
+const serialize = require('../serialize');
 const Trail = require('../../models/trail');
 const validate = require('../validate');
 const validations = require('./participants.validations');
@@ -15,7 +16,7 @@ const builder = api.builder(Participant, 'participants');
 // API resource name (used in some API errors)
 exports.resourceName = 'participant';
 
-exports.create = route(function*(req, res, next, helper) {
+exports.create = route(function*(req, res) {
   yield validateParticipant(req);
 
   const participant = yield Participant.transaction(function() {
@@ -26,10 +27,10 @@ exports.create = route(function*(req, res, next, helper) {
     return newParticipant.save();
   });
 
-  return helper.created(participant, policy);
+  res.status(201).send(serialize(req, participant, policy));
 });
 
-exports.list = route(function*(req, res, next, helper) {
+exports.list = route(function*(req, res) {
 
   const query = policy.scope(req).where('excursion_id', req.excursion.get('id'));
   const participants = yield new QueryBuilder(req, res, query)
@@ -38,19 +39,19 @@ exports.list = route(function*(req, res, next, helper) {
     .eagerLoad([ 'excursion' ])
     .fetch();
 
-  return helper.ok(participants, policy);
+  res.send(serialize(req, participants, policy));
 });
 
-exports.update = route(function*(req, res, next, helper) {
+exports.update = route(function*(req, res) {
   yield validateParticipant(req, true);
   policy.parseRequestIntoRecord(req, req.participant);
   yield req.participant.save();
-  helper.ok(req.participant, policy);
+  res.send(serialize(req, req.participant, policy));
 });
 
-exports.delete = route(function*(req, res, next, helper) {
+exports.delete = route(function*(req, res) {
   yield req.participant.destroy();
-  helper.noContent();
+  res.sendStatus(204);
 });
 
 exports.fetchParticipant = fetcher({
