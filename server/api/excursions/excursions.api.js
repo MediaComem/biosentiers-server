@@ -75,7 +75,7 @@ function validateExcursion(excursion, helper, patchMode) {
     return this.parallel(
       this.validate(
         this.json('/trailId'),
-        this.if(patchMode, this.while(this.isSet()), this.while(this.hasChanged(excursion ? excursion.related('trail').get('api_id') : ''))),
+        this.if(patchMode, this.while(this.isSet())),
         this.presence(),
         this.type('string'),
         this.resource(fetchTrailByApiId).replace(trail => trail.get('id'))
