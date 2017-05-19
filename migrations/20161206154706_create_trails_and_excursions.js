@@ -1,5 +1,5 @@
-var _ = require('lodash'),
-    utils = require('../lib/knex-utils');
+const _ = require('lodash');
+const utils = require('../lib/knex-utils');
 
 exports.up = function(knex, Promise) {
   utils.logMigration(knex);

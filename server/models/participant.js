@@ -1,10 +1,10 @@
-var Abstract = require('./abstract'),
-    bookshelf = require('../db'),
-    randomString = require('randomstring');
+const Abstract = require('./abstract');
+const bookshelf = require('../db');
+const randomString = require('randomstring');
 
-var proto = Abstract.prototype;
+const proto = Abstract.prototype;
 
-var Participant = Abstract.extend({
+const Participant = Abstract.extend({
   tableName: 'participant',
 
   apiId: true,

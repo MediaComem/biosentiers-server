@@ -1,13 +1,13 @@
-var _ = require('lodash'),
-    compose = require('composable-middleware'),
-    config = require('../../config'),
-    errors = require('../api/errors'),
-    jwt = require('express-jwt'),
-    p = require('bluebird'),
-    User = require('../models/user');
+const _ = require('lodash');
+const compose = require('composable-middleware');
+const config = require('../../config');
+const errors = require('../api/errors');
+const jwt = require('express-jwt');
+const p = require('bluebird');
+const User = require('../models/user');
 
-var authTypes = [ 'user', 'invitation' ],
-    logger = config.logger('auth');
+const authTypes = [ 'user', 'invitation' ];
+const logger = config.logger('auth');
 
 /**
  * Authenticates the user through the Authorization header.
@@ -68,9 +68,9 @@ exports.authorize = function(policy, resourceName, options) {
 function loadAuthenticatedUser(options) {
   return function(req, res, next) {
 
-    var required = options.required,
-        active = options.active,
-        authTypes = options.authTypes;
+    const required = options.required;
+    const active = options.active;
+    const authTypes = options.authTypes;
 
     if (!req.jwtToken) {
       return next(required ? errors.missingAuthorization() : undefined);

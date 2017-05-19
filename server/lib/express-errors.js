@@ -1,4 +1,4 @@
-var config = require('../../config');
+const config = require('../../config');
 
 exports.catch404 = function(req, res, next) {
 
@@ -10,14 +10,14 @@ exports.catch404 = function(req, res, next) {
 
   // Otherwise it's probably an asset that doesn't exist,
   // so an error page should be displayed.
-  var err = new Error('Not Found');
+  const err = new Error('Not Found');
   err.status = 404;
   next(err);
 };
 
 exports.handler = function(err, req, res, next) {
 
-  var data = {
+  const data = {
     message: err.message,
     error: {}
   };

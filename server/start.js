@@ -1,25 +1,25 @@
-var _ = require('lodash'),
-    app = require('./app'),
-    config = require('../config'),
-    db = require('./db'),
-    http = require('http'),
-    log4js = require('log4js');
+const _ = require('lodash');
+const app = require('./app');
+const config = require('../config');
+const db = require('./db');
+const http = require('http');
+const log4js = require('log4js');
 
 module.exports = function() {
 
-  var logger = log4js.getLogger('start');
+  const logger = log4js.getLogger('start');
 
   // Get port from environment and store in Express.
-  var port = normalizePort(config.port);
+  const port = normalizePort(config.port);
   app.set('port', port);
 
   // Create HTTP server.
-  var server = http.createServer(app);
+  const server = http.createServer(app);
 
   db.ensureConnected().then(function() {
 
-    var connection = db.knex.client.config.connection;
-    logger.debug('Connected to database ' + connection.database + ' on ' + connection.host);
+    const connection = db.knex.client.config.connection;
+    logger.debug(`Connected to database ${connection.database} on ${connection.host}`);
 
     // Listen on provided port, on all network interfaces.
     server.listen(port);
@@ -29,7 +29,7 @@ module.exports = function() {
 
   // Normalize a port into a number, string, or false.
   function normalizePort(val) {
-    var port = parseInt(val, 10);
+    const port = parseInt(val, 10);
 
     if (isNaN(port)) {
       // named pipe
@@ -50,7 +50,7 @@ module.exports = function() {
       throw error;
     }
 
-    var bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
+    const bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
 
     // handle specific listen errors with friendly messages
     switch (error.code) {
@@ -70,8 +70,8 @@ module.exports = function() {
   // Event listener for HTTP server "listening" event.
   function onListening() {
 
-    var addr = server.address();
-    var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
+    const addr = server.address();
+    const bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
 
     logger.info('Listening on ' + bind);
   }

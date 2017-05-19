@@ -1,7 +1,7 @@
-var _ = require('lodash'),
-    generator = require('../generator'),
-    spec = require('../utils'),
-    User = require('../../models/user');
+const _ = require('lodash'),
+const generator = require('../generator');
+const spec = require('../utils');
+const User = require('../../models/user');
 
 exports.user = function(data) {
   data = data || {};

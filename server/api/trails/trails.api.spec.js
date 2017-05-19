@@ -1,15 +1,15 @@
-var _ = require('lodash'),
-    expectRes = require('../../spec/expectations/response'),
-    expectTrail = require('../../spec/expectations/trail'),
-    jwt = require('../../lib/jwt'),
-    moment = require('moment'),
-    spec = require('../../spec/utils'),
-    trailFixtures = require('../../spec/fixtures/trail'),
-    userFixtures = require('../../spec/fixtures/user');
+const _ = require('lodash');
+const expectRes = require('../../spec/expectations/response');
+const expectTrail = require('../../spec/expectations/trail');
+const jwt = require('../../lib/jwt');
+const moment = require('moment');
+const spec = require('../../spec/utils');
+const trailFixtures = require('../../spec/fixtures/trail');
+const userFixtures = require('../../spec/fixtures/user');
 
 describe('Trails API', function() {
 
-  var data;
+  let data;
   beforeEach(function() {
     data = {};
   });
@@ -27,7 +27,7 @@ describe('Trails API', function() {
 
     it('should create a trail', function() {
 
-      var expected = _.extend({
+      const expected = _.extend({
         createdAfter: data.now,
         updatedAt: 'createdAt'
       }, data.reqBody);

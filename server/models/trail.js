@@ -1,7 +1,7 @@
-var Abstract = require('./abstract'),
-    bookshelf = require('../db');
+const Abstract = require('./abstract');
+const bookshelf = require('../db');
 
-var Trail = Abstract.extend({
+const Trail = Abstract.extend({
   tableName: 'trail',
 
   apiId: true,

@@ -1,5 +1,5 @@
-var config = require('../../config'),
-    util = require('util');
+const config = require('../../config');
+const util = require('util');
 
 function ApiError(status, code, message) {
   Error.captureStackTrace(this, this.constructor);

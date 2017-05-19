@@ -38,7 +38,7 @@ exports.canUpdate = function(req) {
 
 exports.scope = function(req) {
 
-  var scope = new User();
+  let scope = new User();
 
   if (req.query.email && !policy.hasRole(req, 'admin')) {
     scope = scope.whereEmail(req.query.email);
@@ -49,13 +49,13 @@ exports.scope = function(req) {
 
 exports.serialize = function(user, req) {
 
-  var serialized = {
+  const serialized = {
     email: user.get('email')
   };
 
-  var admin = req.currentUser && req.currentUser.hasRole('admin'),
-      sameUser = req.currentUser && req.currentUser.get('api_id') == user.get('api_id'),
-      invitedUser = req.jwtToken && req.jwtToken.authType == 'invitation' && req.jwtToken.email.toLowerCase() == user.get('email').toLowerCase();
+  const admin = req.currentUser && req.currentUser.hasRole('admin');
+  const sameUser = req.currentUser && req.currentUser.get('api_id') == user.get('api_id');
+  const invitedUser = req.jwtToken && req.jwtToken.authType == 'invitation' && req.jwtToken.email.toLowerCase() == user.get('email').toLowerCase();
 
   if (admin || sameUser || invitedUser) {
     _.extend(serialized, {

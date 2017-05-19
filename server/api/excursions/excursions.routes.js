@@ -1,10 +1,10 @@
-var controller = require('./excursions.api'),
-    express = require('express'),
-    participantsRoutes = require('../participants/participants.routes'),
-    policy = require('./excursions.policy'),
-    utils = require('../utils');
+const controller = require('./excursions.api');
+const express = require('express');
+const participantsRoutes = require('../participants/participants.routes');
+const policy = require('./excursions.policy');
+const utils = require('../utils');
 
-var router = express.Router();
+const router = express.Router();
 
 router.post('/',
   utils.authorize(policy.canCreate),

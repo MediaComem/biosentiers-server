@@ -1,16 +1,16 @@
-var _ = require('lodash'),
-    bcrypt = require('bcryptjs'),
-    expect = require('../chai').expect,
-    moment = require('moment'),
-    spec = require('../utils'),
-    User = require('../../models/user');
+const _ = require('lodash'),
+const bcrypt = require('bcryptjs');
+const expect = require('../chai').expect;
+const moment = require('moment');
+const spec = require('../utils');
+const User = require('../../models/user');
 
 module.exports = spec.enrichExpectation(function(actual, expected) {
 
   // Check the actual object.
   expect(actual, 'user').to.be.an('object');
 
-  var keys = [ 'id', 'email', 'active', 'role', 'createdAt', 'updatedAt' ];
+  const keys = [ 'id', 'email', 'active', 'role', 'createdAt', 'updatedAt' ];
   expect(actual, 'res.body').to.have.all.keys(keys);
 
   expect(actual.id, 'user.id').to.be.a('string');

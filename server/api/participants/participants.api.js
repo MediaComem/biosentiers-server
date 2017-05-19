@@ -1,14 +1,14 @@
-var _ = require('lodash'),
-    api = require('../utils'),
-    Excursion = require('../../models/excursion'),
-    fetcher = require('../fetcher'),
-    policy = require('./participants.policy'),
-    QueryBuilder = require('../query-builder'),
-    Participant = require('../../models/participant'),
-    Trail = require('../../models/trail'),
-    validations = require('./participants.validations');
+const _ = require('lodash');
+const api = require('../utils');
+const Excursion = require('../../models/excursion');
+const fetcher = require('../fetcher');
+const policy = require('./participants.policy');
+const QueryBuilder = require('../query-builder');
+const Participant = require('../../models/participant');
+const Trail = require('../../models/trail');
+const validations = require('./participants.validations');
 
-var builder = api.builder(Participant, 'participants');
+const builder = api.builder(Participant, 'participants');
 
 // API resource name (used in some API errors).
 exports.name = 'participant';
@@ -43,7 +43,7 @@ exports.list = builder.route(function(req, res, helper) {
 
 exports.update = builder.route(function(req, res, helper) {
 
-  var participant = req.participant;
+  const participant = req.participant;
   return validateParticipant(helper, true).then(update);
 
   function update() {
@@ -70,9 +70,9 @@ exports.fetchParticipant = fetcher({
 
 function validateParticipant(helper, patchMode) {
 
-  var excursion = helper.req.excursion,
-      participant = helper.req.participant,
-      name = participant ? participant.get('name') : '';
+  const excursion = helper.req.excursion;
+  const participant = helper.req.participant;
+  const name = participant ? participant.get('name') : '';
 
   return helper.validateRequestBody(function() {
     return this.parallel(

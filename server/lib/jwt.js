@@ -1,12 +1,12 @@
-var _ = require('lodash'),
-    config = require('../../config'),
-    jwt = require('jsonwebtoken');
+const _ = require('lodash');
+const config = require('../../config');
+const jwt = require('jsonwebtoken');
 
-var authTypes = [ 'user', 'invitation' ];
+const authTypes = [ 'user', 'invitation' ];
 
 exports.generateToken = function(options) {
 
-  var jwtOptions = _.extend({
+  const jwtOptions = _.extend({
     iat: new Date().getTime()
   }, options);
 

@@ -1,22 +1,22 @@
 // FIXME: validate config (e.g. required properties)
-var _ = require('lodash'),
-    dotenv = require('dotenv'),
-    fs = require('fs'),
-    log4js = require('log4js'),
-    path = require('path');
+const _ = require('lodash');
+const dotenv = require('dotenv');
+const fs = require('fs');
+const log4js = require('log4js');
+const path = require('path');
 
-var env = process.env.NODE_ENV || 'development',
-    pkg = require(path.join('..', 'package')),
-    root = path.normalize(path.join(__dirname, '..'));
+const env = process.env.NODE_ENV || 'development';
+const pkg = require(path.join('..', 'package'));
+const root = path.normalize(path.join(__dirname, '..'));
 
-var envs = 'development production test'.split(/\s+/);
+const envs = 'development production test'.split(/\s+/);
 if (!_.includes(envs, env)) {
   throw new Error('Unsupported environment ' + JSON.stringify(env) + '; must be one of ' + envs.join(', '));
 }
 
 dotenv.config();
 
-var envVars = _.clone(process.env);
+const envVars = _.clone(process.env);
 try {
   if (fs.statSync(path.join(__dirname, 'local.env.js'))) {
     _.defaults(envVars, require('./local.env')(env));
@@ -25,7 +25,7 @@ try {
   // ignore
 }
 
-var fixed = {
+const fixed = {
   // Immutable config data.
   env: env,
   root: root,
@@ -39,7 +39,7 @@ var fixed = {
   parseInt: parseConfigInt
 };
 
-var config = {
+const config = {
   port: parseConfigInt(get('PORT')) || 3000,
   baseUrl: get('BASE_URL') || buildBaseUrl(),
 
@@ -99,7 +99,7 @@ module.exports = _.merge(config, fixed);
 
 function createLogger(name) {
 
-  var logger = log4js.getLogger(name);
+  const logger = log4js.getLogger(name);
 
   if (config.logLevel) {
     logger.setLevel(config.logLevel);
@@ -109,7 +109,7 @@ function createLogger(name) {
 }
 
 function joinPathSegments() {
-  var parts = _.toArray(arguments);
+  const parts = _.toArray(arguments);
   return path.join.apply(path, [ root ].concat(parts));
 }
 
@@ -128,7 +128,7 @@ function parseConfigInt(value) {
     return undefined;
   }
 
-  var parsed = parseInt(value, 10);
+  const parsed = parseInt(value, 10);
   if (_.isNaN(parsed)) {
     throw new Error(value + ' is not a valid integer');
   }

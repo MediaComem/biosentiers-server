@@ -1,10 +1,10 @@
-var _ = require('lodash'),
-    api = require('../utils'),
-    policy = require('./trails.policy'),
-    QueryBuilder = require('../query-builder'),
-    Trail = require('../../models/trail');
+const _ = require('lodash');
+const api = require('../utils');
+const policy = require('./trails.policy');
+const QueryBuilder = require('../query-builder');
+const Trail = require('../../models/trail');
 
-var builder = api.builder(Trail, 'trails');
+const builder = api.builder(Trail, 'trails');
 
 // API resource name (used in some API errors).
 exports.name = 'trail';

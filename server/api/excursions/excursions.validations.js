@@ -5,7 +5,7 @@ const THEMES = [ 'bird', 'butterfly', 'flower', 'tree' ];
 exports.themesValid = function() {
   return function(context) {
 
-    var themes = context.get('value');
+    const themes = context.get('value');
     if (!_.isArray(themes)) {
       return;
     }
@@ -24,7 +24,7 @@ exports.themesValid = function() {
 exports.zonesValid = function() {
   return function(context) {
 
-    var zones = context.get('value');
+    const zones = context.get('value');
     if (!_.isArray(zones)) {
       return;
     }

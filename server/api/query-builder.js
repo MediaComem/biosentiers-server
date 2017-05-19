@@ -1,7 +1,7 @@
-var _ = require('lodash'),
-    inflection = require('inflection'),
-    pagination = require('./pagination'),
-    Promise = require('bluebird');
+const _ = require('lodash');
+const inflection = require('inflection');
+const pagination = require('./pagination');
+const Promise = require('bluebird');
 
 function QueryBuilder(req, res, base) {
   this.req = req;
@@ -55,7 +55,7 @@ function setPossibleSorts(sorts) {
 
 function fetch() {
 
-  var data = {
+  const data = {
     req: this.req,
     res: this.res,
     query: this.query,
@@ -64,7 +64,7 @@ function fetch() {
     related: this.related
   };
 
-  var promise = Promise.resolve();
+  let promise = Promise.resolve();
 
   if (this.paginated) {
     promise = promise
@@ -143,7 +143,7 @@ function checkFiltered(data) {
 
 function applyFiltersRecursively(data, filters) {
 
-  var currentFilters = filters.shift();
+  const currentFilters = filters.shift();
   if (!currentFilters) {
     return;
   }
@@ -163,12 +163,12 @@ function applySorting(data) {
     return;
   }
 
-  var orderBy = data.req.query.sort;
+  let orderBy = data.req.query.sort;
   if (!orderBy) {
     return;
   }
 
-  var direction = 'ASC';
+  let direction = 'ASC';
   if (orderBy.match(/-desc$/i)) {
     direction = 'DESC';
     orderBy = orderBy.replace(/-desc$/i, '');

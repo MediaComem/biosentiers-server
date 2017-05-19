@@ -1,7 +1,7 @@
-var _ = require('lodash'),
-    generator = require('../generator'),
-    spec = require('../utils'),
-    Trail = require('../../models/trail');
+const _ = require('lodash');
+const generator = require('../generator');
+const spec = require('../utils');
+const Trail = require('../../models/trail');
 
 exports.trail = function(data) {
   data = data || {};

@@ -1,15 +1,15 @@
-var _ = require('lodash'),
-    Participant = require('../../models/participant');
+const _ = require('lodash');
+const Participant = require('../../models/participant');
 
 exports.nameAvailable = function(excursion, existingParticipant) {
   return function(context) {
 
-    var name = context.get('value');
+    const name = context.get('value');
     if (!_.isString(name) || _.isEmpty(name.trim())) {
       return;
     }
 
-    var query = new Participant().whereName(name).where('excursion_id', excursion.get('id'));
+    let query = new Participant().whereName(name).where('excursion_id', excursion.get('id'));
 
     if (existingParticipant) {
       query = query.query(function(queryBuilder) {

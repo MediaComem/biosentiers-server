@@ -1,14 +1,14 @@
-var _ = require('lodash'),
-    expectRes = require('../../spec/expectations/response'),
-    expectUser = require('../../spec/expectations/user'),
-    jwt = require('../../lib/jwt'),
-    moment = require('moment'),
-    spec = require('../../spec/utils'),
-    userFixtures = require('../../spec/fixtures/user');
+const _ = require('lodash');
+const expectRes = require('../../spec/expectations/response');
+const expectUser = require('../../spec/expectations/user');
+const jwt = require('../../lib/jwt');
+const moment = require('moment');
+const spec = require('../../spec/utils');
+const userFixtures = require('../../spec/fixtures/user');
 
 describe('Users API', function() {
 
-  var data;
+  let data;
   beforeEach(function() {
     data = {};
   });
@@ -29,7 +29,7 @@ describe('Users API', function() {
 
       it('should create a user', function() {
 
-        var expected = _.extend({
+        const expected = _.extend({
           active: false,
           role: 'user',
           createdAfter: data.now,
@@ -44,7 +44,7 @@ describe('Users API', function() {
 
       it('should not accept invalid properties', function() {
 
-        var body = {
+        const body = {
           email: 'foo'
         };
 
@@ -82,7 +82,7 @@ describe('Users API', function() {
 
       it('should create a user', function() {
 
-        var expected = _.extend({
+        const expected = _.extend({
           password: 'letmein',
           active: true,
           role: 'user',
@@ -185,7 +185,7 @@ describe('Users API', function() {
 
       it('should update a user', function() {
 
-        var body = {
+        const body = {
           password: 'letmein',
           previousPassword: 'changeme'
         };
@@ -199,7 +199,7 @@ describe('Users API', function() {
 
       it('should allow an admin to change any property', function() {
 
-        var body = {
+        const body = {
           active: false,
           email: 'foo@example.com',
           role: 'admin'
@@ -216,7 +216,7 @@ describe('Users API', function() {
 
       it('should not accept invalid properties', function() {
 
-        var body = {
+        const body = {
           password: '',
           previousPassword: 'foo'
         };
@@ -236,7 +236,7 @@ describe('Users API', function() {
 
       it('should prevent a user from updating another user', function() {
 
-        var body = {
+        const body = {
           password: 'letmein',
           previousPassword: 'changeme'
         };
@@ -250,7 +250,7 @@ describe('Users API', function() {
         });
       });
 
-      var changes = [
+      const changes = [
         { property: 'active', value: false, errorDescription: 'the status of a user' },
         { property: 'email', value: 'bar@example.com', errorDescription: 'the e-mail of a user' },
         { property: 'role', value: 'admin', errorDescription: 'the role of a user' }
@@ -259,7 +259,7 @@ describe('Users API', function() {
       _.each(changes, function(change) {
         it('should prevent a user from modifying the `' + change.property + '` property', function() {
 
-          var body = {};
+          const body = {};
           body[change.property] = change.value;
 
           return spec

@@ -12,8 +12,8 @@ function setPaginationFilteredTotal(res, count) {
 
 function setUpPagination(req, res) {
 
-  var offset = req.query.offset,
-      limit = req.query.limit;
+  let offset = req.query.offset;
+  let limit = req.query.limit;
 
   offset = parseInt(offset, 10);
   if (isNaN(offset) || offset < 0) {

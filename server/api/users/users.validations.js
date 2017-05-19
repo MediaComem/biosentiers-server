@@ -1,15 +1,15 @@
-var _ = require('lodash'),
-    User = require('../../models/user');
+const _ = require('lodash');
+const User = require('../../models/user');
 
 exports.emailAvailable = function(existingUser) {
   return function(context) {
 
-    var email = context.get('value');
+    const email = context.get('value');
     if (!_.isString(email) || _.isEmpty(email.trim())) {
       return;
     }
 
-    var query = new User().whereEmail(email);
+    let query = new User().whereEmail(email);
 
     if (existingUser) {
       query = query.query(function(queryBuilder) {

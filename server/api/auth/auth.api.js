@@ -1,20 +1,20 @@
-var _ = require('lodash'),
-    api = require('../utils'),
-    auth = require('../auth'),
-    config = require('../../../config'),
-    errors = require('../errors'),
-    jwt = require('../../lib/jwt'),
-    LocalStrategy = require('passport-local').Strategy,
-    mailer = require('../../lib/mailer'),
-    passport = require('passport'),
-    policy = require('../users/users.policy'),
-    qs = require('qs'),
-    User = require('../../models/user'),
-    validations = require('../users/users.validations');
+const _ = require('lodash');
+const api = require('../utils');
+const auth = require('../auth');
+const config = require('../../../config');
+const errors = require('../errors');
+const jwt = require('../../lib/jwt');
+const LocalStrategy = require('passport-local').Strategy;
+const mailer = require('../../lib/mailer');
+const passport = require('passport');
+const policy = require('../users/users.policy');
+const qs = require('qs');
+const User = require('../../models/user');
+const validations = require('../users/users.validations');
 
 setUpPassport();
 
-var builder = api.builder(User, 'api');
+const builder = api.builder(User, 'api');
 
 // API resource name (used in some API errors).
 exports.name = 'auth';
@@ -36,8 +36,8 @@ exports.authenticate = function(req, res, next) {
 
 exports.createInvitation = builder.route(function(req, res, helper) {
 
-  var createdAt,
-      invitation = _.pick(req.body, 'email', 'role', 'firstName', 'lastName');
+  let createdAt;
+  const invitation = _.pick(req.body, 'email', 'role', 'firstName', 'lastName');
 
   return validate()
     .then(generateInvitationToken)
@@ -67,11 +67,11 @@ exports.createInvitation = builder.route(function(req, res, helper) {
 
   function sendInvitationEmail(token) {
 
-    var queryString = qs.stringify({
+    const queryString = qs.stringify({
       invitation: token
     });
 
-    var invitationLink = config.url + '/register?' + queryString;
+    const invitationLink = config.url + '/register?' + queryString;
 
     return mailer.send({
       to: invitation.email,
@@ -108,7 +108,7 @@ exports.retrieveInvitation = builder.route(function(req, res, helper) {
    */
   function respond() {
 
-    var invitation = _.extend(_.pick(req.jwtToken, 'email', 'role', 'firstName', 'lastName'), {
+    const invitation = _.extend(_.pick(req.jwtToken, 'email', 'role', 'firstName', 'lastName'), {
       createdAt: new Date(req.jwtToken.iat * 1000)
     });
 

@@ -1,13 +1,13 @@
-var _ = require('lodash'),
-    Abstract = require('./abstract'),
-    bcrypt = require('bcryptjs'),
-    bookshelf = require('../db'),
-    config = require('../../config'),
-    jwt = require('../lib/jwt');
+const _ = require('lodash');
+const Abstract = require('./abstract');
+const bcrypt = require('bcryptjs');
+const bookshelf = require('../db');
+const config = require('../../config');
+const jwt = require('../lib/jwt');
 
-var availableRoles = [ 'user', 'admin' ];
+const availableRoles = [ 'user', 'admin' ];
 
-var User = Abstract.extend({
+const User = Abstract.extend({
   tableName: 'user_account',
 
   apiId: true,
@@ -32,7 +32,7 @@ var User = Abstract.extend({
         this._password = password;
 
         if (_.isString(password) && password.length) {
-          var salt = bcrypt.genSaltSync(config.bcryptCost);
+          const salt = bcrypt.genSaltSync(config.bcryptCost);
           this.set('password_hash', bcrypt.hashSync(password, salt));
         } else {
           this.unset('password_hash');

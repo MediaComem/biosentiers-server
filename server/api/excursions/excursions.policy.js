@@ -26,7 +26,8 @@ exports.scope = function(req) {
 };
 
 exports.serialize = function(excursion, req) {
-  var result = {
+
+  const result = {
     id: excursion.get('api_id'),
     trailId: excursion.related('trail').get('api_id'),
     creatorId: excursion.related('creator').get('api_id'),

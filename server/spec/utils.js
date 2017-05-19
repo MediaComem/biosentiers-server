@@ -1,15 +1,15 @@
-var _ = require('lodash'),
-    app = require('../app'),
-    config = require('../../config'),
-    db = require('../db'),
-    expect = require('chai').expect,
-    expectations = require('./expectations/response'),
-    httpStatuses = require('http-status'),
-    moment = require('moment'),
-    Promise = require('bluebird'),
-    supertest = require('supertest-as-promised');
+const _ = require('lodash'),
+const app = require('../app');
+const config = require('../../config');
+const db = require('../db');
+const expect = require('chai').expect;
+const expectations = require('./expectations/response');
+const httpStatuses = require('http-status');
+const moment = require('moment');
+const Promise = require('bluebird');
+const supertest = require('supertest-as-promised');
 
-var logger = config.logger('spec');
+const logger = config.logger('spec');
 
 exports.testApi = function(method, path) {
   method = (method || 'GET').toLowerCase();
@@ -55,17 +55,17 @@ exports.setUp = function(data, callback) {
         data.now = moment();
       }
 
-      var duration = moment().diff(data.beforeSetup) / 1000;
+      const duration = moment().diff(data.beforeSetup) / 1000;
       logger.debug('Completed test setup in ' + duration + 's');
     }).return(exports);
 };
 
 exports.cleanDatabase = function() {
-  var start = moment();
+  const start = moment();
   return Promise.all([
     db.knex.raw('TRUNCATE user_account;')
   ]).then(function() {
-    var duration = moment().diff(start) / 1000;
+    const duration = moment().diff(start) / 1000;
     logger.debug('Cleaned database in ' + duration + 's');
   });
 };
@@ -73,7 +73,7 @@ exports.cleanDatabase = function() {
 exports.enrichExpectation = function(checkFunc) {
 
   checkFunc.inBody = exports.responseExpectationFactory(function(res) {
-    var args = Array.prototype.slice.call(arguments, 1);
+    const args = Array.prototype.slice.call(arguments, 1);
     args.unshift(res.body);
     return checkFunc.apply(undefined, args);
   });
@@ -103,7 +103,7 @@ exports.resolve = function(data, inPlace) {
 
 exports.responseExpectationFactory = function(func) {
   return function() {
-    var args = _.toArray(arguments);
+    const args = _.toArray(arguments);
     return handleResponseAssertionError(function(res) {
       args.unshift(res);
       return func.apply(undefined, args);
@@ -113,9 +113,9 @@ exports.responseExpectationFactory = function(func) {
 
 exports.expectTimestamp = function(actual, expected, type) {
 
-  var name = type + 'At',
-      afterName = type + 'After',
-      beforeName = type + 'Before';
+  const name = type + 'At',
+  const afterName = type + 'After';
+  const beforeName = type + 'Before';
 
   if (_.isString(expected[name]) && expected[name].match(/At$/)) {
     expect(actual[name], 'user.' + name).to.equal(actual[name]);
@@ -147,7 +147,7 @@ function resolvedDataUpdater(data, update) {
 function handleResponseAssertionError(func) {
   return function(res) {
     try {
-      var result = func(res);
+      const result = func(res);
       return Promise.resolve(result).catch(function(err) {
         return Promise.reject(enrichResponseAssertionError(err, res));
       }).return(res);
@@ -162,9 +162,9 @@ function enrichResponseAssertionError(err, res) {
     return err;
   }
 
-  var resDesc = 'HTTP/1.1 ' + res.status;
+  let resDesc = 'HTTP/1.1 ' + res.status;
 
-  var code = httpStatuses[res.status];
+  const code = httpStatuses[res.status];
   if (code) {
     resDesc = resDesc + ' ' + code;
   }
@@ -176,7 +176,7 @@ function enrichResponseAssertionError(err, res) {
   if (res.body) {
     resDesc = resDesc + '\n\n';
 
-    var contentType = res.get('Content-Type');
+    const contentType = res.get('Content-Type');
     if (contentType.match(/^application\/json/)) {
       resDesc = resDesc + JSON.stringify(res.body, null, 2);
     } else {
@@ -184,19 +184,20 @@ function enrichResponseAssertionError(err, res) {
     }
   }
 
-  var rest,
-      message = 'AssertionError: ' + err.message;
+  let rest;
+  let message = 'AssertionError: ' + err.message;
 
   if (err.stack.indexOf(message) === 0) {
     rest = err.stack.slice(message.length + 1);
   } else {
-    var firstEol = err.stack.indexOf('\n');
+    const firstEol = err.stack.indexOf('\n');
     message = err.stack.slice(0, firstEol);
     rest = err.stack.slice(firstEol);
   }
 
-  var indent = '',
-      indentMatch = rest.match(/^\s+/);
+  let indent = '';
+
+  const indentMatch = rest.match(/^\s+/);
   if (indentMatch) {
     indent = Array(indentMatch[0].length + 1).join(' ');
   }

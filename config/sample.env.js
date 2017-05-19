@@ -1,7 +1,11 @@
-// TODO: document this file (e.g. DB must be created and PostGIS enabled)
 module.exports = function(env) {
 
-  var vars = {
+  /*
+   * The server assumes that the databases configured in $DATABASE_URL
+   * are already created and have PostGIS enabled.
+   */
+
+  const vars = {
     PROTOCOL: 'http',
     HOST: 'localhost',
     PORT: '3000',

@@ -1,13 +1,13 @@
-var _ = require('lodash'),
-    api = require('../utils'),
-    fetcher = require('../fetcher'),
-    mailer = require('../../lib/mailer'),
-    policy = require('./users.policy'),
-    QueryBuilder = require('../query-builder'),
-    User = require('../../models/user'),
-    validations = require('../users/users.validations');
+const _ = require('lodash');
+const api = require('../utils');
+const fetcher = require('../fetcher');
+const mailer = require('../../lib/mailer');
+const policy = require('./users.policy');
+const QueryBuilder = require('../query-builder');
+const User = require('../../models/user');
+const validations = require('../users/users.validations');
 
-var builder = api.builder(User, 'users');
+const builder = api.builder(User, 'users');
 
 // API resource name (used in some API errors).
 exports.name = 'user';
@@ -87,8 +87,8 @@ exports.update = builder.route(function(req, res, helper) {
   function update() {
     helper.unserializeTo(user, [ 'active', 'email', 'role', 'firstName', 'lastName' ]);
 
-    var password = req.body.password,
-        previousPassword = req.body.previousPassword;
+    const password = req.body.password;
+    const previousPassword = req.body.previousPassword;
 
     if (user.get('password_hash') && password && user.hasPassword(previousPassword)) {
       user.set('password', password);

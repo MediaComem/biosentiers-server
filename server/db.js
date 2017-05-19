@@ -53,7 +53,7 @@ function createDatabase() {
 
 function logDbQueries(query) {
 
-  var message = query.sql;
+  let message = query.sql;
 
   if (query.bindings) {
     _.each(query.bindings, function(binding) {

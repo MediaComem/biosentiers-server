@@ -1,6 +1,6 @@
-var _ = require('lodash'),
-    chai = require('chai'),
-    moment = require('moment');
+const _ = require('lodash'),
+const chai = require('chai');
+const moment = require('moment');
 
 chai.use(require('chai-moment'));
 
@@ -11,7 +11,7 @@ chai.use(function(chai, utils) {
       comparison = 'at';
     }
 
-    var obj = utils.flag(this, 'object');
+    const obj = utils.flag(this, 'object');
     new chai.Assertion(obj).to.be.a('string');
 
     this.assert(moment(obj, moment.ISO_8601).isValid(), 'expected #{this} to be a valid ISO-8601 date string', 'expected #{this} not to be a valid ISO-8601 date string');
@@ -33,14 +33,14 @@ chai.use(function(chai, utils) {
 chai.use(function(chai, utils) {
   chai.Assertion.addMethod('containErrors', function(expectedErrors) {
 
-    var obj = utils.flag(this, 'object');
+    const obj = utils.flag(this, 'object');
     new chai.Assertion(obj).to.be.an('array');
 
-    var missingErrors = [],
-        remainingErrors = obj.slice();
+    const missingErrors = [];
+    const remainingErrors = obj.slice();
 
     _.each(expectedErrors, function(expectedError) {
-      var error = _.find(remainingErrors, _.matches(expectedError));
+      const error = _.find(remainingErrors, _.matches(expectedError));
       if (error) {
         remainingErrors.splice(remainingErrors.indexOf(error), 1);
       } else {
@@ -56,7 +56,7 @@ chai.use(function(chai, utils) {
 
 function buildErrorsAssertionMessage(positive, missingErrors, extraErrors) {
 
-  var message = 'expected errors ' + (positive ? '' : 'not ') + 'to contain the following errors:';
+  let message = 'expected errors ' + (positive ? '' : 'not ') + 'to contain the following errors:';
 
   _.each(missingErrors, function(error) {
     message = message + '\n- ' + JSON.stringify(error);

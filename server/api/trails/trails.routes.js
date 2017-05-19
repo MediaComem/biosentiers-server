@@ -1,9 +1,9 @@
-var controller = require('./trails.api'),
-    express = require('express'),
-    policy = require('./trails.policy'),
-    utils = require('../utils');
+const controller = require('./trails.api');
+const express = require('express');
+const policy = require('./trails.policy');
+const utils = require('../utils');
 
-var router = express.Router();
+const router = express.Router();
 
 router.post('/',
   utils.authorize(policy.canCreate),

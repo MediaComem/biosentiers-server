@@ -1,9 +1,9 @@
-var controller = require('./users.api'),
-    express = require('express'),
-    policy = require('./users.policy'),
-    utils = require('../utils');
+const controller = require('./users.api');
+const express = require('express');
+const policy = require('./users.policy');
+const utils = require('../utils');
 
-var router = express.Router();
+const router = express.Router();
 
 /**
  * @api {POST} /users Create a user

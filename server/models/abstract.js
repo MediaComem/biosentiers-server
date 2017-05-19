@@ -1,12 +1,12 @@
-var _ = require('lodash'),
-    bookshelf = require('../db'),
-    BPromise = require('bluebird'),
-    inflection = require('inflection'),
-    uuid = require('uuid');
+const _ = require('lodash');
+const bookshelf = require('../db');
+const BPromise = require('bluebird');
+const inflection = require('inflection');
+const uuid = require('uuid');
 
-var proto = bookshelf.Model.prototype;
+const proto = bookshelf.Model.prototype;
 
-var Abstract = bookshelf.Model.extend({
+const Abstract = bookshelf.Model.extend({
   constructor: function() {
     proto.constructor.apply(this, arguments);
     this.on('creating', this._setApiId, this);
@@ -38,8 +38,8 @@ var Abstract = bookshelf.Model.extend({
 
   _setDefaults: function() {
 
-    var has = _.bind(this.has, this),
-        set = _.bind(this.set, this);
+    const has = _.bind(this.has, this);
+    const set = _.bind(this.set, this);
 
     _.each(this.defaults || {}, function(value, key) {
       if (!has(key)) {
@@ -53,12 +53,12 @@ var Abstract = bookshelf.Model.extend({
       record = new this();
     }
 
-    var attrs = _.toArray(arguments).slice(2);
+    let attrs = _.toArray(arguments).slice(2);
     if (!attrs.length) {
       attrs = resolveParsingAttributes(record);
     }
 
-    var underscored = _.reduce(req.body, function(memo, value, key) {
+    const underscored = _.reduce(req.body, function(memo, value, key) {
       memo[inflection.underscore(key)] = value;
       return memo;
     }, {});
@@ -77,8 +77,8 @@ module.exports = bookshelf.model('Abstract', Abstract);
 
 function resolveParsingAttributes(record) {
 
-  var attrs,
-      config = record.parsing;
+  let attrs;
+  const config = record.parsing;
 
   if (_.isObject(config)) {
     attrs = config[record.isNew() ? 'create' : 'update'] || config.default;

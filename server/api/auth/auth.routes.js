@@ -1,9 +1,9 @@
-var controller = require('./auth.api'),
-    express = require('express'),
-    policy = require('./auth.policy'),
-    utils = require('../utils');
+const controller = require('./auth.api');
+const express = require('express');
+const policy = require('./auth.policy');
+const utils = require('../utils');
 
-var router = express.Router();
+const router = express.Router();
 
 /**
  * @api {POST} /auth Authenticate

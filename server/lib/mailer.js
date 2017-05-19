@@ -1,11 +1,11 @@
-var _ = require('lodash'),
-    config = require('../../config'),
-    nodemailer = require('nodemailer'),
-    Promise = require('bluebird'),
-    smtpTransport = require('nodemailer-smtp-transport');
+const _ = require('lodash');
+const config = require('../../config');
+const nodemailer = require('nodemailer');
+const Promise = require('bluebird');
+const smtpTransport = require('nodemailer-smtp-transport');
 
-var logger = config.logger('mailer'),
-    transporter = createTransport();
+const logger = config.logger('mailer');
+const transporter = createTransport();
 
 exports.send = function(options) {
   if (!_.isObject(options)) {
@@ -18,9 +18,9 @@ exports.send = function(options) {
     throw new Error('Mail `text` option is required');
   }
 
-  var start = new Date().getTime();
+  const start = new Date().getTime();
 
-  var email = {
+  const email = {
     from: '"' + config.mail.fromName + '" <' + config.mail.fromAddress + '>',
     to: options.to,
     subject: options.subject,
@@ -28,7 +28,7 @@ exports.send = function(options) {
   };
 
   return sendEmail(email).tap(function() {
-    var duration = (new Date().getTime() - start) / 1000;
+    const duration = (new Date().getTime() - start) / 1000;
     logger.info('E-mail "' + email.subject + '" sent to ' + email.to + ' in ' + duration + 's');
   });
 };

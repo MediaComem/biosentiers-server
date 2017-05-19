@@ -1,4 +1,4 @@
-var utils = require('../lib/knex-utils');
+const utils = require('../lib/knex-utils');
 
 exports.up = function(knex, Promise) {
   utils.logMigration(knex);

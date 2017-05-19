@@ -1,15 +1,15 @@
-var _ = require('lodash'),
-    expectRes = require('../../spec/expectations/response'),
-    expectExcursion = require('../../spec/expectations/excursion'),
-    jwt = require('../../lib/jwt'),
-    moment = require('moment'),
-    spec = require('../../spec/utils'),
-    trailFixtures = require('../../spec/fixtures/trail'),
-    userFixtures = require('../../spec/fixtures/user');
+const _ = require('lodash');
+const expectRes = require('../../spec/expectations/response');
+const expectExcursion = require('../../spec/expectations/excursion');
+const jwt = require('../../lib/jwt');
+const moment = require('moment');
+const spec = require('../../spec/utils');
+const trailFixtures = require('../../spec/fixtures/trail');
+const userFixtures = require('../../spec/fixtures/user');
 
 describe('Excursions API', function() {
 
-  var data;
+  let data;
   beforeEach(function() {
     data = {};
   });
@@ -29,7 +29,7 @@ describe('Excursions API', function() {
 
     it('should create an excursion', function() {
 
-      var expected = _.extend({
+      const expected = _.extend({
         createdAfter: data.now,
         updatedAt: 'createdAt'
       }, data.reqBody);

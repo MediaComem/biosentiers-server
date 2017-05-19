@@ -1,13 +1,13 @@
-var _ = require('lodash'),
-    api = require('../utils'),
-    Excursion = require('../../models/excursion'),
-    fetcher = require('../fetcher'),
-    policy = require('./excursions.policy'),
-    QueryBuilder = require('../query-builder'),
-    Trail = require('../../models/trail'),
-    validations = require('./excursions.validations');
+const _ = require('lodash');
+const api = require('../utils');
+const Excursion = require('../../models/excursion');
+const fetcher = require('../fetcher');
+const policy = require('./excursions.policy');
+const QueryBuilder = require('../query-builder');
+const Trail = require('../../models/trail');
+const validations = require('./excursions.validations');
 
-var builder = api.builder(Excursion, 'excursions');
+const builder = api.builder(Excursion, 'excursions');
 
 // API resource name (used in some API errors).
 exports.name = 'excursion';
@@ -49,7 +49,7 @@ exports.retrieve = builder.route(function(req, res, helper) {
 
 exports.update = builder.route(function(req, res, helper) {
 
-  var excursion = req.excursion;
+  const excursion = req.excursion;
   return Promise
     .resolve(excursion.load([ 'creator', 'trail' ]))
     .then(_.partial(validateExcursion, _, helper, true))

@@ -1,6 +1,6 @@
 /* jshint expr: true */
-var expect = require('../chai').expect,
-    spec = require('../utils');
+const expect = require('../chai').expect;
+const spec = require('../utils');
 
 exports.empty = spec.responseExpectationFactory(function(res, status) {
   expect(res.status, 'res.status').to.equal(status || 204);

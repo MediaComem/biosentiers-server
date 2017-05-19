@@ -49,16 +49,16 @@ function ApiBuilder(model, name) {
  * @returns Function A middleware function.
  */
 ApiBuilder.prototype.route = function(definition) {
-  var logger = this.logger;
+  const logger = this.logger;
   return function(req, res, next) {
 
     // Create the helper.
-    var helper = exports.helper(req, res, next, logger);
+    const helper = exports.helper(req, res, next, logger);
 
     Promise.resolve().then(function() {
 
       // Call the definition function.
-      var result = definition(req, res, helper);
+      const result = definition(req, res, helper);
 
       // Throw an error if it does not return a promise.
       if (result === undefined) {
@@ -71,7 +71,7 @@ ApiBuilder.prototype.route = function(definition) {
 };
 
 exports.helper = function(req, res, next, logger) {
-  var helper = new ApiHelper(req, res, next, logger);
+  const helper = new ApiHelper(req, res, next, logger);
   _.bindAll(helper, 'created', 'ok', 'noContent', 'respond', 'serialize', 'serializer');
   return helper;
 };
@@ -100,7 +100,7 @@ ApiHelper.prototype.validateRequest = function(callback, status) {
 };
 
 ApiHelper.prototype.validateRequestBody = function() {
-  var callbacks = _.toArray(arguments);
+  let callbacks = _.toArray(arguments);
   return this.validate(this.req, function() {
     callbacks = [ this.get('body'), this.type('object') ].concat(callbacks);
     return this.validate.apply(this, callbacks);
@@ -116,33 +116,33 @@ ApiHelper.prototype.respond = function(record, policy, callback) {
 };
 
 ApiHelper.prototype.created = function() {
-  var res = this.res;
+  const res = this.res;
   return function(data) {
     res.status(201).json(data);
   };
 };
 
 ApiHelper.prototype.ok = function() {
-  var res = this.res;
+  const res = this.res;
   return function(data) {
     res.json(data);
   };
 };
 
 ApiHelper.prototype.noContent = function() {
-  var res = this.res;
+  const res = this.res;
   return function(data) {
     res.sendStatus(204);
   };
 };
 
 ApiHelper.prototype.serialize = function(record, policy) {
-  var serialize = _.isFunction(policy.serialize) ? policy.serialize : policy;
+  const serialize = _.isFunction(policy.serialize) ? policy.serialize : policy;
   return serialize(record, this.req);
 };
 
 ApiHelper.prototype.serializer = function(policy) {
-  var serialize = this.serialize;
+  const serialize = this.serialize;
   return function(record) {
     return serialize(record, policy);
   };

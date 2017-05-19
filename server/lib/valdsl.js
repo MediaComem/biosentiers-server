@@ -1,7 +1,7 @@
-var _ = require('lodash'),
-    valdsl = require('valdsl');
+const _ = require('lodash');
+const valdsl = require('valdsl');
 
-var custom = valdsl();
+const custom = valdsl();
 
 // Customize valdsl here if needed...
 

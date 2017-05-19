@@ -1,11 +1,11 @@
-var bodyParser = require('body-parser'),
-    config = require('../config'),
-    errors = require('./lib/express-errors'),
-    express = require('express'),
-    log4js = require('log4js'),
-    path = require('path');
+const bodyParser = require('body-parser');
+const config = require('../config');
+const errors = require('./lib/express-errors');
+const express = require('express');
+const log4js = require('log4js');
+const path = require('path');
 
-var app = express();
+const app = express();
 
 // Configure the view engine (used only for error pages; all other pages
 // are served statically from the build directory).

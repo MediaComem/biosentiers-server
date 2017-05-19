@@ -1,15 +1,15 @@
-var _ = require('lodash'),
-    expect = require('../chai').expect,
-    moment = require('moment'),
-    spec = require('../utils'),
-    Trail = require('../../models/trail');
+const _ = require('lodash');
+const expect = require('../chai').expect;
+const moment = require('moment');
+const spec = require('../utils');
+const Trail = require('../../models/trail');
 
 module.exports = spec.enrichExpectation(function(actual, expected) {
 
   // Check the actual object.
   expect(actual, 'trail').to.be.an('object');
 
-  var keys = [ 'id', 'name', 'createdAt', 'updatedAt' ];
+  const keys = [ 'id', 'name', 'createdAt', 'updatedAt' ];
   expect(actual, 'res.body').to.have.all.keys(keys);
 
   expect(actual.id, 'trail.id').to.be.a('string');
