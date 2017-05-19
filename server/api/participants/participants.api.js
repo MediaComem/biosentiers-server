@@ -1,6 +1,7 @@
 var _ = require('lodash'),
     api = require('../utils'),
     Excursion = require('../../models/excursion'),
+    fetcher = require('../fetcher'),
     policy = require('./participants.policy'),
     QueryBuilder = require('../query-builder'),
     Participant = require('../../models/participant'),
@@ -19,7 +20,7 @@ exports.create = builder.route(function(req, res, helper) {
     return Participant.transaction(function() {
 
       const participant = Participant.parse(req);
-      participant.set('excursion_id', req.record.get('id'));
+      participant.set('excursion_id', req.excursion.get('id'));
 
       return participant
         .save()
@@ -30,7 +31,7 @@ exports.create = builder.route(function(req, res, helper) {
 });
 
 exports.list = builder.route(function(req, res, helper) {
-  const query = policy.scope(req).where('excursion_id', req.record.get('id'));
+  const query = policy.scope(req).where('excursion_id', req.excursion.get('id'));
   return new QueryBuilder(req, res, query)
     .paginate()
     .sort('createdAt', 'updatedAt')
@@ -61,11 +62,15 @@ exports.delete = builder.route(function(req, res, helper) {
     .then(helper.noContent());
 });
 
-exports.fetchRecord = builder.fetcher(exports.name, (query, req) => query.where('excursion_id', req.record.get('id')), exports.name);
+exports.fetchParticipant = fetcher({
+  model: Participant,
+  resourceName: 'participant',
+  queryHandler: (query, req) => query.where('excursion_id', req.excursion.get('id'))
+})
 
 function validateParticipant(helper, patchMode) {
 
-  var excursion = helper.req.record,
+  var excursion = helper.req.excursion,
       participant = helper.req.participant,
       name = participant ? participant.get('name') : '';
 

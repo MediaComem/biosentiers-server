@@ -19,13 +19,13 @@ exports.canList = function(req) {
 };
 
 exports.canRetrieve = function(req) {
-  return this.authenticated() && (this.hasRole('admin') || this.sameRecord(req.currentUser, req.record));
+  return this.authenticated() && (this.hasRole('admin') || this.sameRecord(req.currentUser, req.user));
 };
 
 exports.canUpdate = function(req) {
   if (this.hasRole('admin')) {
     return true;
-  } else if (this.authenticated() && this.sameRecord(req.currentUser, req.record)) {
+  } else if (this.authenticated() && this.sameRecord(req.currentUser, req.user)) {
     this.forbidChange('active', req.currentUser.get('active'), 'change the status of a user');
     this.forbidChange('email', req.currentUser.get('email'), 'change the e-mail of a user');
     this.forbidChange('role', req.currentUser.get('role'), 'change the role of a user');

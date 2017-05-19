@@ -23,8 +23,7 @@ exports.create = builder.route(function(req, res, helper) {
 
   function create() {
     return Trail.transaction(function() {
-      var record = Trail.parse(req);
-      return record
+      return Trail.parse(req)
         .save()
         .then(helper.serializer(policy))
         .then(helper.created());

@@ -1,5 +1,6 @@
 var _ = require('lodash'),
     api = require('../utils'),
+    fetcher = require('../fetcher'),
     mailer = require('../../lib/mailer'),
     policy = require('./users.policy'),
     QueryBuilder = require('../query-builder'),
@@ -41,8 +42,7 @@ exports.create = builder.route(function(req, res, helper) {
 
   function create() {
     return User.transaction(function() {
-      var record = User.parse(req);
-      return record
+      return User.parse(req)
         .save()
         .then(helper.serializer(policy))
         .then(helper.created());
@@ -68,12 +68,12 @@ exports.list = builder.route(function(req, res, helper) {
 });
 
 exports.retrieve = builder.route(function(req, res, helper) {
-  return helper.respond(req.record, policy);
+  return helper.respond(req.user, policy);
 });
 
 exports.update = builder.route(function(req, res, helper) {
 
-  var user = req.record;
+  const user = req.user;
   return validate().then(update);
 
   function validate() {
@@ -89,6 +89,7 @@ exports.update = builder.route(function(req, res, helper) {
 
     var password = req.body.password,
         previousPassword = req.body.previousPassword;
+
     if (user.get('password_hash') && password && user.hasPassword(previousPassword)) {
       user.set('password', password);
     } else if (!user.get('password_hash') && password) {
@@ -102,4 +103,7 @@ exports.update = builder.route(function(req, res, helper) {
   }
 });
 
-exports.fetchRecord = builder.fetcher(exports.name);
+exports.fetchUser = fetcher({
+  model: User,
+  resourceName: 'user'
+});

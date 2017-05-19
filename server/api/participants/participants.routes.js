@@ -14,12 +14,12 @@ router.get('/',
   controller.list);
 
 router.patch('/:id',
-  controller.fetchRecord,
+  controller.fetchParticipant,
   utils.authorize(policy.canUpdate, controller.name),
   controller.update);
 
 router.delete('/:id',
-  controller.fetchRecord,
+  controller.fetchParticipant,
   utils.authorize(policy.canDelete, controller.name),
   controller.delete);
 

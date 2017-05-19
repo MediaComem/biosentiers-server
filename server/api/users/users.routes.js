@@ -111,7 +111,7 @@ router.get('/',
  * }
  */
 router.get('/:id',
-  controller.fetchRecord,
+  controller.fetchUser,
   utils.authorize(policy.canRetrieve, controller.name),
   controller.retrieve);
 
@@ -159,7 +159,7 @@ router.get('/:id',
  * }
  */
 router.patch('/:id',
-  controller.fetchRecord,
+  controller.fetchUser,
   utils.authorize(policy.canUpdate, controller.name),
   controller.update);
 

@@ -15,17 +15,17 @@ router.get('/',
   controller.list);
 
 router.get('/:id',
-  controller.fetchRecord,
+  controller.fetchExcursion,
   utils.authorize(policy.canRetrieve, controller.name),
   controller.retrieve);
 
 router.patch('/:id',
-  controller.fetchRecord,
+  controller.fetchExcursion,
   utils.authorize(policy.canUpdate, controller.name),
   controller.update);
 
 router.use('/:id/participants',
-  controller.fetchRecord,
+  controller.fetchExcursion,
   participantsRoutes);
 
 module.exports = router;

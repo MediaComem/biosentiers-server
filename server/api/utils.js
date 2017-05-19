@@ -70,38 +70,6 @@ ApiBuilder.prototype.route = function(definition) {
   };
 };
 
-/**
- * Creates a middleware function that will fetch the record identified by the current URL and attach it to the request.
- * If no record is found, an HTTP 404 Not Found response will be sent.
- *
- * @param {String} resourceName - The name of the API resource (used in error messages).
- * @returns Function A middleware function.
- */
-ApiBuilder.prototype.fetcher = function(resourceName, queryHandler, name) {
-
-  var Model = this.model;
-
-  return function(req, res, next) {
-
-    var apiId = req.params.id;
-
-    let query = new Model({ api_id: apiId });
-    if (_.isFunction(queryHandler)) {
-      query = queryHandler(query, req);
-    }
-
-    query.fetch().then(function(record) {
-      if (!record) {
-        throw errors.recordNotFound(resourceName, apiId);
-      }
-
-      // TODO: use resource name by default
-      req[name || 'record'] = record;
-      next();
-    }).catch(next);
-  };
-};
-
 exports.helper = function(req, res, next, logger) {
   var helper = new ApiHelper(req, res, next, logger);
   _.bindAll(helper, 'created', 'ok', 'noContent', 'respond', 'serialize', 'serializer');

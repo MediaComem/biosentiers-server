@@ -1,6 +1,7 @@
 var _ = require('lodash'),
     api = require('../utils'),
     Excursion = require('../../models/excursion'),
+    fetcher = require('../fetcher'),
     policy = require('./excursions.policy'),
     QueryBuilder = require('../query-builder'),
     Trail = require('../../models/trail'),
@@ -13,7 +14,7 @@ exports.name = 'excursion';
 
 exports.create = builder.route(function(req, res, helper) {
 
-  return validateExcursion(req.record, helper).then(create);
+  return validateExcursion(req.excursion, helper).then(create);
 
   function create() {
     return Excursion.transaction(function() {
@@ -41,16 +42,16 @@ exports.list = builder.route(function(req, res, helper) {
 
 exports.retrieve = builder.route(function(req, res, helper) {
   return Promise
-    .resolve(req.record.load([ 'creator', 'trail' ]))
+    .resolve(req.excursion.load([ 'creator', 'trail' ]))
     .then(helper.serializer(policy))
     .then(helper.ok());
 });
 
 exports.update = builder.route(function(req, res, helper) {
 
-  var excursion = req.record;
+  var excursion = req.excursion;
   return Promise
-    .resolve(req.record.load([ 'creator', 'trail' ]))
+    .resolve(excursion.load([ 'creator', 'trail' ]))
     .then(_.partial(validateExcursion, _, helper, true))
     .then(update);
 
@@ -64,7 +65,10 @@ exports.update = builder.route(function(req, res, helper) {
   }
 });
 
-exports.fetchRecord = builder.fetcher(exports.name);
+exports.fetchExcursion = fetcher({
+  model: Excursion,
+  resourceName: 'excursion'
+});
 
 function validateExcursion(excursion, helper, patchMode) {
   return helper.validateRequestBody(function() {
