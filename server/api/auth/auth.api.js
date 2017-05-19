@@ -98,7 +98,7 @@ exports.retrieveInvitation = builder.route(function(req, res, helper) {
   function checkExistingUser() {
     return new User().whereEmail(req.jwtToken.email).fetch().then(function(user) {
       if (user) {
-        throw auth.invalidAuthorizationError();
+        throw errors.invalidAuthorizationError();
       }
     });
   }

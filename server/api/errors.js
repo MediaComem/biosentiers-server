@@ -13,9 +13,25 @@ util.inherits(ApiError, Error);
 
 exports.ApiError = ApiError;
 
+// HTTP 401 Unauthorized
+
 exports.unauthorized = function(code, message) {
   return new ApiError(401, code, message || 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.');
 };
+
+exports.missingAuthorization = function() {
+  return exports.unauthorized('auth.missingAuthorization');
+};
+
+exports.malformedAuthorization = function() {
+  return exports.unauthorized('auth.malformedAuthorization', 'The Authorization header is not in the correct format. It should be "Authorization: Bearer TOKEN".');
+};
+
+exports.invalidAuthorization = function() {
+  return exports.unauthorized('auth.invalidAuthorization', 'The Bearer token supplied in the Authorization header is invalid or has expired.');
+};
+
+// HTTP 403 Forbidden
 
 exports.forbidden = function(code, message) {
   return new ApiError(403, code, message || 'You are not authorized to access this resource. Authenticate with a user account that has more privileges.');
@@ -24,6 +40,8 @@ exports.forbidden = function(code, message) {
 exports.forbiddenChange = function(description) {
   return new ApiError(403, 'auth.forbiddenChange', 'You are not authorized to ' + description + '. Authenticate with a user account that has more privileges.');
 };
+
+// HTTP 404 Not Found
 
 exports.notFound = function(code, message) {
   return new ApiError(404, code || 'resource.notFound', message || 'No resource was found at this verb and URI.');

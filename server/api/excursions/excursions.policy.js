@@ -1,23 +1,24 @@
-var _ = require('lodash'),
-    Excursion = require('../../models/excursion'),
-    trailsPolicy = require('../trails/trails.policy'),
-    usersPolicy = require('../users/users.policy'),
-    utils = require('../utils');
+const _ = require('lodash');
+const Excursion = require('../../models/excursion');
+const policy = require('../policy');
+const trailsPolicy = require('../trails/trails.policy');
+const usersPolicy = require('../users/users.policy');
+const utils = require('../utils');
 
 exports.canCreate = function(req) {
-  return this.authenticated();
+  return policy.authenticated(req);
 };
 
 exports.canList = function(req) {
-  return this.authenticated();
+  return policy.authenticated(req);
 };
 
 exports.canRetrieve = function(req) {
-  return this.authenticated();
+  return policy.authenticated(req);
 };
 
 exports.canUpdate = function(req) {
-  return this.authenticated();
+  return policy.authenticated(req);
 };
 
 exports.scope = function(req) {

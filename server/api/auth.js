@@ -9,8 +9,6 @@ var _ = require('lodash'),
 var authTypes = [ 'user', 'invitation' ],
     logger = config.logger('auth');
 
-exports.invalidAuthorizationError = invalidAuthorizationError;
-
 /**
  * Authenticates the user through the Authorization header.
  *
@@ -38,7 +36,6 @@ exports.authenticate = function(options) {
  * Ensures that the current user (anonymous or authenticated) is authorized to perform the request.
  *
  * @param {Function} policy - A function that takes the request as argument and should return true if the user is authorized, false otherwise.
- *                            When called, `this` will be bound to an `AuthorizationHelper` for the request.
  * @param {String} resourceName - The human-friendly name of the API resource, used in error messages.
  * @param {Object} options - Authorization options.
  * @param {Object} options.required - Whether authentication is required (see `authenticate`). Defaults to false.
@@ -58,8 +55,7 @@ exports.authorize = function(policy, resourceName, options) {
   return compose()
     .use(exports.authenticate(options)) // Perform authentication.
     .use(function(req, res, next) {     // Perform authorization.
-      var helper = new AuthorizationHelper(req);
-      p.resolve().then(_.bind(policy, helper, req)).then(function(authorized) {
+      p.resolve().then(_.partial(policy, req)).then(function(authorized) {
         if (authorized) {
           next();
         } else {
@@ -77,15 +73,15 @@ function loadAuthenticatedUser(options) {
         authTypes = options.authTypes;
 
     if (!req.jwtToken) {
-      return next(required ? missingAuthorizationError() : undefined);
+      return next(required ? errors.missingAuthorization() : undefined);
     } else if (!_.includes(authTypes, req.jwtToken.authType)) {
-      return next(invalidAuthorizationError());
+      return next(errors.invalidAuthorization());
     }
 
     if (authTypes && !_.isArray(authTypes)) {
       return next(new Error('Authentication `authTypes` option must be an array'));
     } else if (authTypes && !_.includes(authTypes, req.jwtToken.authType)) {
-      return next(invalidAuthorizationError());
+      return next(errors.invalidAuthorization());
     }
 
     // No need to load the user for other auth types.
@@ -97,9 +93,9 @@ function loadAuthenticatedUser(options) {
       api_id: req.jwtToken.sub || ''
     }).fetch().then(function(user) {
       if (!user) {
-        return next(invalidAuthorizationError());
+        return next(errors.invalidAuthorization());
       } else if (active && !user.get('active')) {
-        return next(invalidAuthorizationError());
+        return next(errors.invalidAuthorization());
       }
 
       logger.debug('Authenticated with user ' + user.get('api_id'));
@@ -121,97 +117,10 @@ function checkJwtError(err, req, res, next) {
   if (!err) {
     next();
   } else if (err.code == 'credentials_required') {
-    next(missingAuthorizationError());
+    next(errors.missingAuthorization());
   } else if (err.code == 'credentials_bad_format' || err.code == 'credentials_bad_scheme') {
-    next(malformedAuthorizationError());
+    next(errors.malformedAuthorization());
   } else {
-    next(invalidAuthorizationError());
+    next(errors.invalidAuthorization());
   }
-}
-
-function ensureRequestAuthenticated(req, options) {
-  options = _.defaults({}, options, {
-    authTypes: [ 'user' ],
-    active: true
-  });
-
-  // If no JWT token was provided, no one is authenticated.
-  if (!req.jwtToken) {
-    throw missingAuthorizationError();
-  }
-
-  // If the JWT's auth type is not among the allowed types, authentication is invalid.
-  if (!_.includes(options.authTypes, req.jwtToken.authType)) {
-    throw invalidAuthorizationError();
-  }
-
-  var authType = req.jwtToken.authType;
-
-  // If the auth type is "user" and no user was loaded, authentication is invalid.
-  if (authType == 'user' && !req.currentUser) {
-    throw invalidAuthorizationError();
-  }
-
-  // If the auth type is "user" and the user is inactive, authentication is invalid (unless the `active` option is set to false).
-  if (authType == 'user' && options.active && !req.currentUser.get('active')) {
-    throw invalidAuthorizationError();
-  }
-
-  return req.currentUser || req.jwtToken;
-}
-
-function requestHasValidOtp(req, otpType, options) {
-  options = _.defaults({}, options, {
-    active: true
-  });
-
-  return req.jwtToken &&
-    req.jwtToken.authType == otpType + 'Otp' &&
-    req.currentUser &&
-    (!options.active || req.currentUser.get('active'));
-}
-
-/**
- * Helper to simplify authorization policies.
- */
-function AuthorizationHelper(req) {
-  this.req = req;
-}
-
-_.extend(AuthorizationHelper.prototype, {
-  authenticated: function(options) {
-    return ensureRequestAuthenticated(this.req, options);
-  },
-
-  validOtp: function(otpType, options) {
-    return requestHasValidOtp(this.req, otpType, options);
-  },
-
-  hasRole: function(role) {
-    return this.req.currentUser && this.req.currentUser.get('active') && this.req.currentUser.hasRole(role);
-  },
-
-  sameRecord: function(r1, r2) {
-    return r1 && r2 && r1.constructor === r2.constructor && r1.get('id') && r1.get('id') === r2.get('id');
-  },
-
-  forbidChange: function(property, currentValue, description) {
-    if (_.has(this.req.body, property) && this.req.body[property] !== currentValue) {
-      throw errors.forbiddenChange(description);
-    } else {
-      return true;
-    }
-  }
-});
-
-function missingAuthorizationError() {
-  return errors.unauthorized('auth.missingAuthorization');
-}
-
-function malformedAuthorizationError() {
-  return errors.unauthorized('auth.malformedAuthorization', 'The Authorization header is not in the correct format. It should be "Authorization: Bearer TOKEN".');
-}
-
-function invalidAuthorizationError() {
-  return errors.unauthorized('auth.invalidAuthorization', 'The Bearer token supplied in the Authorization header is invalid or has expired.');
 }

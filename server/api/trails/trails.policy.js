@@ -1,12 +1,13 @@
-var _ = require('lodash'),
-    Trail = require('../../models/trail');
+const _ = require('lodash');
+const policy = require('../policy');
+const Trail = require('../../models/trail');
 
 exports.canCreate = function(req) {
-  return this.authenticated() && this.hasRole('admin');
+  return policy.authenticated(req) && policy.hasRole(req, 'admin');
 };
 
 exports.canList = function(req) {
-  return this.authenticated();
+  return policy.authenticated(req);
 };
 
 exports.scope = function(req) {

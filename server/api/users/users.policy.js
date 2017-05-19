@@ -1,35 +1,38 @@
-var _ = require('lodash'),
-    User = require('../../models/user');
+const _ = require('lodash');
+const policy = require('../policy');
+const User = require('../../models/user');
 
 exports.canCreate = function(req) {
-  this.authenticated({ authTypes: [ 'user', 'invitation' ] });
+  policy.authenticated(req, { authTypes: [ 'user', 'invitation' ] });
 
   if (req.jwtToken.authType == 'invitation') {
-    this.forbidChange('active', true, 'set the status of an invited user');
-    this.forbidChange('email', req.jwtToken.email, 'set the e-mail of an invited user');
-    this.forbidChange('role', req.jwtToken.role, 'set the role of an invited user');
-    return true;
+    return policy.forbidChanges(req, {
+      active: { value: true, message: 'set the status of an invited user' },
+      email: { value: req.jwtToken.email, message: 'set the e-mail of an invited user' },
+      role: { value: req.jwtToken.role, message: 'set the role of an invited user' }
+    });
   } else {
-    return this.hasRole('admin');
+    return policy.hasRole(req, 'admin');
   }
 };
 
 exports.canList = function(req) {
-  return req.query.email || (this.authenticated() && this.hasRole('admin'));
+  return req.query.email || (policy.authenticated(req) && policy.hasRole(req, 'admin'));
 };
 
 exports.canRetrieve = function(req) {
-  return this.authenticated() && (this.hasRole('admin') || this.sameRecord(req.currentUser, req.user));
+  return policy.authenticated(req) && (policy.hasRole(req, 'admin') || policy.sameRecord(req.currentUser, req.user));
 };
 
 exports.canUpdate = function(req) {
-  if (this.hasRole('admin')) {
+  if (policy.hasRole(req, 'admin')) {
     return true;
-  } else if (this.authenticated() && this.sameRecord(req.currentUser, req.user)) {
-    this.forbidChange('active', req.currentUser.get('active'), 'change the status of a user');
-    this.forbidChange('email', req.currentUser.get('email'), 'change the e-mail of a user');
-    this.forbidChange('role', req.currentUser.get('role'), 'change the role of a user');
-    return true;
+  } else if (policy.authenticated(req) && policy.sameRecord(req.currentUser, req.user)) {
+    return policy.forbidChanges(req, {
+      active: { value: req.currentUser.get('active'), message: 'change the status of a user' },
+      email: { value: req.currentUser.get('email'), message: 'change the e-mail of a user' },
+      role: { value: req.currentUser.get('role'), message: 'change the role of a user' }
+    });
   }
 };
 
@@ -37,7 +40,7 @@ exports.scope = function(req) {
 
   var scope = new User();
 
-  if (req.query.email && (!req.currentUser || !req.currentUser.hasRole('admin'))) {
+  if (req.query.email && !policy.hasRole(req, 'admin')) {
     scope = scope.whereEmail(req.query.email);
   }
 

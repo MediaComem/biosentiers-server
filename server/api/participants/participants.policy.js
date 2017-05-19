@@ -1,24 +1,25 @@
-var _ = require('lodash'),
-    Participant = require('../../models/participant');
+const _ = require('lodash');
+const Participant = require('../../models/participant');
+const policy = require('../policy');
 
 exports.canCreate = function(req) {
   // TODO: only an admin or the creator of the excursion should be allowed to create participants
-  return this.authenticated();
+  return policy.authenticated(req);
 };
 
 exports.canList = function(req) {
   // TODO: only an admin or the creator of the excursion should be allowed to list its participants
-  return this.authenticated();
+  return policy.authenticated(req);
 };
 
 exports.canUpdate = function(req) {
   // TODO: only an admin or the creator of the excursion should be allowed to edit participants
-  return this.authenticated();
+  return policy.authenticated(req);
 };
 
 exports.canDelete = function(req) {
   // TODO: only an admin or the creator of the excursion should be allowed to delete participants
-  return this.authenticated();
+  return policy.authenticated(req);
 };
 
 exports.scope = function(req) {

@@ -1,7 +1,9 @@
+const policy = require('../policy');
+
 exports.canInvite = function(req) {
-  return this.authenticated() && this.hasRole('admin');
+  return policy.authenticated(req) && policy.hasRole(req, 'admin');
 };
 
 exports.canBeInvited = function(req) {
-  return this.authenticated({ authTypes: [ 'invitation' ] });
+  return policy.authenticated(req, { authTypes: [ 'invitation' ] });
 };
