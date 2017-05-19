@@ -158,7 +158,7 @@ ApiHelper.prototype.unserializeTo = function(record, properties, source) {
     }, {});
   }
 
-  _.each(properties, function(recordProperty, sourceProperty) {
+  _.each(properties, function(sourceProperty, recordProperty) {
     if (_.has(source, sourceProperty)) {
       record.set(recordProperty, source[sourceProperty]);
     }
