@@ -34,7 +34,8 @@ module.exports = function(options) {
 
   const Model = options.model;
   const queryHandler = options.queryHandler;
-  const target = options.target || options.resourceName;
+  const resourceName = options.resourceName;
+  const target = options.target || resourceName;
 
   return function(req, res, next) {
 
