@@ -1,7 +1,7 @@
+const auth = require('../auth');
 const controller = require('./auth.api');
 const express = require('express');
 const policy = require('./auth.policy');
-const utils = require('../utils');
 
 const router = express.Router();
 
@@ -69,11 +69,11 @@ router.post('/',
   controller.authenticate);
 
 router.post('/invitation',
-  utils.authorize(policy.canInvite),
+  auth.authorize(policy.canInvite),
   controller.createInvitation);
 
 router.get('/invitation',
-  utils.authorize(policy.canBeInvited, { authTypes: [ 'invitation' ] }),
+  auth.authorize(policy.canBeInvited, { authTypes: [ 'invitation' ] }),
   controller.retrieveInvitation);
 
 module.exports = router;

@@ -1,27 +1,27 @@
+const auth = require('../auth');
 const controller = require('./excursions.api');
 const express = require('express');
 const participantsRoutes = require('../participants/participants.routes');
 const policy = require('./excursions.policy');
-const utils = require('../utils');
 
 const router = express.Router();
 
 router.post('/',
-  utils.authorize(policy.canCreate),
+  auth.authorize(policy.canCreate),
   controller.create);
 
 router.get('/',
-  utils.authorize(policy.canList),
+  auth.authorize(policy.canList),
   controller.list);
 
 router.get('/:id',
   controller.fetchExcursion,
-  utils.authorize(policy.canRetrieve, controller.resourceName),
+  auth.authorize(policy.canRetrieve, controller.resourceName),
   controller.retrieve);
 
 router.patch('/:id',
   controller.fetchExcursion,
-  utils.authorize(policy.canUpdate, controller.resourceName),
+  auth.authorize(policy.canUpdate, controller.resourceName),
   controller.update);
 
 router.use('/:id/participants',

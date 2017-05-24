@@ -1,13 +1,10 @@
 const _ = require('lodash');
-const api = require('../utils');
 const policy = require('./trails.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
 const Trail = require('../../models/trail');
 const validate = require('../validate');
-
-const builder = api.builder(Trail, 'trails');
 
 // API resource name (used in some API errors)
 exports.resourceName = 'trail';

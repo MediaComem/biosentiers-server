@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const api = require('../utils');
 const fetcher = require('../fetcher');
 const mailer = require('../../lib/mailer');
 const policy = require('./users.policy');

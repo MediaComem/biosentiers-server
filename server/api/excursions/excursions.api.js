@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const api = require('../utils');
 const Excursion = require('../../models/excursion');
 const fetcher = require('../fetcher');
 const policy = require('./excursions.policy');

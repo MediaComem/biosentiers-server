@@ -1,7 +1,7 @@
+const auth = require('../auth');
 const controller = require('./users.api');
 const express = require('express');
 const policy = require('./users.policy');
-const utils = require('../utils');
 
 const router = express.Router();
 
@@ -44,7 +44,7 @@ const router = express.Router();
  * }
  */
 router.post('/',
-  utils.authorize(policy.canCreate, { authTypes: [ 'user', 'invitation' ] }),
+  auth.authorize(policy.canCreate, { authTypes: [ 'user', 'invitation' ] }),
   controller.create);
 
 /**
@@ -85,7 +85,7 @@ router.post('/',
  * ]
  */
 router.get('/',
-  utils.authorize(policy.canList),
+  auth.authorize(policy.canList),
   controller.list);
 
 /**
@@ -112,7 +112,7 @@ router.get('/',
  */
 router.get('/:id',
   controller.fetchUser,
-  utils.authorize(policy.canRetrieve, controller.resourceName),
+  auth.authorize(policy.canRetrieve, controller.resourceName),
   controller.retrieve);
 
 /**
@@ -160,7 +160,7 @@ router.get('/:id',
  */
 router.patch('/:id',
   controller.fetchUser,
-  utils.authorize(policy.canUpdate, controller.resourceName),
+  auth.authorize(policy.canUpdate, controller.resourceName),
   controller.update);
 
 module.exports = router;

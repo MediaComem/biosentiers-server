@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const api = require('../utils');
 const Excursion = require('../../models/excursion');
 const fetcher = require('../fetcher');
 const policy = require('./participants.policy');
@@ -10,8 +9,6 @@ const serialize = require('../serialize');
 const Trail = require('../../models/trail');
 const validate = require('../validate');
 const validations = require('./participants.validations');
-
-const builder = api.builder(Participant, 'participants');
 
 // API resource name (used in some API errors)
 exports.resourceName = 'participant';

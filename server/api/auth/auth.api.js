@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const api = require('../utils');
 const auth = require('../auth');
 const config = require('../../../config');
 const errors = require('../errors');
@@ -15,8 +14,6 @@ const validate = require('../validate');
 const validations = require('../users/users.validations');
 
 setUpPassport();
-
-const builder = api.builder(User, 'api');
 
 // API resource name (used in some API errors).
 exports.resourceName = 'auth';
