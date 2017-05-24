@@ -13,13 +13,10 @@ const builder = api.builder(Trail, 'trails');
 // API resource name (used in some API errors)
 exports.resourceName = 'trail';
 
-exports.create = route(function*(req, res) {
+exports.create = route.transactional(function*(req, res) {
   yield validateTrail(req);
-
-  transaction(function*() {
-    const trail = yield Trail.parse(req).save();
-    res.status(201).send(serialize(req, trail, policy));
-  });
+  const trail = yield Trail.parse(req).save();
+  res.status(201).send(serialize(req, trail, policy));
 });
 
 exports.list = route(function*(req, res) {

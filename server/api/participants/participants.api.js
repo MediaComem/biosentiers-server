@@ -17,17 +17,14 @@ const builder = api.builder(Participant, 'participants');
 // API resource name (used in some API errors)
 exports.resourceName = 'participant';
 
-exports.create = route(function*(req, res) {
+exports.create = route.transactional(function*(req, res) {
   yield validateParticipant(req);
 
-  transaction(function*() {
+  const participant = Participant.parse(req);
+  participant.set('excursion_id', req.excursion.get('id'));
 
-    const newParticipant = Participant.parse(req);
-    newParticipant.set('excursion_id', req.excursion.get('id'));
-
-    const participant = yield newParticipant.save();
-    res.status(201).send(serialize(req, participant, policy));
-  });
+  yield participant.save();
+  res.status(201).send(serialize(req, participant, policy));
 });
 
 exports.list = route(function*(req, res) {
@@ -42,14 +39,14 @@ exports.list = route(function*(req, res) {
   res.send(serialize(req, participants, policy));
 });
 
-exports.update = route(function*(req, res) {
+exports.update = route.transactional(function*(req, res) {
   yield validateParticipant(req, true);
   policy.parseRequestIntoRecord(req, req.participant);
   yield req.participant.save();
   res.send(serialize(req, req.participant, policy));
 });
 
-exports.delete = route(function*(req, res) {
+exports.delete = route.transactional(function*(req, res) {
   yield req.participant.destroy();
   res.sendStatus(204);
 });
