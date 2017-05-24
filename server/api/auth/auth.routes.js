@@ -65,7 +65,8 @@ const router = express.Router();
  *   ]
  * }
  */
-router.post('/', controller.authenticate);
+router.post('/',
+  controller.authenticate);
 
 router.post('/invitation',
   utils.authorize(policy.canInvite),

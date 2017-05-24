@@ -16,12 +16,12 @@ router.get('/',
 
 router.get('/:id',
   controller.fetchExcursion,
-  utils.authorize(policy.canRetrieve, controller.name),
+  utils.authorize(policy.canRetrieve, controller.resourceName),
   controller.retrieve);
 
 router.patch('/:id',
   controller.fetchExcursion,
-  utils.authorize(policy.canUpdate, controller.name),
+  utils.authorize(policy.canUpdate, controller.resourceName),
   controller.update);
 
 router.use('/:id/participants',

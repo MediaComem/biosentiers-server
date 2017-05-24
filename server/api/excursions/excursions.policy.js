@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const Excursion = require('../../models/excursion');
+const parsing = require('../parsing');
 const policy = require('../policy');
 const trailsPolicy = require('../trails/trails.policy');
 const usersPolicy = require('../users/users.policy');
@@ -25,7 +26,11 @@ exports.scope = function(req) {
   return new Excursion();
 };
 
-exports.serialize = function(excursion, req) {
+exports.parseRequestIntoRecord = function(req, excursion) {
+  return parsing.parseJsonIntoRecord(req.body, excursion, [ 'trailId', 'plannedAt', 'name', 'themes', 'zones' ]);
+};
+
+exports.serialize = function(req, excursion) {
 
   const result = {
     id: excursion.get('api_id'),

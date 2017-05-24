@@ -8,7 +8,6 @@ const Participant = require('../../models/participant');
 const route = require('../route');
 const serialize = require('../serialize');
 const Trail = require('../../models/trail');
-const transaction = require('../transaction');
 const validate = require('../validate');
 const validations = require('./participants.validations');
 

@@ -4,65 +4,48 @@ const Excursion = require('../../models/excursion');
 const fetcher = require('../fetcher');
 const policy = require('./excursions.policy');
 const QueryBuilder = require('../query-builder');
+const route = require('../route');
+const serialize = require('../serialize');
 const Trail = require('../../models/trail');
+const validate = require('../validate');
 const validations = require('./excursions.validations');
 
-const builder = api.builder(Excursion, 'excursions');
-
 // API resource name (used in some API errors).
-exports.name = 'excursion';
+exports.resourceName = 'excursion';
 
-exports.create = builder.route(function(req, res, helper) {
+exports.create = route.transactional(function*(req, res) {
+  yield validateExcursion(req);
 
-  return validateExcursion(req.excursion, helper).then(create);
+  const excursion = Excursion.parse(req);
+  excursion.set('creator_id', req.currentUser.get('id'));
 
-  function create() {
-    return Excursion.transaction(function() {
-
-      const excursion = Excursion.parse(req);
-      excursion.set('creator_id', req.currentUser.get('id'));
-
-      return excursion
-        .save()
-        .then(helper.serializer(policy))
-        .then(helper.created());
-    });
-  }
+  yield excursion.save();
+  res.status(201).send(serialize(req, excursion, policy));
 });
 
-exports.list = builder.route(function(req, res, helper) {
-  return new QueryBuilder(req, res, policy.scope(req))
+exports.list = route(function*(req, res) {
+
+  const query = policy.scope(req);
+  const excursions = yield new QueryBuilder(req, res, query)
     .paginate()
     .sort('name', 'createdAt', 'plannedAt', 'updatedAt')
     .eagerLoad([ 'creator', 'trail' ])
-    .fetch()
-    .map(helper.serializer(policy))
-    .then(helper.ok());
+    .fetch();
+
+  res.send(serialize(req, excursions, policy));
 });
 
-exports.retrieve = builder.route(function(req, res, helper) {
-  return Promise
-    .resolve(req.excursion.load([ 'creator', 'trail' ]))
-    .then(helper.serializer(policy))
-    .then(helper.ok());
+exports.retrieve = route(function*(req, res) {
+  yield req.excursion.load([ 'creator', 'trail' ]);
+  res.send(serialize(req, req.excursion, policy));
 });
 
-exports.update = builder.route(function(req, res, helper) {
-
-  const excursion = req.excursion;
-  return Promise
-    .resolve(excursion.load([ 'creator', 'trail' ]))
-    .then(_.partial(validateExcursion, _, helper, true))
-    .then(update);
-
-  function update() {
-    helper.unserializeTo(excursion, [ 'trailId', 'plannedAt', 'name', 'themes', 'zones' ]);
-
-    return excursion
-      .save()
-      .then(helper.serializer(policy))
-      .then(helper.ok());
-  }
+exports.update = route.transactional(function*(req, res) {
+  yield req.excursion.load([ 'creator', 'trail' ]);
+  yield validateExcursion(req, true);
+  policy.parseRequestIntoRecord(req, req.excursion);
+  yield req.excursion.save();
+  res.send(serialize(req, req.excursion, policy));
 });
 
 exports.fetchExcursion = fetcher({
@@ -70,8 +53,11 @@ exports.fetchExcursion = fetcher({
   resourceName: 'excursion'
 });
 
-function validateExcursion(excursion, helper, patchMode) {
-  return helper.validateRequestBody(function() {
+function validateExcursion(req, patchMode) {
+
+  const excursion = req.excursion;
+
+  return validate.requestBody(req, function() {
     return this.parallel(
       this.validate(
         this.json('/trailId'),

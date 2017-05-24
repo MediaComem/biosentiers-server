@@ -5,7 +5,6 @@ const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
 const Trail = require('../../models/trail');
-const transaction = require('../transaction');
 const validate = require('../validate');
 
 const builder = api.builder(Trail, 'trails');
