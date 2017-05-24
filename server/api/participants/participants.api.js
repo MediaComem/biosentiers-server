@@ -8,6 +8,7 @@ const Participant = require('../../models/participant');
 const route = require('../route');
 const serialize = require('../serialize');
 const Trail = require('../../models/trail');
+const transaction = require('../transaction');
 const validate = require('../validate');
 const validations = require('./participants.validations');
 
@@ -19,15 +20,14 @@ exports.resourceName = 'participant';
 exports.create = route(function*(req, res) {
   yield validateParticipant(req);
 
-  const participant = yield Participant.transaction(function() {
+  transaction(function*() {
 
     const newParticipant = Participant.parse(req);
     newParticipant.set('excursion_id', req.excursion.get('id'));
 
-    return newParticipant.save();
+    const participant = yield newParticipant.save();
+    res.status(201).send(serialize(req, participant, policy));
   });
-
-  res.status(201).send(serialize(req, participant, policy));
 });
 
 exports.list = route(function*(req, res) {

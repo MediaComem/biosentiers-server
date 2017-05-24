@@ -5,6 +5,7 @@ const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
 const Trail = require('../../models/trail');
+const transaction = require('../transaction');
 const validate = require('../validate');
 
 const builder = api.builder(Trail, 'trails');
@@ -15,11 +16,10 @@ exports.resourceName = 'trail';
 exports.create = route(function*(req, res) {
   yield validateTrail(req);
 
-  const trail = yield Trail.transaction(function() {
-    return Trail.parse(req).save();
+  transaction(function*() {
+    const trail = yield Trail.parse(req).save();
+    res.status(201).send(serialize(req, trail, policy));
   });
-
-  res.status(201).send(serialize(req, trail, policy));
 });
 
 exports.list = route(function*(req, res) {
