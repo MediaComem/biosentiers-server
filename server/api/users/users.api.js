@@ -4,15 +4,16 @@ const fetcher = require('../fetcher');
 const mailer = require('../../lib/mailer');
 const policy = require('./users.policy');
 const QueryBuilder = require('../query-builder');
+const route = require('../route');
+const serialize = require('../serialize');
 const User = require('../../models/user');
+const validate = require('../validate');
 const validations = require('../users/users.validations');
 
-const builder = api.builder(User, 'users');
-
 // API resource name (used in some API errors).
-exports.name = 'user';
+exports.resourceName = 'user';
 
-exports.create = builder.route(function(req, res, helper) {
+exports.create = route.transactional(function*(req, res) {
 
   if (req.jwtToken.authType == 'invitation') {
     _.extend(req.body, {
@@ -27,38 +28,28 @@ exports.create = builder.route(function(req, res, helper) {
     });
   }
 
-  return validate().then(create);
+  yield validateUser(req);
 
-  function validate() {
-    return helper.validateRequestBody(function() {
-      return this.parallel(
-        this.validate(this.json('/active'), this.type('boolean')),
-        this.validate(this.json('/email'), this.presence(), this.type('string'), this.email(), validations.emailAvailable()),
-        this.validate(this.json('/password'), this.presence(), this.type('string')),
-        this.validate(this.json('/role'), this.while(this.isSet()), this.type('string'), this.inclusion({ in: User.roles }))
-      );
-    });
+  const user = User.parse(req);
+  yield user.save();
+
+  if (req.jwtToken.authType == 'invitation') {
+    req.currentUser = user;
   }
 
-  function create() {
-    return User.transaction(function() {
-      return User.parse(req)
-        .save()
-        .then(helper.serializer(policy))
-        .then(helper.created());
-    });
-  }
+  res.status(201).send(serialize(req, user, policy));
 });
 
-exports.list = builder.route(function(req, res, helper) {
+exports.list = route(function*(req, res) {
 
-  return new QueryBuilder(req, res, policy.scope(req))
+  const query = policy.scope(req);
+  const users = yield new QueryBuilder(req, res, query)
     .paginate()
     .filter(filterByEmail)
     .sort('email', 'createdAt')
-    .fetch()
-    .map(helper.serializer(policy))
-    .then(helper.ok());
+    .fetch();
+
+  res.send(serialize(req, users, policy));
 
   function filterByEmail(query) {
     if (_.isString(req.query.email)) {
@@ -67,43 +58,73 @@ exports.list = builder.route(function(req, res, helper) {
   }
 });
 
-exports.retrieve = builder.route(function(req, res, helper) {
-  return helper.respond(req.user, policy);
+exports.retrieve = route(function*(req, res) {
+  res.send(serialize(req, req.user, policy));
 });
 
-exports.update = builder.route(function(req, res, helper) {
+exports.update = route.transactional(function*(req, res) {
 
   const user = req.user;
-  return validate().then(update);
+  yield validateUserForUpdate(req);
+  policy.parseRequestIntoRecord(req, user);
 
-  function validate() {
-    return helper.validateRequestBody(function() {
-      return this.parallel(
-        this.validate(this.json('/password'), this.while(this.hasChanged()), this.type('string'), this.presence())
-      );
-    });
+  const password = req.body.password;
+  const previousPassword = req.body.previousPassword;
+
+  if (user.get('password_hash') && password && user.hasPassword(previousPassword)) {
+    user.set('password', password);
+  } else if (!user.get('password_hash') && password) {
+    user.set('password', password);
   }
 
-  function update() {
-    helper.unserializeTo(user, [ 'active', 'email', 'role', 'firstName', 'lastName' ]);
+  yield user.save();
 
-    const password = req.body.password;
-    const previousPassword = req.body.previousPassword;
-
-    if (user.get('password_hash') && password && user.hasPassword(previousPassword)) {
-      user.set('password', password);
-    } else if (!user.get('password_hash') && password) {
-      user.set('password', password);
-    }
-
-    return user
-      .save()
-      .then(helper.serializer(policy))
-      .then(helper.ok());
-  }
+  res.send(serialize(req, user, policy));
 });
 
 exports.fetchUser = fetcher({
   model: User,
   resourceName: 'user'
 });
+
+function validateUser(req) {
+  return validate.requestBody(req, function() {
+    return this.parallel(
+      this.validate(
+        this.json('/active'),
+        this.type('boolean')
+      ),
+      this.validate(
+        this.json('/email'),
+        this.presence(),
+        this.type('string'),
+        this.email(),
+        validations.emailAvailable()
+      ),
+      this.validate(
+        this.json('/password'),
+        this.presence(),
+        this.type('string')
+      ),
+      this.validate(
+        this.json('/role'),
+        this.while(this.isSet()),
+        this.type('string'),
+        this.inclusion({ in: User.roles })
+      )
+    );
+  });
+}
+
+function validateUserForUpdate(req) {
+  return validate.requestBody(req, function() {
+    return this.parallel(
+      this.validate(
+        this.json('/password'),
+        this.while(this.hasChanged()),
+        this.type('string'),
+        this.presence()
+      )
+    );
+  });
+}

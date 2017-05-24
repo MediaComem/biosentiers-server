@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const parsing = require('../parsing');
 const policy = require('../policy');
 const User = require('../../models/user');
 
@@ -45,9 +46,13 @@ exports.scope = function(req) {
   }
 
   return scope;
-};
+}
 
-exports.serialize = function(user, req) {
+exports.parseRequestIntoRecord = function(req, user) {
+  return parsing.parseJsonIntoRecord(req.body, user, [ 'active', 'email', 'role', 'firstName', 'lastName' ]);
+};;
+
+exports.serialize = function(req, user) {
 
   const serialized = {
     email: user.get('email')

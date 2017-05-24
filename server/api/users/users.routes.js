@@ -112,7 +112,7 @@ router.get('/',
  */
 router.get('/:id',
   controller.fetchUser,
-  utils.authorize(policy.canRetrieve, controller.name),
+  utils.authorize(policy.canRetrieve, controller.resourceName),
   controller.retrieve);
 
 /**
@@ -160,7 +160,7 @@ router.get('/:id',
  */
 router.patch('/:id',
   controller.fetchUser,
-  utils.authorize(policy.canUpdate, controller.name),
+  utils.authorize(policy.canUpdate, controller.resourceName),
   controller.update);
 
 module.exports = router;

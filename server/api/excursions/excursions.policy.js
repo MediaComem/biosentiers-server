@@ -45,7 +45,7 @@ exports.serialize = function(req, excursion) {
   };
 
   if (utils.includes(req, 'creator')) {
-    result.creator = usersPolicy.serialize(excursion.related('creator'), req);
+    result.creator = usersPolicy.serialize(req, excursion.related('creator'));
   }
 
   if (utils.includes(req, 'trail')) {

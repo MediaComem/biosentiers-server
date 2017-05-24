@@ -33,7 +33,7 @@ exports.authenticate = function(req, res, next) {
 
     res.json({
       token: user.generateJwt(),
-      user: policy.serialize(user, req)
+      user: policy.serialize(req, user)
     });
   })(req, res, next);
 };
