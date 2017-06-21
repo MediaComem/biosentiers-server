@@ -1,4 +1,4 @@
-const _ = require('lodash'),
+const _ = require('lodash');
 const app = require('../app');
 const config = require('../../config');
 const db = require('../db');
@@ -113,7 +113,7 @@ exports.responseExpectationFactory = function(func) {
 
 exports.expectTimestamp = function(actual, expected, type) {
 
-  const name = type + 'At',
+  const name = type + 'At';
   const afterName = type + 'After';
   const beforeName = type + 'Before';
 

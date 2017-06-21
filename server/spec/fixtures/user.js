@@ -1,4 +1,4 @@
-const _ = require('lodash'),
+const _ = require('lodash');
 const generator = require('../generator');
 const spec = require('../utils');
 const User = require('../../models/user');

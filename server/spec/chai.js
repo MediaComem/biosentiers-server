@@ -1,4 +1,4 @@
-const _ = require('lodash'),
+const _ = require('lodash');
 const chai = require('chai');
 const moment = require('moment');
 

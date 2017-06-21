@@ -1,4 +1,4 @@
-const _ = require('lodash'),
+const _ = require('lodash');
 const bcrypt = require('bcryptjs');
 const expect = require('../chai').expect;
 const moment = require('moment');
