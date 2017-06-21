@@ -1,7 +1,7 @@
 const _ = require('lodash');
+const BPromise = require('bluebird');
 const config = require('../../config');
 const nodemailer = require('nodemailer');
-const Promise = require('bluebird');
 const smtpTransport = require('nodemailer-smtp-transport');
 
 const logger = config.logger('mailer');
@@ -47,12 +47,12 @@ function createTransport() {
 
 function sendEmail(email) {
   if (!config.mail.enabled) {
-    return Promise.resolve();
+    return BPromise.resolve();
   } else if (config.env == 'test') {
     throw new Error('Trying to send an e-mail in test mode');
   }
 
-  return new Promise(function(resolve, reject) {
+  return new BPromise(function(resolve, reject) {
     transporter.sendMail(email, function(err, info) {
       return err ? reject(err) : resolve();
     });

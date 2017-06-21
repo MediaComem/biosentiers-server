@@ -19,6 +19,8 @@ exports.create = route.transactional(function*(req, res) {
   excursion.set('creator_id', req.currentUser.get('id'));
 
   yield excursion.save();
+  yield excursion.load([ 'creator', 'trail' ]);
+
   res.status(201).send(serialize(req, excursion, policy));
 });
 

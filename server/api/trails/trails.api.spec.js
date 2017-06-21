@@ -16,13 +16,13 @@ describe('Trails API', function() {
 
   describe('POST /api/trails', function() {
     beforeEach(function() {
-      data.admin = userFixtures.admin();
+      return spec.setUp(data, () => {
+        data.admin = userFixtures.admin();
 
-      data.reqBody = {
-        name: 'Over the rainbow'
-      };
-
-      return spec.setUp(data);
+        data.reqBody = {
+          name: 'Over the rainbow'
+        };
+      });
     });
 
     it('should create a trail', function() {

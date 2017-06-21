@@ -1,7 +1,7 @@
 const _ = require('lodash');
+const BPromise = require('bluebird');
 const inflection = require('inflection');
 const pagination = require('./pagination');
-const Promise = require('bluebird');
 
 function QueryBuilder(req, res, base) {
   this.req = req;
@@ -64,7 +64,7 @@ function fetch() {
     related: this.related
   };
 
-  let promise = Promise.resolve();
+  let promise = BPromise.resolve();
 
   if (this.paginated) {
     promise = promise
@@ -101,7 +101,7 @@ function paginate(data) {
 
   _.extend(data, pagination.setUpPagination(data.req, data.res));
 
-  return Promise
+  return BPromise
     .resolve(data).then(countTotal)
     .return(data).then(checkFiltered)
     .return(data).then(applyPagination);
@@ -148,8 +148,8 @@ function applyFiltersRecursively(data, filters) {
     return;
   }
 
-  return Promise.map(currentFilters, function(filter) {
-    return Promise.resolve(filter(data.query)).then(function(result) {
+  return BPromise.map(currentFilters, function(filter) {
+    return BPromise.resolve(filter(data.query)).then(function(result) {
       if (result) {
         data.query = result;
         data.filtered = true;

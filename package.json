@@ -50,6 +50,7 @@
     "apidoc": "^0.17.5",
     "chai": "^3.5.0",
     "chai-moment": "^0.1.0",
+    "chance": "^1.0.10",
     "concurrently": "^3.3.0",
     "doctoc": "^1.2.0",
     "http-status": "^0.2.3",

@@ -10,16 +10,18 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   // Check the actual object.
   expect(actual, 'user').to.be.an('object');
 
-  const keys = [ 'id', 'email', 'active', 'role', 'createdAt', 'updatedAt' ];
+  const keys = [ 'id', 'firstName', 'lastName', 'email', 'active', 'role', 'createdAt', 'updatedAt' ];
   expect(actual, 'res.body').to.have.all.keys(keys);
 
   expect(actual.id, 'user.id').to.be.a('string');
+  expect(actual.firstName, 'user.firstName').to.equal(expected.firstName);
+  expect(actual.lastName, 'user.lastName').to.equal(expected.lastName);
   expect(actual.email, 'user.email').to.equal(expected.email);
   expect(actual.active, 'user.active').to.equal(_.get(expected, 'active', true));
   expect(actual.role, 'user.role').to.equal(_.get(expected, 'role', 'user'));
 
-  spec.expectTimestamp(actual, expected, 'created');
-  spec.expectTimestamp(actual, expected, 'updated');
+  spec.expectTimestamp('user', actual, expected, 'created');
+  spec.expectTimestamp('user', actual, expected, 'updated');
 
   // Check that the corresponding user exists in the database.
   return module.exports.inDb(actual.id, _.extend({}, actual, _.pick(expected, 'password')));
@@ -30,6 +32,8 @@ module.exports.inDb = function(apiId, expected) {
     expect(user, 'db.user').to.be.an.instanceof(User);
     expect(user.get('id'), 'db.user.id').to.be.a('string');
     expect(user.get('api_id'), 'db.user.api_id').to.equal(expected.id);
+    expect(user.get('first_name'), 'db.user.first_name').to.equal(expected.firstName);
+    expect(user.get('last_name'), 'db.user.last_name').to.equal(expected.lastName);
     expect(user.get('email'), 'db.user.email').to.equal(expected.email);
     expect(user.get('active'), 'db.user.active').to.equal(expected.active);
     expect(user.get('role'), 'db.user.role').to.equal(expected.role);

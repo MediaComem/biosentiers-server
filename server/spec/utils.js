@@ -6,7 +6,7 @@ const expect = require('chai').expect;
 const expectations = require('./expectations/response');
 const httpStatuses = require('http-status');
 const moment = require('moment');
-const Promise = require('bluebird');
+const BPromise = require('bluebird');
 const supertest = require('supertest-as-promised');
 
 const logger = config.logger('spec');
@@ -36,35 +36,47 @@ exports.testUpdate = function(path, body) {
     .expect(expectations.json(200));
 };
 
-exports.setUp = function(data, callback) {
-  if (_.isFunction(data)) {
-    callback = data;
-    data = {};
-  } else if (!data) {
-    data = {};
+exports.setUp = function(data, beforeResolve) {
+  if (!_.isFunction(data)) {
+    const originalData = data;
+    data = function() {
+      return originalData;
+    };
   }
 
-  data.beforeSetup = moment();
+  if (beforeResolve && !_.isArray(beforeResolve)) {
+    beforeResolve = [ beforeResolve ];
+  }
 
-  return Promise.resolve()
+  const beforeSetup = moment();
+
+  return BPromise.resolve()
     .then(exports.cleanDatabase)
-    .then(_.partial(exports.resolve, data, true))
-    .then(callback || _.noop)
-    .then(function() {
-      if (!_.has(data, 'now')) {
-        data.now = moment();
-      }
+    .then(() => BPromise.all(_.map(beforeResolve, func => func())))
+    .then(() => exports.resolve(data(), true))
+    .then(function(resolvedData) {
+      _.defaults(resolvedData, {
+        beforeSetup: beforeSetup,
+        now: moment()
+      });
 
-      const duration = moment().diff(data.beforeSetup) / 1000;
+      const duration = moment().diff(resolvedData.beforeSetup) / 1000;
       logger.debug('Completed test setup in ' + duration + 's');
-    }).return(exports);
+    })
+    .return(exports);
 };
 
 exports.cleanDatabase = function() {
   const start = moment();
-  return Promise.all([
-    db.knex.raw('TRUNCATE user_account;')
-  ]).then(function() {
+
+  let promise = BPromise.resolve();
+  _.each('participant excursion trail user_account'.split(/\s+/), (table) => {
+    promise = promise.then(function() {
+      return db.knex.raw(`DELETE from ${table};`);
+    })
+  });
+
+  return promise.then(function() {
     const duration = moment().diff(start) / 1000;
     logger.debug('Cleaned database in ' + duration + 's');
   });
@@ -82,22 +94,24 @@ exports.enrichExpectation = function(checkFunc) {
 };
 
 exports.createRecord = function(model, data) {
-  return Promise.resolve(data).then(function(resolved) {
+  return BPromise.resolve(data).then(function(resolved) {
     return new model(resolved).save();
   });
 };
 
 exports.resolve = function(data, inPlace) {
-  if (_.isPlainObject(data)) {
-    return Promise.props(_.mapValues(data, function(value) {
+  if (_.isFunction(data)) {
+    return exports.resolve(data(), inPlace);
+  } else if (_.isPlainObject(data)) {
+    return BPromise.props(_.mapValues(data, function(value) {
       return exports.resolve(value, inPlace);
     })).then(resolvedDataUpdater(data, inPlace));
   } else if (_.isArray(data)) {
-    return Promise.all(_.map(data, function(value) {
+    return BPromise.all(_.map(data, function(value) {
       return exports.resolve(value, inPlace);
     })).then(resolvedDataUpdater(data, inPlace));
   } else {
-    return Promise.resolve(data);
+    return BPromise.resolve(data);
   }
 };
 
@@ -111,23 +125,46 @@ exports.responseExpectationFactory = function(func) {
   };
 };
 
-exports.expectTimestamp = function(actual, expected, type) {
+exports.expectTimestamp = function(type, actual, expected, timestampType, required) {
+  if (!_.isString(type)) {
+    throw new Error('Type must be a string describing the type of record');
+  } else if (!_.isString(timestampType)) {
+    throw new Error('Timestamp type must be a string identifying the timestamp (e.g. "created" or "updated")');
+  }
 
-  const name = type + 'At';
-  const afterName = type + 'After';
-  const beforeName = type + 'Before';
+  const name = timestampType + 'At';
+  const afterName = timestampType + 'After';
+  const beforeName = timestampType + 'Before';
+
+  const desc = `${type}.${name}`;
+  required = required !== undefined ? required : true;
 
   if (_.isString(expected[name]) && expected[name].match(/At$/)) {
-    expect(actual[name], 'user.' + name).to.equal(actual[name]);
+    expect(actual[name], desc).to.equal(actual[name]);
   } else if (expected[name]) {
-    expect(actual[name], 'user.' + name).to.be.iso8601(expected[name]);
+    expect(actual[name], desc).to.be.iso8601(expected[name]);
   } else if (expected[afterName]) {
-    expect(actual[name], 'user.' + name).to.be.iso8601('justAfter', expected[afterName]);
+    expect(actual[name], desc).to.be.iso8601('justAfter', expected[afterName]);
   } else if (expected[beforeName]) {
-    expect(actual[name], 'user.' + name).to.be.iso8601('justBefore', expected[beforeName]);
+    expect(actual[name], desc).to.be.iso8601('justBefore', expected[beforeName]);
+  } else if (!required) {
+    expect(actual, desc).not.to.have.property(name);
   } else {
-    throw new Error('User expectation requires either `' + type + 'At`, `' + type + 'Before` or `' + type + 'After` to be specified to check the ' + name + ' timestamp');
+    throw new Error(`Expectation for ${name} requires either "${name}", "${afterName}" or "${beforeName}" to be specified`);
   }
+};
+
+exports.expectIfElse = function(actual, desc, condition, ifFunc, elseFunc) {
+  if (!_.isString(desc)) {
+    throw new Error('Description must be a string');
+  } else if (!_.isFunction(ifFunc)) {
+    throw new Error('If function is required');
+  } else if (!_.isFunction(elseFunc)) {
+    throw new Error('Else function is required');
+  }
+
+  const fulfilled = _.isFunction(condition) ? condition() : condition;
+  (fulfilled ? ifFunc : elseFunc)(expect(actual, desc));
 };
 
 function resolvedDataUpdater(data, update) {
@@ -148,8 +185,8 @@ function handleResponseAssertionError(func) {
   return function(res) {
     try {
       const result = func(res);
-      return Promise.resolve(result).catch(function(err) {
-        return Promise.reject(enrichResponseAssertionError(err, res));
+      return BPromise.resolve(result).catch(function(err) {
+        return BPromise.reject(enrichResponseAssertionError(err, res));
       }).return(res);
     } catch(err) {
       throw enrichResponseAssertionError(err, res);

@@ -16,15 +16,18 @@ describe('Users API', function() {
   describe('POST /api/users', function() {
     beforeEach(function() {
       data.reqBody = {
-        email: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john.doe@example.com',
         password: 'letmein'
       };
     });
 
     describe('for an admin', function() {
       beforeEach(function() {
-        data.admin = userFixtures.admin();
-        return spec.setUp(data);
+        return spec.setUp(data, () => {
+          data.admin = userFixtures.admin();
+        });
       });
 
       it('should create a user', function() {
@@ -45,6 +48,8 @@ describe('Users API', function() {
       it('should not accept invalid properties', function() {
 
         const body = {
+          firstName: '',
+          lastName: 4,
           email: 'foo'
         };
 
@@ -54,16 +59,38 @@ describe('Users API', function() {
           .send(body)
           .then(expectRes.invalid([
             {
-              code: 'validation.email.invalid',
+              message: 'must not be empty',
               type: 'json',
-              location: '/email',
-              message: 'Value must be a valid e-mail address.'
+              location: '/firstName',
+              validator: 'presence',
+              cause: 'empty',
+              value: '',
+              valueSet: true
             },
             {
-              code: 'validation.presence.missing',
+              message: 'is required',
               type: 'json',
               location: '/password',
-              message: 'Value is required.'
+              validator: 'presence',
+              cause: 'missing',
+              valueSet: false
+            },
+            {
+              message: 'must be of type string',
+              type: 'json',
+              location: '/lastName',
+              validator: 'type',
+              typeDescription: 'string',
+              value: 4,
+              valueSet: true
+            },
+            {
+              message: 'must be a valid e-mail address',
+              type: 'json',
+              location: '/email',
+              validator: 'email',
+              value: 'foo',
+              valueSet: true
             }
           ]));
       });
@@ -71,13 +98,13 @@ describe('Users API', function() {
 
     describe('for an invited user', function() {
       beforeEach(function() {
-        data.invitation = jwt.generateToken({
-          authType: 'invitation',
-          email: data.reqBody.email,
-          role: 'user'
+        return spec.setUp(data, () => {
+          data.invitation = jwt.generateToken({
+            authType: 'invitation',
+            email: data.reqBody.email,
+            role: 'user'
+          });
         });
-
-        return spec.setUp(data);
       });
 
       it('should create a user', function() {
@@ -102,7 +129,9 @@ describe('Users API', function() {
     data.threeDaysAgo = moment().subtract(3, 'days');
 
     data.userProps = _.extend({
-      email: 'test@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john.doe@example.com',
       password: 'changeme',
       active: true,
       role: 'user',
@@ -123,8 +152,9 @@ describe('Users API', function() {
     describe('with an existing user', function() {
 
       beforeEach(function() {
-        addExistingUserData(data);
-        return spec.setUp(data);
+        return spec.setUp(data, () => {
+          addExistingUserData(data);
+        });
       });
 
       it('should retrieve a user', function() {
@@ -179,8 +209,9 @@ describe('Users API', function() {
     describe('with an existing user', function() {
 
       beforeEach(function() {
-        addExistingUserData(data);
-        return spec.setUp(data);
+        return spec.setUp(data, () => {
+          addExistingUserData(data);
+        });
       });
 
       it('should update a user', function() {
@@ -226,10 +257,13 @@ describe('Users API', function() {
           .send(body)
           .then(expectRes.invalid([
             {
-              code: 'validation.presence.missing',
+              validator: 'presence',
+              cause: 'empty',
               type: 'json',
               location: '/password',
-              message: 'Value is required.'
+              message: 'must not be empty',
+              value: '',
+              valueSet: true
             }
           ]));
       });

@@ -15,8 +15,8 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   expect(actual.id, 'trail.id').to.be.a('string');
   expect(actual.name, 'trail.name').to.equal(expected.name);
 
-  spec.expectTimestamp(actual, expected, 'created');
-  spec.expectTimestamp(actual, expected, 'updated');
+  spec.expectTimestamp('trail', actual, expected, 'created');
+  spec.expectTimestamp('trail', actual, expected, 'updated');
 
   // Check that the corresponding trail exists in the database.
   return module.exports.inDb(actual.id, actual);

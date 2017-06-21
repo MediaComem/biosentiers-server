@@ -90,6 +90,16 @@ function validateUser(req) {
   return validate.requestBody(req, function() {
     return this.parallel(
       this.validate(
+        this.json('/firstName'),
+        this.presence(),
+        this.type('string')
+      ),
+      this.validate(
+        this.json('/lastName'),
+        this.presence(),
+        this.type('string')
+      ),
+      this.validate(
         this.json('/active'),
         this.type('boolean')
       ),

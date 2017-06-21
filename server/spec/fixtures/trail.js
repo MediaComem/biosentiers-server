@@ -12,6 +12,6 @@ exports.trail = function(data) {
   });
 };
 
-exports.name = generator(function(i) {
+exports.name = generator.incremental(function(i) {
   return 'Trail ' + i;
 });
