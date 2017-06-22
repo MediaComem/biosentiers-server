@@ -1,11 +1,13 @@
 const _ = require('lodash');
 const BPromise = require('bluebird');
 const utils = require('../lib/knex-utils');
+const uuid = require('uuid');
 
 /**
  * - Rename all primary keys to "id"
  * - Change foreign key columns naming convention from "id_thing" to "thing_id"
  * - Change all integer primary and foreign keys to big integers
+ * - Add sequences and auto increments for all primary keys
  * - Make all foreign key columns not null
  * - Make all geometry columns not null
  * - Make some (but not all) other columns not null where appropriate
@@ -17,13 +19,14 @@ const utils = require('../lib/knex-utils');
  *
  * TODO:
  * - Use "taxonomy_" prefix for tables class, division, reign?
- * - Rename "owner" table (reserved word)
+ * - Rename "owner" table (reserved word)?
  */
 
 exports.up = function(knex, Promise) {
   utils.logMigration(knex);
   return utils.sequentially(
     knex,
+    createDefaultTrail,
     updateBirdTable,
     updateBirdFamilyTable,
     updateBirdHeightTable,
@@ -45,13 +48,26 @@ exports.up = function(knex, Promise) {
     updateTreeSpeciesTable,
     updateZoneTable,
     updateZonePointTable,
-    addForeignKeys
+    addForeignKeys,
+    addAutoIncrements,
+    linkExcursionsToThemes,
+    linkExcursionsToZones,
+    cleanUp
   );
 };
 
 exports.down = function(knex, Promise) {
   throw new Error('This migration is not reversible');
 };
+
+function createDefaultTrail(knex) {
+  return knex('trail').insert({
+    api_id: uuid.v4(),
+    name: 'BioSentier',
+    created_at: new Date(),
+    updated_at: new Date()
+  });
+}
 
 function updateBirdTable(knex) {
   return alterTable(knex, 'bird', (t) => {
@@ -360,6 +376,78 @@ function addForeignKeys(knex) {
   ]);
 }
 
+function addAutoIncrements(knex) {
+  return BPromise.all(_.map([
+    'bird', 'bird_family', 'bird_height', 'bird_species',
+    'butterfly', 'butterfly_family', 'butterfly_species',
+    'class', 'division',
+    'flora_family',
+    'flower', 'flower_species',
+    'owner',
+    'path', 'path_type',
+    'reign', 'theme',
+    'tree', 'tree_species',
+    'zone', 'zone_point'
+  ], table => addAutoIncrementFactory(knex, table)));
+}
+
+function addAutoIncrementFactory(knex, table) {
+  return knex.raw(`SELECT max(id) AS result FROM ${table};`).then((result) => {
+    const start = parseInt(result.rows[0].result, 10) + 1;
+    return knex.raw(`CREATE SEQUENCE ${table}_id_seq START ${start};`).then(() => {
+      return knex.raw(`ALTER TABLE ${table} ALTER COLUMN id SET DEFAULT nextval('${table}_id_seq'::regclass);`);
+    });
+  });
+}
+
+function linkExcursionsToThemes(knex) {
+  return knex.schema.createTable('excursions_themes', (t) => {
+
+    t.bigInteger('excursion_id')
+      .notNullable()
+      .references('excursion.id')
+      .withKeyName('excursions_themes_excursion_id_fkey')
+      .onUpdate('cascade')
+      .onDelete('restrict');
+
+    t.bigInteger('theme_id')
+      .notNullable()
+      .references('theme.id')
+      .withKeyName('excursions_themes_theme_id_fkey')
+      .onUpdate('cascade')
+      .onDelete('restrict');
+
+    t.unique([ 'excursion_id', 'theme_id' ]);
+  });
+}
+
+function linkExcursionsToZones(knex) {
+  return knex.schema.createTable('excursions_zones', (t) => {
+
+    t.bigInteger('excursion_id')
+      .notNullable()
+      .references('excursion.id')
+      .withKeyName('excursions_themes_excursion_id_fkey')
+      .onUpdate('cascade')
+      .onDelete('restrict');
+
+    t.bigInteger('zone_id')
+      .notNullable()
+      .references('zone.id')
+      .withKeyName('excursions_zones_zone_id_fkey')
+      .onUpdate('cascade')
+      .onDelete('restrict');
+
+    t.unique([ 'excursion_id', 'zone_id' ]);
+  });
+}
+
+function cleanUp(knex) {
+  return alterTable(knex, 'excursion', (t) => {
+    t.dropColumn('themes_and_zones_bitmask');
+  });
+}
+
 function addForeignKey(knex, table, column, reference, nullable) {
   return alterTable(knex, table, (t) => {
 
@@ -368,9 +456,9 @@ function addForeignKey(knex, table, column, reference, nullable) {
 
     change = change
       .references(reference)
+      .withKeyName(`${table}_${column}_fkey`)
       .onUpdate('cascade')
       .onDelete('restrict')
-      .withKeyName(`${table}_${column}_fkey`)
       .alter();
   });
 }
