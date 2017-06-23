@@ -70,7 +70,7 @@ exports.down = function(knex, Promise) {
 function createDefaultTrail(knex) {
   return knex('trail').insert({
     api_id: uuid.v4(),
-    name: 'BioSentier',
+    name: 'BioSentier Yverdon',
     created_at: new Date(),
     updated_at: new Date()
   }).returning('id').then((result) => {

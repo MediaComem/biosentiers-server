@@ -13,7 +13,7 @@ process.env.ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
 process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'test';
 
 const sampleTrail = {
-  name: 'Le biosentier'
+  name: 'BioSentier Yverdon'
 };
 
 const sampleUser = {
