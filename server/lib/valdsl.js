@@ -3,6 +3,12 @@ const valdsl = require('valdsl');
 
 const custom = valdsl();
 
-// Customize valdsl here if needed...
+custom.override('createError', function(original) {
+  return function(...args) {
+    const error = original.call(this, ...args);
+    delete error.data;
+    return error;
+  };
+});
 
 module.exports = custom;

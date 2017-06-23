@@ -13,10 +13,6 @@ const Excursion = Abstract.extend({
   apiId: true,
   timestamps: true,
 
-  parsing: {
-    default: 'trail_id planned_at name themes zones'
-  },
-
   creator: function() {
     return this.belongsTo('User', 'creator_id');
   },
@@ -25,11 +21,11 @@ const Excursion = Abstract.extend({
     return this.belongsTo('Trail');
   },
 
+  themes: function() {
+    return this.belongsToMany('Theme', 'excursions_themes');
+  },
+
   virtuals: {
-    themes: {
-      get: decodeThemes,
-      set: encodeThemes
-    },
     zones: {
       get: decodeZones,
       set: encodeZones
@@ -44,35 +40,6 @@ function generateUniqueApiId() {
   return new Excursion({ api_id: newApiId }).fetch().then(function(existingExcursion) {
     return existingExcursion ? generateUniqueApiId() : newApiId;
   });
-}
-
-function decodeThemes() {
-
-  const themes = [];
-  const bitmask = this.get('themes_and_zones_bitmask');
-  _.each(THEMES, (theme, i) => {
-    const mask = 1 << (THEMES_START + i);
-    if ((bitmask & mask) != 0) {
-      themes.push(theme);
-    }
-  });
-
-  return themes;
-}
-
-function encodeThemes(themes) {
-
-  let bitmask = this.get('themes_and_zones_bitmask');
-  _.each(THEMES, (theme, i) => {
-    const mask = 1 << (THEMES_START + i);
-    if (_.includes(themes, theme)) {
-      bitmask = bitmask | mask;
-    } else if ((bitmask & mask) != 0) {
-      bitmask = bitmask ^ mask;
-    }
-  });
-
-  this.set('themes_and_zones_bitmask', bitmask);
 }
 
 function decodeZones() {
