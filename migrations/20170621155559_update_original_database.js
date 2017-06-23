@@ -4,23 +4,29 @@ const utils = require('../lib/knex-utils');
 const uuid = require('uuid');
 
 /**
+ * This migration applies the following changes:
+ *
  * - Rename all primary keys to "id"
  * - Change foreign key columns naming convention from "id_thing" to "thing_id"
  * - Change all integer primary and foreign keys to big integers
- * - Add sequences and auto increments for all primary keys
+ * - Add sequences (auto increments) for all primary keys (except bird, butterfly, flower and tree which are child tables of poi)
  * - Make all foreign key columns not null
  * - Make all geometry columns not null
  * - Make some (but not all) other columns not null where appropriate
  * - Make all timestamp columns (e.g. created_at) not null
  * - Change some text columns to varchar(25/50/150)
- * - Remove duplicate table name in column names (e.g. "division_name" renamed to "name" in "division" table)
+ * - Remove table name prefix in column names (e.g. "division_name" renamed to "name" in "division" table)
  * - Add appropriate foreign key constraints
  * - Add unique constraints for the primary name of some tables (e.g. class, division, reign)
  *
- * TODO:
- * - Use "taxonomy_" prefix for tables class, division, reign?
- * - Rename "owner" table (reserved word)?
+ * To discuss:
+ *
+ * - Use "taxonomy_" prefix for tables class/division/reign?
+ * - Rename "class/owner/path" table (reserved words)?
+ * - bird/butterfly/flower/tree_species inheritance?
  */
+
+let defaultTrailId;
 
 exports.up = function(knex, Promise) {
   utils.logMigration(knex);
@@ -42,6 +48,7 @@ exports.up = function(knex, Promise) {
     updateOwnerTable,
     updatePathTable,
     updatePathTypeTable,
+    updatePoiTable,
     updateReignTable,
     updateThemeTable,
     updateTreeTable,
@@ -66,6 +73,8 @@ function createDefaultTrail(knex) {
     name: 'BioSentier',
     created_at: new Date(),
     updated_at: new Date()
+  }).returning('id').then((result) => {
+    defaultTrailId = parseInt(result[0], 10);
   });
 }
 
@@ -92,8 +101,7 @@ function updateBirdFamilyTable(knex) {
     t.bigInteger('class_id').notNullable().alter();
     t.string('name', 50).notNullable().alter();
   }).then(() => {
-    // TODO: should bird family name be unique or unique by class?
-    return knex.raw('create unique index bird_family_name_unique on bird_family (lower(name));');
+    return knex.raw('create unique index bird_family_name_unique on bird_family (lower(name), class_id);');
   });
 }
 
@@ -145,8 +153,7 @@ function updateButterflyFamilyTable(knex) {
     t.bigInteger('class_id').notNullable().alter();
     t.string('name', 50).notNullable().alter();
   }).then(() => {
-    // TODO: should butterfly family name be unique or unique by class?
-    return knex.raw('create unique index butterfly_family_name_unique on butterfly_family (lower(name));');
+    return knex.raw('create unique index butterfly_family_name_unique on butterfly_family (lower(name), class_id);');
   });
 }
 
@@ -172,8 +179,7 @@ function updateClassTable(knex) {
     t.bigInteger('reign_id').notNullable().alter();
     t.string('name', 50).notNullable().alter();
   }).then(() => {
-    // TODO: should class name be unique or unique by reign?
-    return knex.raw('create unique index class_name_unique on class (lower(name));');
+    return knex.raw('create unique index class_name_unique on class (lower(name), reign_id);');
   });
 }
 
@@ -188,8 +194,7 @@ function updateDivisionTable(knex) {
     t.bigInteger('reign_id').notNullable().alter();
     t.string('name', 50).notNullable().alter();
   }).then(() => {
-    // TODO: should division name be unique or unique by reign?
-    return knex.raw('create unique index division_name_unique on division (lower(name));');
+    return knex.raw('create unique index division_name_unique on division (lower(name), reign_id);');
   });
 }
 
@@ -204,8 +209,7 @@ function updateFloraFamilyTable(knex) {
     t.bigInteger('division_id').notNullable().alter();
     t.string('name', 50).notNullable().alter();
   }).then(() => {
-    // TODO: should flora family name be unique or unique by division?
-    return knex.raw('create unique index flora_family_name_unique on flora_family (lower(name));');
+    return knex.raw('create unique index flora_family_name_unique on flora_family (lower(name), division_id);');
   });
 }
 
@@ -250,7 +254,6 @@ function updateOwnerTable(knex) {
   });
 }
 
-// TODO: link to trail table + unique constraint
 function updatePathTable(knex) {
   return alterTable(knex, 'path', (t) => {
     t.dropPrimary();
@@ -263,6 +266,16 @@ function updatePathTable(knex) {
     t.string('name', 150).notNullable().alter();
     t.integer('length').notNullable().alter();
     t.timestamp('created_at', true).notNullable().alter();
+    // Add a foreign key column linking paths to a trail
+    t.bigInteger('trail_id');
+  }).then(() => {
+    // Link all current paths to the default trail (created at the beginning of the script)
+    return knex('path').update('trail_id', defaultTrailId);
+  }).then(() => {
+    // Make the trail foreign key column not nullable
+    return knex.schema.alterTable('path', (t) => {
+      t.bigInteger('trail_id').notNullable().alter();
+    });
   });
 }
 
@@ -275,6 +288,22 @@ function updatePathTypeTable(knex) {
     t.string('name', 25).notNullable().alter();
   }).then(() => {
     return knex.raw('create unique index path_type_name_unique on path_type (lower(name));');
+  });
+}
+
+function updatePoiTable(knex) {
+  return alterTable(knex, 'poi', (t) => {
+    t.dropPrimary();
+    t.renameColumn('id_poi', 'id');
+    t.renameColumn('id_owner', 'owner_id');
+    t.renameColumn('id_theme', 'theme_id');
+    t.renameColumn('id_zone', 'zone_id');
+  }, (t) => {
+    t.bigInteger('id').primary().notNullable().alter();
+    t.bigInteger('owner_id').notNullable().alter();
+    t.bigInteger('theme_id').notNullable().alter();
+    t.bigInteger('zone_id').notNullable().alter();
+    t.timestamp('created_at', true).notNullable().alter();
   });
 }
 
@@ -327,7 +356,6 @@ function updateTreeSpeciesTable(knex) {
   });
 }
 
-// TODO: link to trail table + add order column
 function updateZoneTable(knex) {
   return alterTable(knex, 'zone', (t) => {
     t.dropPrimary();
@@ -338,6 +366,16 @@ function updateZoneTable(knex) {
     t.bigInteger('id').primary().notNullable().alter();
     t.specificType('geom', 'geometry(Geometry,4326)').notNullable().alter();
     t.timestamp('created_at', true).notNullable().alter();
+    // Add a foreign key column linking zones to a trail
+    t.bigInteger('trail_id');
+  }).then(() => {
+    // Link all current zones to the default trail (created at the beginning of the script)
+    return knex('zone').update('trail_id', defaultTrailId);
+  }).then(() => {
+    // Make the trail foreign key column not nullable
+    return knex.schema.alterTable('zone', (t) => {
+      t.bigInteger('trail_id').notNullable().alter();
+    });
   });
 }
 
@@ -357,37 +395,42 @@ function updateZonePointTable(knex) {
 
 function addForeignKeys(knex) {
   return BPromise.all([
-    addForeignKey(knex, 'bird', 'species_id', 'bird_species.id'),
-    addForeignKey(knex, 'bird_family', 'class_id', 'class.id'),
-    addForeignKey(knex, 'bird_species', 'family_id', 'bird_family.id'),
-    addForeignKey(knex, 'bird_species', 'height_id', 'bird_height.id'),
-    addForeignKey(knex, 'butterfly', 'species_id', 'butterfly_species.id'),
-    addForeignKey(knex, 'butterfly_family', 'class_id', 'class.id'),
-    addForeignKey(knex, 'butterfly_species', 'family_id', 'butterfly_family.id'),
-    addForeignKey(knex, 'class', 'reign_id', 'reign.id'),
-    addForeignKey(knex, 'division', 'reign_id', 'reign.id'),
-    addForeignKey(knex, 'flora_family', 'division_id', 'division.id'),
-    addForeignKey(knex, 'flower', 'species_id', 'flower_species.id'),
-    addForeignKey(knex, 'flower_species', 'family_id', 'flora_family.id'),
-    addForeignKey(knex, 'path', 'type_id', 'path_type.id'),
-    addForeignKey(knex, 'tree', 'species_id', 'tree_species.id'),
-    addForeignKey(knex, 'tree_species', 'family_id', 'flora_family.id'),
-    addForeignKey(knex, 'zone_point', 'zone_id', 'zone.id')
+    addForeignKey(knex, 'bird', 'id', 'poi'),
+    addForeignKey(knex, 'bird', 'species_id', 'bird_species'),
+    addForeignKey(knex, 'bird_family', 'class_id', 'class'),
+    addForeignKey(knex, 'bird_species', 'family_id', 'bird_family'),
+    addForeignKey(knex, 'bird_species', 'height_id', 'bird_height'),
+    addForeignKey(knex, 'butterfly', 'id', 'poi'),
+    addForeignKey(knex, 'butterfly', 'species_id', 'butterfly_species'),
+    addForeignKey(knex, 'butterfly_family', 'class_id', 'class'),
+    addForeignKey(knex, 'butterfly_species', 'family_id', 'butterfly_family'),
+    addForeignKey(knex, 'class', 'reign_id', 'reign'),
+    addForeignKey(knex, 'division', 'reign_id', 'reign'),
+    addForeignKey(knex, 'flora_family', 'division_id', 'division'),
+    addForeignKey(knex, 'flower', 'id', 'poi'),
+    addForeignKey(knex, 'flower', 'species_id', 'flower_species'),
+    addForeignKey(knex, 'flower_species', 'family_id', 'flora_family'),
+    addForeignKey(knex, 'path', 'type_id', 'path_type'),
+    addForeignKey(knex, 'path', 'trail_id', 'trail'),
+    addForeignKey(knex, 'poi', 'owner_id', 'owner'),
+    addForeignKey(knex, 'poi', 'theme_id', 'theme'),
+    addForeignKey(knex, 'poi', 'zone_id', 'zone'),
+    addForeignKey(knex, 'tree', 'id', 'poi'),
+    addForeignKey(knex, 'tree', 'species_id', 'tree_species'),
+    addForeignKey(knex, 'tree_species', 'family_id', 'flora_family'),
+    addForeignKey(knex, 'zone', 'trail_id', 'trail'),
+    addForeignKey(knex, 'zone_point', 'zone_id', 'zone')
   ]);
 }
 
 function addAutoIncrements(knex) {
   return BPromise.all(_.map([
-    'bird', 'bird_family', 'bird_height', 'bird_species',
-    'butterfly', 'butterfly_family', 'butterfly_species',
-    'class', 'division',
-    'flora_family',
-    'flower', 'flower_species',
-    'owner',
-    'path', 'path_type',
-    'reign', 'theme',
-    'tree', 'tree_species',
-    'zone', 'zone_point'
+    'bird_family', 'bird_height', 'bird_species',
+    'butterfly_family', 'butterfly_species',
+    'flower_species', 'tree_species', 'flora_family',
+    'class', 'division', 'reign',
+    'path', 'path_type', 'zone', 'zone_point',
+    'poi', 'theme', 'owner'
   ], table => addAutoIncrementFactory(knex, table)));
 }
 
@@ -448,19 +491,23 @@ function cleanUp(knex) {
   });
 }
 
-function addForeignKey(knex, table, column, reference, nullable) {
-  return alterTable(knex, table, (t) => {
+function addForeignKey(knex, table, column, reference_table, nullable) {
 
-    let change = t.bigInteger(column);
-    change = nullable ? change.nullable() : change.notNullable();
+  let promise = BPromise.resolve();
 
-    change = change
-      .references(reference)
-      .withKeyName(`${table}_${column}_fkey`)
-      .onUpdate('cascade')
-      .onDelete('restrict')
-      .alter();
+  promise = promise.then(() => {
+    if (nullable) {
+      return knex.raw(`ALTER TABLE ${table} ALTER COLUMN ${column} DROP NOT NULL;`);
+    } else {
+      return knex.raw(`ALTER TABLE ${table} ALTER COLUMN ${column} SET NOT NULL;`);
+    }
   });
+
+  promise = promise.then(() => {
+    return knex.raw(`ALTER TABLE ${table} ADD CONSTRAINT ${table}_${column}_fkey FOREIGN KEY (${column}) REFERENCES ${reference_table} (id) ON UPDATE cascade ON DELETE restrict;`)
+  });
+
+  return promise;
 }
 
 function alterTable(knex, table, ...migrations) {
