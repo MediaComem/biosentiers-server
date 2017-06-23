@@ -366,6 +366,7 @@ function updateZoneTable(knex) {
     t.bigInteger('id').primary().notNullable().alter();
     t.specificType('geom', 'geometry(Geometry,4326)').notNullable().alter();
     t.timestamp('created_at', true).notNullable().alter();
+    t.integer('position');
     // Add a foreign key column linking zones to a trail
     t.bigInteger('trail_id');
   }).then(() => {
@@ -375,6 +376,15 @@ function updateZoneTable(knex) {
     // Make the trail foreign key column not nullable
     return knex.schema.alterTable('zone', (t) => {
       t.bigInteger('trail_id').notNullable().alter();
+    });
+  }).then(() => {
+    return knex('zone').select('id').orderBy('id').then((results) => {
+      return BPromise.all(_.map(results, (result, i) => knex('zone').update('position', i + 1).where('id', result.id)));
+    });
+  }).then(() => {
+    return knex.schema.alterTable('zone', (t) => {
+      t.integer('position').notNullable().alter();
+      t.unique([ 'position', 'trail_id' ]);
     });
   });
 }
