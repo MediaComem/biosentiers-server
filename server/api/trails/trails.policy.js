@@ -10,6 +10,10 @@ exports.canList = function(req) {
   return policy.authenticated(req);
 };
 
+exports.canRetrieve = function(req) {
+  return policy.authenticated(req);
+};
+
 exports.scope = function(req) {
   return new Trail();
 };

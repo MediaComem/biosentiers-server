@@ -1,11 +1,11 @@
 const Abstract = require('./abstract');
 const bookshelf = require('../db');
 
-const Zone = Abstract.extend({
-  tableName: 'zone',
+const Path = Abstract.extend({
+  tableName: 'path',
 
-  excursions: function() {
-    return this.belongsToMany('Excursion', 'excursions_zones');
+  type: function() {
+    return this.belongsTo('PathType', 'type_id');
   },
 
   parse: function(response) {
@@ -17,4 +17,4 @@ const Zone = Abstract.extend({
   }
 });
 
-module.exports = bookshelf.model('Zone', Zone);
+module.exports = bookshelf.model('Path', Path);

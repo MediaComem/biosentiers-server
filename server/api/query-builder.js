@@ -10,6 +10,7 @@ function QueryBuilder(req, res, base) {
   this.paginated = false;
   this.filters = [];
   this.related = [];
+  this.modifiers = [];
 }
 
 _.extend(QueryBuilder.prototype, {
@@ -17,10 +18,16 @@ _.extend(QueryBuilder.prototype, {
   filter: addFilters,
   sort: setPossibleSorts,
   fetch: fetch,
-  eagerLoad: loadRelated
+  eagerLoad: loadRelated,
+  modify: addModifier
 });
 
 module.exports = QueryBuilder;
+
+function addModifier(...args) {
+  this.modifiers.push(...args);
+  return this;
+}
 
 function activePagination() {
   this.paginated = true;
@@ -76,6 +83,22 @@ function fetch() {
     promise = promise
       .return(data)
       .then(applySorting);
+  }
+
+  if (this.modifiers) {
+    _.each(this.modifiers, (modifier) => {
+      promise = promise
+        .then(() => {
+          return BPromise.resolve(modifier(data.query)).then((result) => {
+            if (!result || !result.query) {
+              throw new Error('Modifier functions must return an object with a "query" property');
+            }
+
+            data.query = result.query;
+            return data;
+          });
+        });
+    });
   }
 
   promise = promise

@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const fetcher = require('../fetcher');
 const policy = require('./trails.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
@@ -23,6 +24,15 @@ exports.list = route(function*(req, res) {
     .fetch();
 
   res.send(serialize(req, trails, policy));
+});
+
+exports.retrieve = route(function*(req, res) {
+  res.send(serialize(req, req.trail, policy));
+});
+
+exports.fetchTrail = fetcher({
+  model: Trail,
+  resourceName: 'trail'
 });
 
 function validateTrail(req) {

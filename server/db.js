@@ -2,6 +2,7 @@ const _ = require('lodash');
 const bookshelf = require('bookshelf');
 const config = require('../config');
 const knex = require('knex');
+const postgis = require('knex-postgis');
 
 const logger = config.logger('db');
 
@@ -13,6 +14,7 @@ let dbDestroyed = false;
 module.exports = bookshelf(db);
 module.exports.plugin('registry');
 module.exports.plugin('virtuals');
+module.exports.st = postgis(db);
 
 /**
  * Runs a database query to ensure the connection is working.
@@ -23,6 +25,7 @@ module.exports.ensureConnected = function() {
   if (dbDestroyed) {
     db = createDatabase();
     module.exports.knex = db;
+    module.exports.st = postgis(db);
     dbDestroyed = false;
   }
 
