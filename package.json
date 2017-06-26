@@ -45,7 +45,8 @@
     "randomstring": "^1.1.5",
     "uuid": "^3.0.0",
     "valdsl": "^0.3.0",
-    "valib": "^2.0.0"
+    "valib": "^2.0.0",
+    "wellknown": "^0.5.0"
   },
   "devDependencies": {
     "apidoc": "^0.17.5",

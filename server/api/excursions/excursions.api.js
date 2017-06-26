@@ -9,7 +9,6 @@ const Theme = require('../../models/theme');
 const Trail = require('../../models/trail');
 const utils = require('../utils');
 const validate = require('../validate');
-const validations = require('./excursions.validations');
 const Zone = require('../../models/zone');
 
 const EAGER_LOAD = [ 'creator', 'themes', 'trail', 'zones' ];
@@ -67,6 +66,7 @@ function validateExcursion(req, patchMode) {
   return validate.requestBody(req, function(context) {
     return this.parallel(
       validate.loadRelatedArray(context, 'themes', _.get(req.body, 'themes'), (names) => new Theme().where('name', 'in', names).fetchAll()),
+      // FIXME: scope zones by trail id
       validate.loadRelatedArray(context, 'zones', _.get(req.body, 'zones'), (positions) => new Zone().where('position', 'in', positions).fetchAll())
     ).then(() => {
       return this.parallel(

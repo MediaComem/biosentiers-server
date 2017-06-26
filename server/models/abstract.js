@@ -52,7 +52,7 @@ const Abstract = bookshelf.Model.extend({
     try {
       return JSON.parse(geoJson);
     } catch(err) {
-      throw new Error(`Could not parse GeoJSON from the database: ${err.message} (make sure to convert it with "db.st.asGeoJson")`);
+      // ignore
     }
   },
 
