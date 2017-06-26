@@ -27,7 +27,7 @@ exports.scope = function(req) {
 };
 
 exports.parseRequestIntoRecord = function(req, excursion) {
-  parsing.parseJsonIntoRecord(req.body, excursion, [ 'trailId', 'plannedAt', 'name', 'zones' ]);
+  parsing.parseJsonIntoRecord(req.body, excursion, [ 'trailId', 'plannedAt', 'name' ]);
   return excursion;
 };
 
@@ -39,7 +39,7 @@ exports.serialize = function(req, excursion) {
     creatorId: excursion.related('creator').get('api_id'),
     name: excursion.get('name'),
     themes: serializeThemes(excursion),
-    zones: excursion.get('zones'),
+    zones: serializeZones(excursion),
     plannedAt: excursion.get('planned_at'),
     createdAt: excursion.get('created_at'),
     updatedAt: excursion.get('updated_at')
@@ -58,4 +58,8 @@ exports.serialize = function(req, excursion) {
 
 function serializeThemes(excursion) {
   return excursion.related('themes').map(theme => theme.get('name'));
+}
+
+function serializeZones(excursion) {
+  return excursion.related('zones').map(zone => zone.get('position'));
 }

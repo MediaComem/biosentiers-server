@@ -3,10 +3,6 @@ const Abstract = require('./abstract');
 const bookshelf = require('../db');
 const randomString = require('randomstring');
 
-const THEMES = [ 'bird', 'butterfly', 'flower', 'tree' ];
-const THEMES_START = 0;
-const ZONES_START = 16;
-
 const Excursion = Abstract.extend({
   tableName: 'excursion',
 
@@ -25,11 +21,8 @@ const Excursion = Abstract.extend({
     return this.belongsToMany('Theme', 'excursions_themes');
   },
 
-  virtuals: {
-    zones: {
-      get: decodeZones,
-      set: encodeZones
-    }
+  zones: function() {
+    return this.belongsToMany('Zone', 'excursions_zones');
   },
 
   generateApiId: generateUniqueApiId
@@ -40,35 +33,6 @@ function generateUniqueApiId() {
   return new Excursion({ api_id: newApiId }).fetch().then(function(existingExcursion) {
     return existingExcursion ? generateUniqueApiId() : newApiId;
   });
-}
-
-function decodeZones() {
-
-  const zones = [];
-  const bitmask = this.get('themes_and_zones_bitmask');
-  _.times(15, (i) => {
-    const mask = 1 << (ZONES_START + i);
-    if ((bitmask & mask) != 0) {
-      zones.push(i);
-    }
-  });
-
-  return zones;
-}
-
-function encodeZones(zones) {
-
-  let bitmask = this.get('themes_and_zones_bitmask');
-  _.times(15, (i) => {
-    const mask = 1 << (ZONES_START + i);
-    if (_.includes(zones, i)) {
-      bitmask = bitmask | mask;
-    } else if ((bitmask & mask) != 0) {
-      bitmask = bitmask ^ mask;
-    }
-  });
-
-  this.set('themes_and_zones_bitmask', bitmask);
 }
 
 module.exports = bookshelf.model('Excursion', Excursion);

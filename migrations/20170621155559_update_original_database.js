@@ -24,6 +24,7 @@ const uuid = require('uuid');
  * - Use "taxonomy_" prefix for tables class/division/reign?
  * - Rename "class/owner/path" table (reserved words)?
  * - bird/butterfly/flower/tree_species inheritance?
+ * - make sure GeometryZM is appropriate where used (bird, flower, tree, zone_point, whereas GeometryZ is used for butterfly & path)
  */
 
 let defaultTrailId;

@@ -36,6 +36,7 @@ module.exports = function(options) {
   const queryHandler = options.queryHandler;
   const resourceName = options.resourceName;
   const target = options.target || resourceName;
+  const eagerLoad = options.eagerLoad || [];
 
   return function(req, res, next) {
 
@@ -50,7 +51,7 @@ module.exports = function(options) {
     }
 
     // Perform the query
-    query.fetch().then(function(record) {
+    query.fetch({ withRelated: eagerLoad }).then(function(record) {
       if (!record) {
         throw errors.recordNotFound(resourceName, apiId);
       }
