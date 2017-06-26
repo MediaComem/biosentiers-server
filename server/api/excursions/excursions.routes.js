@@ -1,7 +1,7 @@
 const auth = require('../auth');
 const controller = require('./excursions.api');
 const express = require('express');
-const participantsRoutes = require('../participants/participants.routes');
+const participantsRoutes = require('../excursions-participants/participants.routes');
 const policy = require('./excursions.policy');
 
 const router = express.Router();
