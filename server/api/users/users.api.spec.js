@@ -135,7 +135,7 @@ describe('Users API', function() {
       password: 'changeme',
       active: true,
       role: 'user',
-      createdAt: data.threeDaysAgo
+      createdAt: data.threeDaysAgo.toDate()
     }, changes);
 
     data.user = userFixtures.user(data.userProps);

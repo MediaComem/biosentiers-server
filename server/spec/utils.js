@@ -95,6 +95,12 @@ exports.enrichExpectation = function(checkFunc) {
 
 exports.createRecord = function(model, data) {
   return BPromise.resolve(data).then(function(resolved) {
+    _.each(resolved, (value, key) => {
+      if (moment.isMoment(value)) {
+        throw new Error(`Value "${value}" at "${key}" is a moment object; convert it with "toDate()" before passing it to "createRecord"`);
+      }
+    });
+
     return new model(resolved).save();
   });
 };
