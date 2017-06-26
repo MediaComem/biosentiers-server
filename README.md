@@ -34,6 +34,7 @@ This repository contains the Node.js Express server application for the BioSenti
 
 Additional development requirements:
 
+* [Nodemon](https://nodemon.io) (install with `npm install -g nodemon`)
 * [Knex](http://knexjs.org) (install with `npm install -g knex`)
 
 
