@@ -11,7 +11,7 @@ exports.resourceName = 'trail';
 
 exports.create = route.transactional(function*(req, res) {
   yield validateTrail(req);
-  const trail = yield Trail.parse(req).save();
+  const trail = yield Trail.parseJson(req).save();
   res.status(201).send(serialize(req, trail, policy));
 });
 

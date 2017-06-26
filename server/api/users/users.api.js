@@ -29,7 +29,7 @@ exports.create = route.transactional(function*(req, res) {
 
   yield validateUser(req);
 
-  const user = User.parse(req);
+  const user = User.parseJson(req);
   yield user.save();
 
   if (req.jwtToken.authType == 'invitation') {

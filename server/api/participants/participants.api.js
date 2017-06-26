@@ -16,7 +16,7 @@ exports.resourceName = 'participant';
 exports.create = route.transactional(function*(req, res) {
   yield validateParticipant(req);
 
-  const participant = Participant.parse(req);
+  const participant = Participant.parseJson(req);
   participant.set('excursion_id', req.excursion.get('id'));
 
   yield participant.save();

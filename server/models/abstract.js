@@ -48,7 +48,7 @@ const Abstract = bookshelf.Model.extend({
     });
   }
 }, {
-  parse: function(req, record) {
+  parseJson: function(req, record) {
     if (!record) {
       record = new this();
     }
