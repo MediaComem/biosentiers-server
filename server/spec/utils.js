@@ -161,7 +161,7 @@ exports.expectTimestamp = function(type, actual, expected, timestampType, option
   const required = _.get(options, 'required', true);
 
   if (_.isString(expected[name]) && expected[name].match(/At$/)) {
-    expect(actual[name], desc).to.equal(actual[name]);
+    expect(actual[name], desc).to.equal(actual[expected[name]]);
   } else if (expected[name]) {
     expect(actual[name], desc).to.be.iso8601(expected[name]);
   } else if (expected[afterName]) {
