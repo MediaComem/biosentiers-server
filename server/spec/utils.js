@@ -131,7 +131,7 @@ exports.responseExpectationFactory = function(func) {
   };
 };
 
-exports.expectTimestamp = function(type, actual, expected, timestampType, required) {
+exports.expectTimestamp = function(type, actual, expected, timestampType, options) {
   if (!_.isString(type)) {
     throw new Error('Type must be a string describing the type of record');
   } else if (!_.isString(timestampType)) {
@@ -141,9 +141,10 @@ exports.expectTimestamp = function(type, actual, expected, timestampType, requir
   const name = timestampType + 'At';
   const afterName = timestampType + 'After';
   const beforeName = timestampType + 'Before';
-
   const desc = `${type}.${name}`;
-  required = required !== undefined ? required : true;
+
+  options = _.extend({}, options);
+  const required = _.get(options, 'required', true);
 
   if (_.isString(expected[name]) && expected[name].match(/At$/)) {
     expect(actual[name], desc).to.equal(actual[name]);

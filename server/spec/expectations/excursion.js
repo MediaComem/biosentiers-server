@@ -25,7 +25,7 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   expect(actual.themes, 'excursion.themes').to.eql(expected.themes || []);
   expect(actual.zones, 'excursion.zones').to.eql(expected.zones || []);
 
-  spec.expectTimestamp('excursion', actual, expected, 'planned', false);
+  spec.expectTimestamp('excursion', actual, expected, 'planned', { required: false });
   spec.expectTimestamp('excursion', actual, expected, 'created');
   spec.expectTimestamp('excursion', actual, expected, 'updated');
 
