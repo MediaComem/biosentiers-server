@@ -69,8 +69,22 @@ exports.setUp = function(data, beforeResolve) {
 exports.cleanDatabase = function() {
   const start = moment();
 
+  const tablesToDelete = [
+    'bird', 'butterfly', 'flower', 'tree',
+    'bird_species', 'bird_family', 'bird_height',
+    'butterfly_species', 'butterfly_family',
+    'flower_species', 'tree_species', 'flora_family',
+    'class', 'division', 'reign',
+    'poi', 'owner',
+    'participant',
+    'excursions_themes', 'excursions_zones', 'excursion',
+    'path', 'path_type', 'zone_point', 'zone',
+    'trail',
+    'user_account'
+  ];
+
   let promise = BPromise.resolve();
-  _.each('participant excursion trail user_account'.split(/\s+/), (table) => {
+  _.each(tablesToDelete, (table) => {
     promise = promise.then(function() {
       return db.knex.raw(`DELETE from ${table};`);
     })
