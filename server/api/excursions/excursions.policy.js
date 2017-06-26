@@ -50,7 +50,7 @@ exports.serialize = function(req, excursion) {
   }
 
   if (utils.includes(req, 'trail')) {
-    result.trail = trailsPolicy.serialize(excursion.related('trail'), req);
+    result.trail = trailsPolicy.serialize(req, excursion.related('trail'));
   }
 
   return result;
