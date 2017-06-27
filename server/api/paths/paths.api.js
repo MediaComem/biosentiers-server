@@ -10,10 +10,10 @@ const serialize = require('../serialize');
 // API resource name (used in some API errors)
 exports.resourceName = 'path';
 
-exports.list = route(function*(req, res) {
+exports.list = route(async function(req, res) {
 
   const query = policy.scope(req).where('trail_id', req.trail.get('id'));
-  const paths = yield new QueryBuilder(req, res, query)
+  const paths = await new QueryBuilder(req, res, query)
     .paginate()
     .sort('position')
     .modify(q => { return { query: q.query(qb => qb.select('*', db.st.asGeoJSON('geom'))) }; })

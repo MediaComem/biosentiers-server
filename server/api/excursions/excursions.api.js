@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const Excursion = require('../../models/excursion');
 const fetcher = require('../fetcher');
+const np = require('../../lib/native-promisify');
 const policy = require('./excursions.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
@@ -16,22 +17,22 @@ const EAGER_LOAD = [ 'creator', 'themes', 'trail', 'zones' ];
 // API resource name (used in some API errors).
 exports.resourceName = 'excursion';
 
-exports.create = route.transactional(function*(req, res) {
-  yield validateExcursion(req);
+exports.create = route.transactional(async function(req, res) {
+  await np(validateExcursion(req));
 
   const excursion = policy.parseRequestIntoRecord(req, new Excursion());
   excursion.set('creator_id', req.currentUser.get('id'));
 
-  yield saveExcursion(excursion, req);
+  await saveExcursion(excursion, req);
 
-  yield excursion.load(EAGER_LOAD);
+  await excursion.load(EAGER_LOAD);
   res.status(201).send(serialize(req, excursion, policy));
 });
 
-exports.list = route(function*(req, res) {
+exports.list = route(async function(req, res) {
 
   const query = policy.scope(req);
-  const excursions = yield new QueryBuilder(req, res, query)
+  const excursions = await new QueryBuilder(req, res, query)
     .paginate()
     .sort('name', 'createdAt', 'plannedAt', 'updatedAt')
     .eagerLoad(EAGER_LOAD)
@@ -40,15 +41,15 @@ exports.list = route(function*(req, res) {
   res.send(serialize(req, excursions, policy));
 });
 
-exports.retrieve = route(function*(req, res) {
+exports.retrieve = route(async function(req, res) {
   res.send(serialize(req, req.excursion, policy));
 });
 
-exports.update = route.transactional(function*(req, res) {
-  yield validateExcursion(req, true);
+exports.update = route.transactional(async function(req, res) {
+  await np(validateExcursion(req, true));
 
   policy.parseRequestIntoRecord(req, req.excursion);
-  yield saveExcursion(req.excursion, req);
+  await saveExcursion(req.excursion, req);
 
   res.send(serialize(req, req.excursion, policy));
 });

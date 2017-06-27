@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const Excursion = require('../../models/excursion');
 const fetcher = require('../fetcher');
+const np = require('../../lib/native-promisify');
 const policy = require('./participants.policy');
 const QueryBuilder = require('../query-builder');
 const Participant = require('../../models/participant');
@@ -13,20 +14,20 @@ const validations = require('./participants.validations');
 // API resource name (used in some API errors)
 exports.resourceName = 'participant';
 
-exports.create = route.transactional(function*(req, res) {
-  yield validateParticipant(req);
+exports.create = route.transactional(async function(req, res) {
+  await np(validateParticipant(req));
 
   const participant = Participant.parseJson(req);
   participant.set('excursion_id', req.excursion.get('id'));
 
-  yield participant.save();
+  await participant.save();
   res.status(201).send(serialize(req, participant, policy));
 });
 
-exports.list = route(function*(req, res) {
+exports.list = route(async function(req, res) {
 
   const query = policy.scope(req).where('excursion_id', req.excursion.get('id'));
-  const participants = yield new QueryBuilder(req, res, query)
+  const participants = await new QueryBuilder(req, res, query)
     .paginate()
     .sort('createdAt', 'updatedAt')
     .eagerLoad([ 'excursion' ])
@@ -35,15 +36,15 @@ exports.list = route(function*(req, res) {
   res.send(serialize(req, participants, policy));
 });
 
-exports.update = route.transactional(function*(req, res) {
-  yield validateParticipant(req, true);
+exports.update = route.transactional(async function(req, res) {
+  await np(validateParticipant(req, true));
   policy.parseRequestIntoRecord(req, req.participant);
-  yield req.participant.save();
+  await req.participant.save();
   res.send(serialize(req, req.participant, policy));
 });
 
-exports.delete = route.transactional(function*(req, res) {
-  yield req.participant.destroy();
+exports.delete = route.transactional(async function(req, res) {
+  await req.participant.destroy();
   res.sendStatus(204);
 });
 

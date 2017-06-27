@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const fetcher = require('../fetcher');
+const np = require('../../lib/native-promisify');
 const policy = require('./trails.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
@@ -10,15 +11,15 @@ const validate = require('../validate');
 // API resource name (used in some API errors)
 exports.resourceName = 'trail';
 
-exports.create = route.transactional(function*(req, res) {
-  yield validateTrail(req);
-  const trail = yield Trail.parseJson(req).save();
+exports.create = route.transactional(async function(req, res) {
+  await np(validateTrail(req));
+  const trail = await Trail.parseJson(req).save();
   res.status(201).send(serialize(req, trail, policy));
 });
 
-exports.list = route(function*(req, res) {
+exports.list = route(async function(req, res) {
 
-  const trails = yield new QueryBuilder(req, res, policy.scope(req))
+  const trails = await new QueryBuilder(req, res, policy.scope(req))
     .paginate()
     .sort('createdAt', 'updatedAt')
     .fetch();
@@ -26,7 +27,7 @@ exports.list = route(function*(req, res) {
   res.send(serialize(req, trails, policy));
 });
 
-exports.retrieve = route(function*(req, res) {
+exports.retrieve = route(async function(req, res) {
   res.send(serialize(req, req.trail, policy));
 });
 

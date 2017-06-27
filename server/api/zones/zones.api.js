@@ -9,10 +9,10 @@ const Zone = require('../../models/zone');
 // API resource name (used in some API errors)
 exports.resourceName = 'zone';
 
-exports.list = route(function*(req, res) {
+exports.list = route(async function(req, res) {
 
   const query = policy.scope(req).where('trail_id', req.trail.get('id'));
-  const zones = yield new QueryBuilder(req, res, query)
+  const zones = await new QueryBuilder(req, res, query)
     .paginate()
     .sort('position')
     .modify(q => { return { query: q.query(qb => qb.select('*', db.st.asGeoJSON('geom'))) }; })

@@ -5,6 +5,7 @@ const errors = require('../errors');
 const jwt = require('../../lib/jwt');
 const LocalStrategy = require('passport-local').Strategy;
 const mailer = require('../../lib/mailer');
+const np = require('../../lib/native-promisify');
 const passport = require('passport');
 const policy = require('../users/users.policy');
 const qs = require('qs');
@@ -19,6 +20,7 @@ setUpPassport();
 exports.resourceName = 'auth';
 
 exports.authenticate = function(req, res, next) {
+  // TODO: use async route
   passport.authenticate('local', function(err, user, info) {
     if (err) {
       return next(err);
@@ -35,10 +37,10 @@ exports.authenticate = function(req, res, next) {
   })(req, res, next);
 };
 
-exports.createInvitation = route(function*(req, res) {
+exports.createInvitation = route(async function(req, res) {
 
   const invitation = _.pick(req.body, 'email', 'role', 'firstName', 'lastName');
-  yield validateInvitation(req);
+  await np(validateInvitation(req));
 
   const createdAt = new Date();
 
@@ -55,7 +57,7 @@ exports.createInvitation = route(function*(req, res) {
 
   const invitationLink = config.baseUrl + '/register?' + queryString;
 
-  yield mailer.send({
+  await mailer.send({
     to: invitation.email,
     subject: 'Invitation BioSentiers',
     text: 'Bienvenue sur BioSentiers!\n===========================\n\nVeuillez suivre ce lien pour créer votre compte: ' + invitationLink
@@ -66,13 +68,13 @@ exports.createInvitation = route(function*(req, res) {
   }));
 });
 
-exports.retrieveInvitation = route(function*(req, res) {
+exports.retrieveInvitation = route(async function(req, res) {
 
   /**
    * If a user already exists with the same e-mail, then the invitation
    * has already been used and is no longer valid.
    */
-  yield new User().whereEmail(req.jwtToken.email).fetch().then(function(user) {
+  await new User().whereEmail(req.jwtToken.email).fetch().then(function(user) {
     if (user) {
       throw errors.invalidAuthorizationError();
     }

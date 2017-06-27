@@ -8,9 +8,9 @@ const Theme = require('../../models/theme');
 // API resource name (used in some API errors)
 exports.resourceName = 'theme';
 
-exports.list = route(function*(req, res) {
+exports.list = route(async function(req, res) {
 
-  const themes = yield new QueryBuilder(req, res, policy.scope(req))
+  const themes = await new QueryBuilder(req, res, policy.scope(req))
     .paginate()
     .sort('name')
     .fetch();

@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const fetcher = require('../fetcher');
 const mailer = require('../../lib/mailer');
+const np = require('../../lib/native-promisify');
 const policy = require('./users.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
@@ -12,7 +13,7 @@ const validations = require('../users/users.validations');
 // API resource name (used in some API errors).
 exports.resourceName = 'user';
 
-exports.create = route.transactional(function*(req, res) {
+exports.create = route.transactional(async function(req, res) {
 
   if (req.jwtToken.authType == 'invitation') {
     _.extend(req.body, {
@@ -27,10 +28,10 @@ exports.create = route.transactional(function*(req, res) {
     });
   }
 
-  yield validateUser(req);
+  await np(validateUser(req));
 
   const user = User.parseJson(req);
-  yield user.save();
+  await user.save();
 
   if (req.jwtToken.authType == 'invitation') {
     req.currentUser = user;
@@ -39,10 +40,10 @@ exports.create = route.transactional(function*(req, res) {
   res.status(201).send(serialize(req, user, policy));
 });
 
-exports.list = route(function*(req, res) {
+exports.list = route(async function(req, res) {
 
   const query = policy.scope(req);
-  const users = yield new QueryBuilder(req, res, query)
+  const users = await new QueryBuilder(req, res, query)
     .paginate()
     .filter(filterByEmail)
     .sort('email', 'createdAt')
@@ -57,14 +58,14 @@ exports.list = route(function*(req, res) {
   }
 });
 
-exports.retrieve = route(function*(req, res) {
+exports.retrieve = route(async function(req, res) {
   res.send(serialize(req, req.user, policy));
 });
 
-exports.update = route.transactional(function*(req, res) {
+exports.update = route.transactional(async function(req, res) {
 
   const user = req.user;
-  yield validateUserForUpdate(req);
+  await np(validateUserForUpdate(req));
   policy.parseRequestIntoRecord(req, user);
 
   const password = req.body.password;
@@ -76,7 +77,7 @@ exports.update = route.transactional(function*(req, res) {
     user.set('password', password);
   }
 
-  yield user.save();
+  await user.save();
 
   res.send(serialize(req, user, policy));
 });
