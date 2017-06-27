@@ -170,9 +170,10 @@ function fetchTrailByApiId(apiId) {
 }
 
 function saveExcursion(excursion, req) {
-  return Promise.all([
-    excursion.save(),
-    utils.updateManyToMany(excursion, 'themes', req.body.themes),
-    utils.updateManyToMany(excursion, 'zones', req.body.zones)
-  ]);
+  return excursion.save().then(() => {
+    return Promise.all([
+      utils.updateManyToMany(excursion, 'themes', req.body.themes),
+      utils.updateManyToMany(excursion, 'zones', req.body.zones)
+    ]);
+  });
 }
