@@ -95,7 +95,6 @@ function validateExcursion(req, patchMode) {
             newOrChanged(excursion, patchMode, themesHaveChanged(excursion)),
             (c) => {
               return c.validate(
-                this.presence(),
                 this.type('array'),
                 validate.each(function(value, i) {
                   return this.validate(
@@ -114,7 +113,6 @@ function validateExcursion(req, patchMode) {
             newOrChanged(excursion, patchMode, zonesHaveChanged(excursion)),
             (c) => {
               return c.validate(
-                this.presence(),
                 this.type('array'),
                 validate.each(function(value, i) {
                   return this.validate(
