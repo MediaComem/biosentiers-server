@@ -19,11 +19,7 @@ const uuid = require('uuid');
  * - Add appropriate foreign key constraints
  * - Add unique constraints for the primary name of some tables (e.g. class, division, reign)
  *
- * To discuss:
- *
- * - Use "taxonomy_" prefix for tables class/division/reign?
- * - Rename "class/owner/path" table (reserved words)?
- * - bird/butterfly/flower/tree_species inheritance?
+ * TODO:
  * - make sure GeometryZM is appropriate where used (bird, flower, tree, zone_point, whereas GeometryZ is used for butterfly & path)
  */
 
