@@ -41,8 +41,9 @@ function validateTrail(req) {
     return this.parallel(
       this.validate(
         this.json('/name'),
-        this.presence(),
-        this.type('string')
+        this.required(),
+        this.type('string'),
+        this.notEmpty()
       )
     );
   });

@@ -64,29 +64,30 @@ function validateExcursion(req, patchMode) {
 
   const excursion = req.excursion;
 
-  return validate.requestBody(req, function(context) {
-    return this.parallel(
-      validate.loadRelatedArray(context, 'themes', _.get(req.body, 'themes'), (names) => new Theme().where('name', 'in', names).fetchAll()),
-      // FIXME: scope zones by trail id
-      validate.loadRelatedArray(context, 'zones', _.get(req.body, 'zones'), (positions) => new Zone().where('position', 'in', positions).fetchAll())
-    ).then(() => {
-      return this.parallel(
+  return validate.requestBody(req, function() {
+    return this.series(
+      this.parallel(
+        validate.loadRelatedArray('themes', _.get(req.body, 'themes'), (names) => new Theme().where('name', 'in', names).fetchAll()),
+        // FIXME: scope zones by trail id
+        validate.loadRelatedArray('zones', _.get(req.body, 'zones'), (positions) => new Zone().where('position', 'in', positions).fetchAll())
+      ),
+      this.parallel(
         this.validate(
           this.json('/trailId'),
           this.if(patchMode, this.while(this.isSet())),
-          this.presence(),
+          this.required(),
           this.type('string'),
           this.resource(fetchTrailByApiId).replace(trail => trail.get('id'))
         ),
         this.validate(
           this.json('/name'),
-          this.if(patchMode, this.while(this.isSet()), this.while(this.hasChanged(excursion ? excursion.get('name') : ''))),
+          this.if(patchMode, this.while(this.isSet()), this.while(this.changed(excursion ? excursion.get('name') : ''))),
           this.type('string')
         ),
         this.validate(
           this.json('/plannedAt'),
-          this.if(patchMode, this.while(this.isSet()), this.while(this.hasChanged(excursion ? excursion.get('planned_at').toISOString() : ''))),
-          this.presence(),
+          this.if(patchMode, this.while(this.isSet()), this.while(this.changed(excursion ? excursion.get('planned_at').toISOString() : ''))),
+          this.required(),
           this.type('string')
         ),
         this.validate(
@@ -125,8 +126,8 @@ function validateExcursion(req, patchMode) {
             remove()
           )
         )
-      );
-    });
+      )
+    );
   });
 }
 
@@ -146,7 +147,7 @@ function newOrChanged(excursion, patchMode, value) {
 
 function remove() {
   return function(context) {
-    context.get('location').setValue(null);
+    context.get('location').remove(null);
   };
 }
 

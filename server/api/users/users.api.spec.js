@@ -62,8 +62,7 @@ describe('Users API', function() {
               message: 'must not be empty',
               type: 'json',
               location: '/firstName',
-              validator: 'presence',
-              cause: 'empty',
+              validator: 'notEmpty',
               value: '',
               valueSet: true
             },
@@ -71,8 +70,7 @@ describe('Users API', function() {
               message: 'is required',
               type: 'json',
               location: '/password',
-              validator: 'presence',
-              cause: 'missing',
+              validator: 'required',
               valueSet: false
             },
             {
@@ -257,8 +255,7 @@ describe('Users API', function() {
           .send(body)
           .then(expectRes.invalid([
             {
-              validator: 'presence',
-              cause: 'empty',
+              validator: 'notEmpty',
               type: 'json',
               location: '/password',
               message: 'must not be empty',

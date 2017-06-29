@@ -10,7 +10,7 @@ exports.value = function(value, status, ...callbacks) {
   }
 
   return valdsl(function() {
-    return this.validate(this.value(value), this.while(this.hasNoError(this.atCurrentLocation())), ...callbacks);
+    return this.validate(this.value(value), this.while(this.noError(this.atCurrentLocation())), ...callbacks);
   }).catch(function(err) {
     if (err.errors && !_.has(err, 'status')) {
       err.status = status || 422;
@@ -28,18 +28,20 @@ exports.requestBody = function(req, ...callbacks) {
   }
 
   return exports.value(req, 422, function() {
-    return this.validate(this.get('body'), this.type('object'), ...callbacks);
+    return this.validate(this.property('body'), this.type('object'), ...callbacks);
   });
 };
 
-exports.loadRelatedArray = function(context, key, data, loader) {
-  if (!data || !_.isArray(data) || !data.length) {
-    return;
-  }
+exports.loadRelatedArray = function(key, data, loader) {
+  return function(context) {
+    if (!data || !_.isArray(data) || !data.length) {
+      return;
+    }
 
-  return BPromise.resolve(loader(data)).then(function(related) {
-    context.set(`data.${key}`, related);
-  });
+    return BPromise.resolve(loader(data)).then(function(related) {
+      context.set(`data.${key}`, related);
+    });
+  };
 };
 
 exports.each = function(callback) {
@@ -55,8 +57,8 @@ exports.each = function(callback) {
   };
 };
 
-exports.preloaded = function(context, key, loader) {
-  return function(id) {
+exports.preloaded = function(key, loader) {
+  return function(id, context) {
     const data = context.get(`data.${key}`);
     if (!data || !data.length) {
       return;

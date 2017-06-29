@@ -92,13 +92,15 @@ function validateUser(req) {
     return this.parallel(
       this.validate(
         this.json('/firstName'),
-        this.presence(),
-        this.type('string')
+        this.required(),
+        this.type('string'),
+        this.notEmpty()
       ),
       this.validate(
         this.json('/lastName'),
-        this.presence(),
-        this.type('string')
+        this.required(),
+        this.type('string'),
+        this.notEmpty()
       ),
       this.validate(
         this.json('/active'),
@@ -106,15 +108,17 @@ function validateUser(req) {
       ),
       this.validate(
         this.json('/email'),
-        this.presence(),
+        this.required(),
         this.type('string'),
+        this.notEmpty(),
         this.email(),
         validations.emailAvailable()
       ),
       this.validate(
         this.json('/password'),
-        this.presence(),
-        this.type('string')
+        this.required(),
+        this.type('string'),
+        this.notEmpty()
       ),
       this.validate(
         this.json('/role'),
@@ -131,9 +135,9 @@ function validateUserForUpdate(req) {
     return this.parallel(
       this.validate(
         this.json('/password'),
-        this.while(this.hasChanged()),
+        this.while(this.changed()),
         this.type('string'),
-        this.presence()
+        this.notEmpty()
       )
     );
   });
