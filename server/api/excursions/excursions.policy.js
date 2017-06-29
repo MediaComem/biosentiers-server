@@ -58,9 +58,9 @@ exports.serialize = function(req, excursion) {
 };
 
 function serializeThemes(excursion) {
-  return excursion.related('themes').map(theme => theme.get('name'));
+  return excursion.related('themes').map(theme => theme.get('name')).sort();
 }
 
 function serializeZones(excursion) {
-  return excursion.related('zones').map(zone => zone.get('position'));
+  return excursion.related('zones').map(zone => zone.get('position')).sort();
 }
