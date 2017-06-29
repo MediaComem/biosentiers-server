@@ -38,6 +38,7 @@ exports.serialize = function(req, excursion) {
     trailId: excursion.related('trail').get('api_id'),
     creatorId: excursion.related('creator').get('api_id'),
     name: excursion.get('name'),
+    participantsCount: excursion.get('participants_count'),
     themes: serializeThemes(excursion),
     zones: serializeZones(excursion),
     plannedAt: excursion.get('planned_at'),

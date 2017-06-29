@@ -1,5 +1,7 @@
 const Abstract = require('./abstract');
 const bookshelf = require('../db');
+const increment = require('./counters').increment;
+const decrement = require('./counters').decrement;
 const randomString = require('randomstring');
 
 const proto = Abstract.prototype;
@@ -12,6 +14,12 @@ const Participant = Abstract.extend({
 
   parsing: {
     default: 'excursion name'
+  },
+
+  constructor: function() {
+    proto.constructor.apply(this, arguments);
+    this.on('creating', () => increment('excursion', this.get('excursion_id'), 'participants'));
+    this.on('destroying', () => decrement('excursion', this.get('excursion_id'), 'participants'));
   },
 
   excursion: function() {

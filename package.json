@@ -13,6 +13,7 @@
     "lint": "jshint --reporter=node_modules/jshint-stylish .",
     "lint:watch": "onchange bin/www knexfile.js config/**/*.js lib/**/*.js migrations/**/*.js server/**/*.js -e doc/**/*.js -- npm run lint",
     "migrate": "knex migrate:latest",
+    "migrate:rollback": "knex migrate:rollback",
     "migrate:test": "NODE_ENV=test knex migrate:latest",
     "server": "nodemon",
     "start": "node ./bin/www",
