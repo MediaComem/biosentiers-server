@@ -60,6 +60,7 @@
     "jshint-stylish": "^2.2.1",
     "live-server": "^1.2.0",
     "mocha": "^3.1.0",
+    "nodemon": "^1.11.0",
     "onchange": "^3.2.1",
     "rimraf": "^2.5.4",
     "supertest": "^2.0.0",
