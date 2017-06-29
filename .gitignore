@@ -4,6 +4,7 @@
 /.screenrc
 /config/*.env.js
 !/config/sample.env.js
+/data-dump.sql
 /doc/api
 /node_modules
 /tmp

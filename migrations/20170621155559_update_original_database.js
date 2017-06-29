@@ -444,7 +444,7 @@ function addAutoIncrements(knex) {
 function addAutoIncrementFactory(knex, table) {
   return knex.raw(`SELECT max(id) AS result FROM ${table};`).then((result) => {
     const start = parseInt(result.rows[0].result, 10) + 1;
-    return knex.raw(`CREATE SEQUENCE ${table}_id_seq START ${start};`).then(() => {
+    return knex.raw(`CREATE SEQUENCE ${table}_id_seq START ${isNaN(start) ? 1 : start};`).then(() => {
       return knex.raw(`ALTER TABLE ${table} ALTER COLUMN id SET DEFAULT nextval('${table}_id_seq'::regclass);`);
     });
   });
