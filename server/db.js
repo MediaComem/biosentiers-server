@@ -46,6 +46,7 @@ module.exports.disconnect = function() {
 function createDatabase() {
   const newDb = knex({
     client: 'postgresql',
+    // FIXME: support unix socket
     connection: config.db
   });
 
