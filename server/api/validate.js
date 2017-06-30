@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const BPromise = require('bluebird');
+const Collection = require('../db').Collection;
 const valdsl = require('../lib/valdsl');
 
 exports.value = function(value, status, ...callbacks) {
@@ -32,53 +33,83 @@ exports.requestBody = function(req, ...callbacks) {
   });
 };
 
-exports.loadRelatedArray = function(key, data, loader) {
+exports.newOrChanged = function(patchMode, predicate) {
   return function(context) {
-    if (!data || !_.isArray(data) || !data.length) {
-      return;
-    }
-
-    return BPromise.resolve(loader(data)).then(function(related) {
-      context.set(`data.${key}`, related);
-    });
-  };
-};
-
-exports.each = function(callback) {
-  return function(context) {
-    const value = context.get('value');
-    if (_.isArray(value) || _.isObject(value)) {
-      return BPromise.all(_.map(value, (value, key) => {
-        return context.validate(function() {
-          return callback.call(this, value, key, this);
-        });
-      }));
+    if (!patchMode) {
+      return true;
+    } else if (!context.get('valueSet')) {
+      return false;
+    } else {
+      return predicate(context.get('value'), context);
     }
   };
 };
 
-exports.preloaded = function(key, loader) {
-  return function(id, context) {
-    const data = context.get(`data.${key}`);
-    if (!data || !data.length) {
+exports.relatedArrayData = function(name, path, dataLoader) {
+  if (dataLoader === undefined && _.isFunction(path)) {
+    dataLoader = path;
+    path = name;
+  }
+
+  return function(context) {
+
+    let value = _.get(context.get('value'), path);
+    if (_.isArray(value)) {
+      value = _.compact(value);
+    }
+
+    if (_.isArray(value) && value.length) {
+
+      let loadedData = dataLoader(value, context);
+      if (_.isFunction(loadedData.fetchAll)) {
+        loadedData = loadedData.fetchAll();
+      }
+
+      return BPromise.resolve(loadedData).then(data => {
+        return context.setData(name, data);
+      });
+    } else if (_.isArray(value)) {
+      return context.setData(name, []);
+    }
+  };
+};
+
+exports.related = function(name, predicate) {
+  return function(value, context) {
+
+    const data = context.getData(name);
+    if (!data) {
       return;
     }
 
-    if (_.isString(loader)) {
-      const idKey = loader;
-      loader = function(loaderData, loaderId) {
+    if (_.isString(predicate) && data instanceof Collection) {
+      const idProperty = predicate;
+      predicate = function(predicateValue, predicateId) {
         const criteria = {};
-        criteria[idKey] = loaderId;
-        return loaderId ? loaderData.findWhere(criteria) : undefined;
+        criteria[idProperty] = predicateId;
+        return predicateId ? predicateValue.findWhere(criteria) : undefined;
       };
-    } else if (!loader) {
-      loader = function(loaderData, loaderId) {
-        return loaderId ? loaderData.findWhere({ id: loaderId }) : undefined;
+    } else if (_.isString(predicate)) {
+      const idProperty = predicate;
+      predicate = function(predicateValue, predicateId) {
+        const criteria = {};
+        criteria[idProperty] = predicateId;
+        return predicateId ? _.find(predicateValue, criteria) : undefined;
       };
-    } else if (!_.isFunction(loader)) {
-      throw new Error('Loader must be a function or a string');
+    } else if (!predicate) {
+      predicate = function(predicateValue) {
+        return predicateValue;
+      };
+    } else if (!_.isFunction(predicate)) {
+      throw new Error('Predicate must be a function or a string');
     }
 
-    return loader(data, id);
+    return predicate(data, value);
+  };
+};
+
+exports.remove = function() {
+  return function(context) {
+    context.get('location').remove(null);
   };
 };

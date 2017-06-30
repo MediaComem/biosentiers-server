@@ -66,11 +66,9 @@ function validateExcursion(req, patchMode) {
 
   return validate.requestBody(req, function() {
     return this.series(
-      this.parallel(
-        validate.loadRelatedArray('themes', _.get(req.body, 'themes'), (names) => new Theme().where('name', 'in', names).fetchAll()),
-        // FIXME: scope zones by trail id
-        validate.loadRelatedArray('zones', _.get(req.body, 'zones'), (positions) => new Zone().where('position', 'in', positions).fetchAll())
-      ),
+      // Pre-load themes
+      validate.relatedArrayData('themes', preloadThemes()),
+      // Validate the excursion (except the zones, see below this parallel call)
       this.parallel(
         this.validate(
           this.json('/trailId'),
@@ -93,37 +91,40 @@ function validateExcursion(req, patchMode) {
         this.validate(
           this.json('/themes'),
           this.ifElse(
-            newOrChanged(excursion, patchMode, themesHaveChanged(excursion)),
-            (c) => {
-              return c.validate(
-                this.type('array'),
-                validate.each(function(value, i) {
-                  return this.validate(
-                    this.json(`/${i}`),
-                    this.resource(validate.preloaded(context, 'themes', 'name')).replace(_.identity)
-                  );
-                })
+            // If the excursion is new or themes have changed...
+            validate.newOrChanged(patchMode, themesHaveChanged(excursion)),
+            // Validate the themes
+            this.each((c, value, i) => {
+              return this.validate(
+                this.json(`/${i}`),
+                this.resource(validate.related('themes', 'name')).replace(_.identity)
               );
-            },
-            remove()
+            }),
+            // Otherwise remove them from the request body
+            validate.remove()
           )
-        ),
-        this.validate(
-          this.json('/zones'),
-          this.ifElse(
-            newOrChanged(excursion, patchMode, zonesHaveChanged(excursion)),
-            (c) => {
-              return c.validate(
-                this.type('array'),
-                validate.each(function(value, i) {
-                  return this.validate(
-                    this.json(`/${i}`),
-                    this.resource(validate.preloaded(context, 'zones', 'position')).replace(_.identity)
-                  );
-                })
-              );
-            },
-            remove()
+        )
+      ),
+      // Validate the zones (but only if the trail ID is valid, otherwise we cannot tell which zone positions are valid)
+      this.if(
+        this.noError({ location: '/trailId' }),
+        validate.relatedArrayData('zones', preloadZones(excursion)),
+        this.parallel(
+          this.validate(
+            this.json('/zones'),
+            this.ifElse(
+              // If the excursion is new or zones have changed...
+              validate.newOrChanged(patchMode, zonesHaveChanged(excursion)),
+              // Validate the zones
+              this.each((c, value, i) => {
+                return this.validate(
+                  this.json(`/${i}`),
+                  this.resource(validate.related('zones', 'position')).replace(_.identity)
+                );
+              }),
+              // Otherwise remove them from the request body
+              validate.remove()
+            )
           )
         )
       )
@@ -131,23 +132,18 @@ function validateExcursion(req, patchMode) {
   });
 }
 
-function newOrChanged(excursion, patchMode, value) {
-  return function(context) {
-    if (!patchMode) {
-      return true;
-    } else if (!context.get('valueSet')) {
-      return false;
-    } else if (!_.isFunction(value)) {
-      return context.get('value') !== value;
-    } else {
-      return value(context.get('value'), excursion);
-    }
+function preloadThemes() {
+  return function(names) {
+    return new Theme().where('name', 'in', names).fetchAll();
   };
 }
 
-function remove() {
-  return function(context) {
-    context.get('location').remove(null);
+function preloadZones(excursion) {
+  return function(positions, context) {
+    return new Zone()
+      .where('trail_id', context.get('value').trailId || excursion.get('trail_id'))
+      .where('position', 'in', positions)
+      .fetchAll();
   };
 }
 
@@ -164,9 +160,7 @@ function zonesHaveChanged(excursion) {
 }
 
 function fetchTrailByApiId(apiId) {
-  return new Trail({
-    api_id: apiId
-  }).fetch();
+  return new Trail({ api_id: apiId }).fetch();
 }
 
 function saveExcursion(excursion, req) {

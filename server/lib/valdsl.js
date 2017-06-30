@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const BPromise = require('bluebird');
 const valdsl = require('valdsl');
 
 const custom = valdsl();
