@@ -155,17 +155,19 @@ function buildDatabaseUrl() {
   const username = get('DATABASE_USERNAME');
   if (username) {
     url += username;
-  }
 
-  const password = get('DATABASE_PASSWORD');
-  if (username && password) {
-    url += `:${password}`;
+    const password = get('DATABASE_PASSWORD');
+    if (username && password) {
+      url += `:${password}`;
+    }
+
+    url += '@';
   }
 
   const host = get('DATABASE_HOST');
   const port = get('DATABASE_PORT');
   if (host || port) {
-    url += `@${host || 'localhost'}:${port || 5432}`;
+    url += `${host || 'localhost'}:${port || 5432}`;
   }
 
   return `${url}/${get('DATABASE_NAME') || 'biosentiers'}`
