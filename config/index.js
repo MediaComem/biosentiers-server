@@ -153,14 +153,22 @@ function buildDatabaseUrl() {
   let url = 'postgres://';
 
   const username = get('DATABASE_USERNAME');
-  url += username;
+  if (username) {
+    url += username;
+  }
 
   const password = get('DATABASE_PASSWORD');
-  if (password) {
+  if (username && password) {
     url += `:${password}`;
   }
 
-  return `${url}@${get('DATABASE_HOST') || 'localhost'}:${get('DATABASE_PORT') || '5432'}/${get('DATABASE_NAME') || 'biosentiers'}`
+  const host = get('DATABASE_HOST');
+  const port = get('DATABASE_PORT');
+  if (host || port) {
+    url += `@${host || 'localhost'}:${port || 5432}`;
+  }
+
+  return `${url}/${get('DATABASE_NAME') || 'biosentiers'}`
 }
 
 function get(varName) {

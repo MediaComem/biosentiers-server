@@ -19,7 +19,7 @@ module.exports = function() {
   db.ensureConnected().then(function() {
 
     const connection = db.knex.client.config.connection;
-    logger.debug(`Connected to database ${connection.database} on ${connection.host}`);
+    logger.debug(`Connected to database ${connection.database} on ${connection.host || 'local unix socket'}`);
 
     // Listen on provided port, on all network interfaces.
     server.listen(port);
