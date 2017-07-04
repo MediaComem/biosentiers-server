@@ -7,11 +7,11 @@ exports.canCreate = function(req) {
 };
 
 exports.canList = function(req) {
-  return policy.authenticated(req);
+  return true;
 };
 
 exports.canRetrieve = function(req) {
-  return policy.authenticated(req);
+  return true;
 };
 
 exports.scope = function(req) {

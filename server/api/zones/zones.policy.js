@@ -3,7 +3,7 @@ const policy = require('../policy');
 const Zone = require('../../models/zone');
 
 exports.canList = function(req) {
-  return policy.authenticated(req);
+  return true;
 };
 
 exports.scope = function(req) {
