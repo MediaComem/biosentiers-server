@@ -3,7 +3,7 @@ const Path = require('../../models/path');
 const policy = require('../policy');
 
 exports.canList = function(req) {
-  return policy.authenticated(req);
+  return true;
 };
 
 exports.scope = function(req) {
