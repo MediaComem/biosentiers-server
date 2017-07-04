@@ -96,14 +96,14 @@ function validateInvitation(req) {
       this.validate(
         this.json('/email'),
         this.type('string'),
-        this.presence(),
+        this.required(),
         this.email(),
         validations.emailAvailable()
       ),
       this.validate(
         this.json('/role'),
         this.type('string'),
-        this.presence(),
+        this.required(),
         this.inclusion({ in: User.roles })
       )
     );

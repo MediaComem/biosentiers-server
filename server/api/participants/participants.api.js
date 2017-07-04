@@ -64,9 +64,10 @@ function validateParticipant(req, patchMode) {
     return this.parallel(
       this.validate(
         this.json('/name'),
-        this.if(patchMode, this.while(this.isSet()), this.while(this.hasChanged(name))),
-        this.presence(),
+        this.if(patchMode, this.while(this.isSet()), this.while(this.changed(name))),
+        this.required(),
         this.type('string'),
+        this.notBlank(),
         validations.nameAvailable(excursion, participant)
       )
     );
