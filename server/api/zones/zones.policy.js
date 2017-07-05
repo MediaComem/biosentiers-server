@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const pointsPolicy = require('../zone-points/zone-points.policy.js');
 const policy = require('../policy');
 const Zone = require('../../models/zone');
 
@@ -7,7 +8,6 @@ exports.canList = function(req) {
 };
 
 exports.scope = function(req) {
-  // TODO: only the participants of excursions created by the user should be visible to non-admins
   return new Zone();
 };
 
@@ -18,6 +18,10 @@ exports.serialize = function(req, zone) {
     description: zone.get('description'),
     nature: zone.get('keyword_nature'),
     geometry: zone.get('geom'),
+    points: zone.related('points').reduce((memo, point) => {
+      memo[point.get('type')] = _.omit(pointsPolicy.serialize(req, point), 'type');
+      return memo;
+    }, {}),
     createdAt: zone.get('created_at')
   };
 };

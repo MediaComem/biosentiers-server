@@ -8,6 +8,10 @@ const Zone = Abstract.extend({
     return this.belongsToMany('Excursion', 'excursions_zones');
   },
 
+  points: function() {
+    return this.hasMany('ZonePoint');
+  },
+
   parse: function(response) {
     if (response.geom) {
       response.geom = this.constructor.parseGeoJson(response.geom);

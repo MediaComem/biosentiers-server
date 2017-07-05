@@ -14,6 +14,7 @@ exports.list = route(async function(req, res) {
   const zones = await new QueryBuilder(req, res, query)
     .paginate()
     .sort('position')
+    .eagerLoad([ { points: (qb) => qb.select('*', db.st.asGeoJSON('geom')) } ])
     .modify(q => { return { query: q.query(qb => qb.select('*', db.st.asGeoJSON('geom'))) }; })
     .fetch();
 
