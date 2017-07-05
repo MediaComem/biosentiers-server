@@ -1,7 +1,5 @@
 const _ = require('lodash');
 const db = require('../../db');
-const Path = require('../../models/path');
-const PathType = require('../../models/path-type');
 const policy = require('./paths.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');

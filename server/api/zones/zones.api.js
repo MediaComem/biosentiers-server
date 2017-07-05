@@ -4,7 +4,6 @@ const policy = require('./zones.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
-const Zone = require('../../models/zone');
 
 // API resource name (used in some API errors)
 exports.resourceName = 'zone';

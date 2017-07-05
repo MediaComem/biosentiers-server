@@ -2,10 +2,14 @@ const _ = require('lodash');
 const config = require('../../config');
 const errors = require('./errors');
 const express = require('express');
+const glob = require('glob');
 const pkg = require('../../package');
 
 const logger = config.logger('api');
 const router = express.Router();
+
+const models = _.without(glob.sync('*', { cwd: `${__dirname}/../models` }), 'abstract.js', 'counters.js');
+_.each(models, model => require(`../models/${model}`));
 
 // Plug in API routes
 router.use('/auth', require('./auth/auth.routes'));
