@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const db = require('../../db');
 const Excursion = require('../../models/excursion');
 const fetcher = require('../fetcher');
 const np = require('../../lib/native-promisify');
@@ -12,7 +13,14 @@ const utils = require('../utils');
 const validate = require('../validate');
 const Zone = require('../../models/zone');
 
-const EAGER_LOAD = [ 'creator', 'themes', 'trail', 'zones' ];
+const EAGER_LOAD = [
+  'creator',
+  'themes',
+  'trail',
+  {
+    'zones': qb => qb.select('zone.*', db.st.asGeoJSON('geom'))
+  }
+];
 
 // API resource name (used in some API errors).
 exports.resourceName = 'excursion';
@@ -119,7 +127,7 @@ function validateExcursion(req, patchMode) {
               this.each((c, value, i) => {
                 return this.validate(
                   this.json(`/${i}`),
-                  this.resource(validate.related('zones', 'position')).replace(_.identity)
+                  this.resource(validate.related('zones', (col, id) => _.find(col.models, model => model.pivot.get('position') === id))).replace(_.identity)
                 );
               }),
               // Otherwise remove them from the request body
@@ -140,10 +148,14 @@ function preloadThemes() {
 
 function preloadZones(excursion) {
   return function(positions, context) {
-    return new Zone()
-      .where('trail_id', context.get('value').trailId || excursion.get('trail_id'))
-      .where('position', 'in', positions)
-      .fetchAll();
+    const trailId = context.get('value').trailId || excursion.get('trail_id');
+    return new Trail({ id: trailId }).fetch().then(trail => {
+      return trail.zones().query(qb => {
+        return qb
+          .select('zone.*', db.st.asGeoJSON('geom'))
+          .where('trails_zones.position', 'in', positions);
+      }).fetch();
+    });
   };
 }
 

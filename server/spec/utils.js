@@ -75,9 +75,10 @@ exports.cleanDatabase = function() {
     'butterfly_species', 'butterfly_family',
     'flower_species', 'tree_species', 'flora_family',
     'class', 'division', 'reign',
-    'poi', 'owner',
+    'pois_zones', 'poi', 'owner',
     'participant',
     'excursions_themes', 'excursions_zones', 'excursion',
+    'trails_zones',
     'path', 'path_type', 'zone_point', 'zone',
     'theme', 'trail',
     'user_account'

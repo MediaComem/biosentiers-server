@@ -29,7 +29,7 @@ const Abstract = bookshelf.Model.extend({
       throw new Error(`Model "geometry" property must be a string or boolean, got ${this.geometry} (${typeof(this.geometry)})`)
     }
 
-    if (geomProperty) {
+    if (geomProperty && response[geomProperty]) {
       response[geomProperty] = JSON.parse(response[geomProperty]);
     }
 

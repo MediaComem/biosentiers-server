@@ -62,5 +62,5 @@ function serializeThemes(excursion) {
 }
 
 function serializeZones(excursion) {
-  return excursion.related('zones').map(zone => zone.get('position')).sort();
+  return excursion.related('zones').map(zone => zone.pivot.get('position')).sort();
 }
