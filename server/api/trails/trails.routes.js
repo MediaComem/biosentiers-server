@@ -2,6 +2,7 @@ const auth = require('../auth');
 const controller = require('./trails.api');
 const express = require('express');
 const pathsRoutes = require('../paths/paths.routes');
+const poisRoutes = require('../pois/pois.routes');
 const policy = require('./trails.policy');
 const zonesRoutes = require('../zones/zones.routes');
 
@@ -23,6 +24,10 @@ router.get('/:id',
 router.use('/:id/paths',
   controller.fetchTrail,
   pathsRoutes);
+
+router.use('/:id/pois',
+  controller.fetchTrail,
+  poisRoutes);
 
 router.use('/:id/zones',
   controller.fetchTrail,
