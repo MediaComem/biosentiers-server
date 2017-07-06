@@ -3,17 +3,10 @@ const bookshelf = require('../db');
 
 const ZonePoint = Abstract.extend({
   tableName: 'zone_point',
+  geometry: true,
 
   zone: function() {
     return this.belongsTo('Zone');
-  },
-
-  parse: function(response) {
-    if (response.geom) {
-      response.geom = this.constructor.parseGeoJson(response.geom);
-    }
-
-    return response;
   }
 });
 

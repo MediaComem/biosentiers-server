@@ -14,6 +14,28 @@ const Abstract = bookshelf.Model.extend({
     this.on('saving', this.touch, this);
   },
 
+  generateApiId: function() {
+    return uuid.v4();
+  },
+
+  parse: function(response) {
+
+    let geomProperty;
+    if (_.isString(this.geometry)) {
+      geomProperty = this.geometry;
+    } else if (this.geometry === true) {
+      geomProperty = 'geom';
+    } else if (this.geometry !== undefined) {
+      throw new Error(`Model "geometry" property must be a string or boolean, got ${this.geometry} (${typeof(this.geometry)})`)
+    }
+
+    if (geomProperty) {
+      response[geomProperty] = JSON.parse(response[geomProperty]);
+    }
+
+    return response;
+  },
+
   touch: function() {
     if (this.timestamps) {
       if (!this.has('created_at')) {
@@ -22,10 +44,6 @@ const Abstract = bookshelf.Model.extend({
 
       this.set('updated_at', new Date());
     }
-  },
-
-  generateApiId: function() {
-    return uuid.v4();
   },
 
   _setApiId: function() {
@@ -48,14 +66,6 @@ const Abstract = bookshelf.Model.extend({
     });
   }
 }, {
-  parseGeoJson: function(geoJson) {
-    try {
-      return JSON.parse(geoJson);
-    } catch(err) {
-      // ignore
-    }
-  },
-
   parseJson: function(req, record) {
     if (!record) {
       record = new this();

@@ -13,6 +13,7 @@ exports.scope = function(req, baseQuery) {
 exports.serialize = function(req, poi) {
   return {
     theme: poi.related('theme').get('name'),
+    geometry: poi.get('geom'),
     createdAt: poi.get('created_at')
   };
 };

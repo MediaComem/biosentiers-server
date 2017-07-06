@@ -3,6 +3,7 @@ const bookshelf = require('../db');
 
 const Zone = Abstract.extend({
   tableName: 'zone',
+  geometry: true,
 
   excursions: function() {
     return this.belongsToMany('Excursion', 'excursions_zones');
@@ -14,14 +15,6 @@ const Zone = Abstract.extend({
 
   trails: function() {
     return this.belongsToMany('Trail', 'trails_zones').withPivot([ 'position' ]);
-  },
-
-  parse: function(response) {
-    if (response.geom) {
-      response.geom = this.constructor.parseGeoJson(response.geom);
-    }
-
-    return response;
   }
 });
 

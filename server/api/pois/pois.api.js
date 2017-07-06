@@ -19,11 +19,21 @@ exports.list = route(async function(req, res) {
     })
     .where('trails_zones.trail_id', req.trail.get('id'));
 
-  const pois = await new QueryBuilder(req, res, query)
+  const col = await new QueryBuilder(req, res, query)
     .paginate()
     .eagerLoad([ 'theme' ])
-    //.eagerLoad([ 'trails', { points: (qb) => qb.select('*', db.st.asGeoJSON('geom')) } ])
-    .fetch();
+    .fetch({ collection: true });
 
-  res.send(serialize(req, pois, policy));
+  const pois = col.models;
+
+  if (pois.length) {
+    const themes = _.uniq(_.map(pois, poi => poi.related('theme').get('name')));
+    await col.load(_.reduce(themes, (memo, theme) => {
+      const themePois = _.filter(pois, poi => poi.related('theme').get('name') === theme);
+      memo[theme] = qb => qb.select(`${theme}.*`, db.st.asGeoJSON('geom')).where('id', 'IN', _.map(themePois, poi => poi.get('id')));
+      return memo;
+    }, {}));
+  }
+
+  res.send(serialize(req, col.models, policy));
 });

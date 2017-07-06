@@ -60,7 +60,7 @@ function setPossibleSorts(sorts) {
   return this;
 }
 
-function fetch() {
+function fetch(options) {
 
   const data = {
     req: this.req,
@@ -117,7 +117,11 @@ function fetch() {
     });
   }
 
-  return promise.get('models');
+  if (_.get(options, 'collection')) {
+    return promise;
+  } else {
+    return promise.get('models');
+  }
 }
 
 function loadRelated(related) {
