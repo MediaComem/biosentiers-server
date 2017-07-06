@@ -103,8 +103,13 @@ function fetch() {
 
   promise = promise
     .return(data)
-    .get('query')
-    .call('fetchAll');
+    .then(data => {
+      if (data.query.fetchAll) {
+        return data.query.fetchAll();
+      } else {
+        return data.query.fetch();
+      }
+    });
 
   if (this.related && this.related.length) {
     promise = promise.then(function(collection) {

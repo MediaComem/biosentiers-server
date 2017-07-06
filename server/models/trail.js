@@ -9,6 +9,10 @@ const Trail = Abstract.extend({
 
   parsing: {
     default: 'name'
+  },
+
+  zones: function() {
+    return this.belongsToMany('Zone', 'trails_zones').withPivot([ 'position' ]);
   }
 });
 

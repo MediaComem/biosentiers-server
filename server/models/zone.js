@@ -12,6 +12,10 @@ const Zone = Abstract.extend({
     return this.hasMany('ZonePoint');
   },
 
+  trails: function() {
+    return this.belongsToMany('Trail', 'trails_zones').withPivot([ 'position' ]);
+  },
+
   parse: function(response) {
     if (response.geom) {
       response.geom = this.constructor.parseGeoJson(response.geom);
