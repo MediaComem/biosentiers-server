@@ -65,13 +65,22 @@ exports.down = function(knex, Promise) {
 };
 
 function createDefaultTrail(knex) {
-  return knex('trail').insert({
-    api_id: uuid.v4(),
-    name: 'BioSentier Yverdon',
-    created_at: new Date(),
-    updated_at: new Date()
-  }).returning('id').then((result) => {
-    defaultTrailId = parseInt(result[0], 10);
+  return BPromise.all([
+    knex('path').count('id_path'),
+    knex('zone').count('id_zone')
+  ]).spread((pathCountResult, zoneCountResult) => {
+    if (parseInt(pathCountResult[0].count, 10) === 0 && parseInt(zoneCountResult[0].count, 10) === 0) {
+      return;
+    }
+
+    return knex('trail').insert({
+      api_id: uuid.v4(),
+      name: 'BioSentier Yverdon',
+      created_at: new Date(),
+      updated_at: new Date()
+    }).returning('id').then((result) => {
+      defaultTrailId = parseInt(result[0], 10);
+    });
   });
 }
 
@@ -267,7 +276,7 @@ function updatePathTable(knex) {
     t.bigInteger('trail_id');
   }).then(() => {
     // Link all current paths to the default trail (created at the beginning of the script)
-    return knex('path').update('trail_id', defaultTrailId);
+    return defaultTrailId ? knex('path').update('trail_id', defaultTrailId) : undefined;
   }).then(() => {
     // Make the trail foreign key column not nullable
     return knex.schema.alterTable('path', (t) => {
@@ -368,7 +377,7 @@ function updateZoneTable(knex) {
     t.bigInteger('trail_id');
   }).then(() => {
     // Link all current zones to the default trail (created at the beginning of the script)
-    return knex('zone').update('trail_id', defaultTrailId);
+    return defaultTrailId ? knex('zone').update('trail_id', defaultTrailId) : undefined;
   }).then(() => {
     // Make the trail foreign key column not nullable
     return knex.schema.alterTable('zone', (t) => {
