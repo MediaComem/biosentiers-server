@@ -10,10 +10,11 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   // Check the actual object.
   expect(actual, 'trail').to.be.an('object');
 
-  const keys = [ 'id', 'name', 'geometry', 'length', 'createdAt', 'updatedAt' ];
+  const keys = [ 'id', 'href', 'name', 'geometry', 'length', 'createdAt', 'updatedAt' ];
   expect(actual, 'res.body').to.have.all.keys(keys);
 
   expect(actual.id, 'trail.id').to.be.a('string');
+  expect(actual.href, 'trail.href').to.equal(expected.href || `/api/trails/${actual.id}`);
   expect(actual.name, 'trail.name').to.equal(expected.name);
   expect(actual.geometry, 'trail.geometry').to.eql(expected.geometry);
   expect(actual.length, 'trail.length').to.equal(expected.length);

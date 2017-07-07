@@ -49,7 +49,7 @@ describe('Trails API', function() {
       }, data.reqBody);
 
       return spec
-        .testCreate('/trails?include=geom', data.reqBody)
+        .testCreate('/trails?include=geometry', data.reqBody)
         .set('Authorization', 'Bearer ' + data.admin.generateJwt())
         .then(expectTrail.inBody(expected));
     });

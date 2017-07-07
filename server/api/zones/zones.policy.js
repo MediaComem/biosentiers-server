@@ -22,7 +22,7 @@ exports.serialize = function(req, zone) {
       return memo;
     }, {}),
     trailHrefs: zone.related('trails').reduce((memo, trail) => {
-      memo[`/trails/${trail.get('api_id')}`] = {
+      memo[`/api/trails/${trail.get('api_id')}`] = {
         position: trail.pivot.get('position')
       };
 
