@@ -67,8 +67,7 @@ function fetch(options) {
     res: this.res,
     query: this.query,
     filters: this.filters,
-    sorts: this.sorts,
-    related: this.related
+    sorts: this.sorts
   };
 
   let promise = BPromise.resolve();
@@ -112,8 +111,10 @@ function fetch(options) {
     });
 
   if (this.related && this.related.length) {
-    promise = promise.then(function(collection) {
-      return collection.load(data.related);
+    _.each(this.related, related => {
+      promise = promise.then(function(collection) {
+        return collection.load(related).then(() => collection);
+      });
     });
   }
 
@@ -125,7 +126,7 @@ function fetch(options) {
 }
 
 function loadRelated(related) {
-  this.related = related;
+  this.related.push(related);
   return this;
 }
 
