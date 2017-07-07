@@ -37,7 +37,7 @@ exports.create = route.transactional(async function(req, res) {
     req.currentUser = user;
   }
 
-  res.status(201).send(serialize(req, user, policy));
+  res.status(201).send(await serialize(req, user, policy));
 });
 
 exports.list = route(async function(req, res) {
@@ -49,7 +49,7 @@ exports.list = route(async function(req, res) {
     .sort('email', 'createdAt')
     .fetch();
 
-  res.send(serialize(req, users, policy));
+  res.send(await serialize(req, users, policy));
 
   function filterByEmail(query) {
     if (_.isString(req.query.email)) {
@@ -59,7 +59,7 @@ exports.list = route(async function(req, res) {
 });
 
 exports.retrieve = route(async function(req, res) {
-  res.send(serialize(req, req.user, policy));
+  res.send(await serialize(req, req.user, policy));
 });
 
 exports.update = route.transactional(async function(req, res) {
@@ -79,7 +79,7 @@ exports.update = route.transactional(async function(req, res) {
 
   await user.save();
 
-  res.send(serialize(req, user, policy));
+  res.send(await serialize(req, user, policy));
 });
 
 exports.fetchUser = fetcher({

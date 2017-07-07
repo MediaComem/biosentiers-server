@@ -35,5 +35,5 @@ exports.list = route(async function(req, res) {
     }, {}));
   }
 
-  res.send(serialize(req, col.models, policy));
+  res.send(await serialize(req, col.models, policy));
 });

@@ -15,5 +15,5 @@ exports.list = route(async function(req, res) {
     .sort('name')
     .fetch();
 
-  res.send(serialize(req, themes, policy));
+  res.send(await serialize(req, themes, policy));
 });

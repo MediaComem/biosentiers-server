@@ -18,5 +18,5 @@ exports.list = route(async function(req, res) {
     .eagerLoad([ 'type' ])
     .fetch();
 
-  res.send(serialize(req, paths, policy));
+  res.send(await serialize(req, paths, policy));
 });

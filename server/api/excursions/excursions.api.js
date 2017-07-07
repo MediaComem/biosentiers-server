@@ -18,7 +18,7 @@ const EAGER_LOAD = [
   'themes',
   'trail',
   {
-    'zones': qb => qb.select('zone.*', db.st.asGeoJSON('geom'))
+    zones: qb => qb.select('zone.*', db.st.asGeoJSON('geom'))
   }
 ];
 
@@ -34,7 +34,7 @@ exports.create = route.transactional(async function(req, res) {
   await saveExcursion(excursion, req);
 
   await excursion.load(EAGER_LOAD);
-  res.status(201).send(serialize(req, excursion, policy));
+  res.status(201).send(await serialize(req, excursion, policy));
 });
 
 exports.list = route(async function(req, res) {
@@ -46,11 +46,11 @@ exports.list = route(async function(req, res) {
     .eagerLoad(EAGER_LOAD)
     .fetch();
 
-  res.send(serialize(req, excursions, policy));
+  res.send(await serialize(req, excursions, policy));
 });
 
 exports.retrieve = route(async function(req, res) {
-  res.send(serialize(req, req.excursion, policy));
+  res.send(await serialize(req, req.excursion, policy));
 });
 
 exports.update = route.transactional(async function(req, res) {
@@ -59,7 +59,7 @@ exports.update = route.transactional(async function(req, res) {
   policy.parseRequestIntoRecord(req, req.excursion);
   await saveExcursion(req.excursion, req);
 
-  res.send(serialize(req, req.excursion, policy));
+  res.send(await serialize(req, req.excursion, policy));
 });
 
 exports.fetchExcursion = fetcher({
@@ -127,7 +127,7 @@ function validateExcursion(req, patchMode) {
               this.each((c, value, i) => {
                 return this.validate(
                   this.json(`/${i}`),
-                  this.resource(validate.related('zones', (col, id) => _.find(col.models, model => model.pivot.get('position') === id))).replace(_.identity)
+                  this.resource(validate.related('zones', findZoneByPosition)).replace(_.identity)
                 );
               }),
               // Otherwise remove them from the request body
@@ -169,6 +169,10 @@ function zonesHaveChanged(excursion) {
   return function(zones) {
     return !_.isEqual(_.uniq(excursion.related('zones').pluck('position')).sort(), _.uniq(zones).sort());
   };
+}
+
+function findZoneByPosition(col, position) {
+  return _.find(col.models, zone => zone.pivot.get('position') === position);
 }
 
 function fetchTrailByApiId(apiId) {

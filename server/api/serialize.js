@@ -14,8 +14,8 @@ module.exports = function(req, data, serializer) {
   }
 
   if (!_.isArray(data)) {
-    return serializer(req, data);
+    return Promise.resolve(serializer(req, data));
   } else {
-    return _.map(data, (item) => serializer(req, item));
+    return Promise.all(_.map(data, item => serializer(req, item)));
   }
 };

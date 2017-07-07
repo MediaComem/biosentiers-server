@@ -21,7 +21,7 @@ exports.create = route.transactional(async function(req, res) {
   participant.set('excursion_id', req.excursion.get('id'));
 
   await participant.save();
-  res.status(201).send(serialize(req, participant, policy));
+  res.status(201).send(await serialize(req, participant, policy));
 });
 
 exports.list = route(async function(req, res) {
@@ -33,14 +33,14 @@ exports.list = route(async function(req, res) {
     .eagerLoad([ 'excursion' ])
     .fetch();
 
-  res.send(serialize(req, participants, policy));
+  res.send(await serialize(req, participants, policy));
 });
 
 exports.update = route.transactional(async function(req, res) {
   await np(validateParticipant(req, true));
   policy.parseRequestIntoRecord(req, req.participant);
   await req.participant.save();
-  res.send(serialize(req, req.participant, policy));
+  res.send(await serialize(req, req.participant, policy));
 });
 
 exports.delete = route.transactional(async function(req, res) {

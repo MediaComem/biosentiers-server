@@ -18,5 +18,5 @@ exports.list = route(async function(req, res) {
     .modify(q => { return { query: q.query(qb => qb.select('zone.*', db.st.asGeoJSON('geom'))) }; })
     .fetch();
 
-  res.send(serialize(req, zones, policy));
+  res.send(await serialize(req, zones, policy));
 });

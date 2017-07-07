@@ -44,7 +44,7 @@ describe('Excursions API', function() {
       });
     });
 
-    it.only('should create an excursion', function() {
+    it('should create an excursion', function() {
 
       const expected = _.extend({
         trailId: data.trail.get('api_id'),

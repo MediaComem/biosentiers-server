@@ -14,7 +14,7 @@ exports.resourceName = 'trail';
 exports.create = route.transactional(async function(req, res) {
   await np(validateTrail(req));
   const trail = await Trail.parseJson(req).save();
-  res.status(201).send(serialize(req, trail, policy));
+  res.status(201).send(await serialize(req, trail, policy));
 });
 
 exports.list = route(async function(req, res) {
@@ -24,11 +24,11 @@ exports.list = route(async function(req, res) {
     .sort('createdAt', 'updatedAt')
     .fetch();
 
-  res.send(serialize(req, trails, policy));
+  res.send(await serialize(req, trails, policy));
 });
 
 exports.retrieve = route(async function(req, res) {
-  res.send(serialize(req, req.trail, policy));
+  res.send(await serialize(req, req.trail, policy));
 });
 
 exports.fetchTrail = fetcher({
