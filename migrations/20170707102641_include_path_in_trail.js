@@ -19,7 +19,7 @@ exports.down = function(knex, Promise) {
 function addTrailPathColumn(knex) {
   return knex.schema.alterTable('trail', t => {
     t.specificType('geom', 'geometry(GeometryZ,4326)');
-    t.integer('length');
+    t.integer('path_length');
   });
 }
 
@@ -34,7 +34,7 @@ function setTrailPathFromLegacyTable(knex) {
           return;
         }
 
-        return knex('trail').update({ geom: path.geom, length: path.length }).where({ id: trailId });
+        return knex('trail').update({ geom: path.geom, path_length: path.length }).where({ id: trailId });
       });
     }));
   });
@@ -43,7 +43,7 @@ function setTrailPathFromLegacyTable(knex) {
 function makeTrailPathNotNullable(knex) {
   return knex.schema.alterTable('trail', t => {
     t.specificType('geom', 'geometry(GeometryZ,4326)').notNullable().alter();
-    t.integer('length').notNullable().alter();
+    t.integer('path_length').notNullable().alter();
   });
 }
 

@@ -34,7 +34,7 @@ const Trail = Abstract.extend({
 
   autoSetLength: function() {
     if (this.hasChanged('geom')) {
-      this.set('length', Math.round(geoJsonLength(this.get('geom'))));
+      this.set('path_length', Math.round(geoJsonLength(this.get('geom'))));
     }
   }
 });

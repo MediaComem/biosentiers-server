@@ -37,7 +37,7 @@ module.exports.inDb = function(apiId, expected) {
     expect(trail.get('api_id'), 'db.trail.api_id').to.equal(expected.id);
     expect(trail.get('name'), 'db.trail.name').to.equal(expected.name);
     expect(trail.get('geom'), 'db.trail.geom').to.eql(expected.geometry);
-    expect(trail.get('length'), 'db.trail.length').to.equal(expected.length);
+    expect(trail.get('path_length'), 'db.trail.path_length').to.equal(expected.length);
     expect(trail.get('created_at'), 'db.trail.created_at').to.be.sameMoment(expected.createdAt);
     expect(trail.get('updated_at'), 'db.trail.updated_at').to.be.sameMoment(expected.updatedAt);
   });

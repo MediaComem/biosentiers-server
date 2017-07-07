@@ -12,7 +12,7 @@ exports.trail = function(data) {
   return spec.createRecord(Trail, {
     name: data.name || exports.name(),
     geom: geometry,
-    length: Math.round(geoJsonLength(geometry)),
+    path_length: Math.round(geoJsonLength(geometry)),
     created_at: data.createdAt,
     updated_at: data.updatedAt
   });
