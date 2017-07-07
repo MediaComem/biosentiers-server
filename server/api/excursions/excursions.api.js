@@ -149,7 +149,7 @@ function preloadThemes() {
 function preloadZones(excursion) {
   return function(positions, context) {
     const trailId = context.get('value').trailId || excursion.get('trail_id');
-    return new Trail({ id: trailId }).fetch().then(trail => {
+    return new Trail({ id: trailId }).query(qb => qb.select('*', db.st.asGeoJSON('geom'))).fetch().then(trail => {
       return trail.zones().query(qb => {
         return qb
           .select('zone.*', db.st.asGeoJSON('geom'))
@@ -176,7 +176,7 @@ function findZoneByPosition(col, position) {
 }
 
 function fetchTrailByApiId(apiId) {
-  return new Trail({ api_id: apiId }).fetch();
+  return new Trail({ api_id: apiId }).query(qb => qb.select('*', db.st.asGeoJSON('geom'))).fetch();
 }
 
 function saveExcursion(excursion, req) {
