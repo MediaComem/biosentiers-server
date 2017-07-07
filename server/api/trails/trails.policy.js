@@ -39,7 +39,7 @@ exports.serialize = function(req, trail) {
     updatedAt: trail.get('updated_at')
   };
 
-  if (utils.includes(req, 'geom')) {
+  if (utils.includes(req, 'geometry')) {
     result.geometry = trail.get('geom');
   }
 
