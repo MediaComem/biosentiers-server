@@ -16,8 +16,8 @@ const Zone = require('../../models/zone');
 const EAGER_LOAD = [
   'creator',
   'themes',
-  'trail',
   {
+    trail: qb => qb.select('trail.*', db.st.asGeoJSON('geom')),
     zones: qb => qb.select('zone.*', db.st.asGeoJSON('geom'))
   }
 ];

@@ -62,7 +62,8 @@ function logDbQueries(query) {
   if (query.bindings) {
     _.each(query.bindings, function(binding) {
       // FIXME: only allow in development
-      message = message.replace(/\?/, binding);
+      const value = binding ? binding.toString() : binding;
+      message = message.replace(/\?/, (value && value.length > 50 ? `${value.substring(0, 50)}...` : value));
     });
   }
 

@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const db = require('../../db');
 const fetcher = require('../fetcher');
 const np = require('../../lib/native-promisify');
 const policy = require('./trails.policy');
@@ -13,7 +14,8 @@ exports.resourceName = 'trail';
 
 exports.create = route.transactional(async function(req, res) {
   await np(validateTrail(req));
-  const trail = await Trail.parseJson(req).save();
+  const trail = policy.parseRequestIntoRecord(req, new Trail());
+  await trail.save();
   res.status(201).send(await serialize(req, trail, policy));
 });
 
@@ -22,6 +24,7 @@ exports.list = route(async function(req, res) {
   const trails = await new QueryBuilder(req, res, policy.scope(req))
     .paginate()
     .sort('createdAt', 'updatedAt')
+    .modify(q => { return { query: q.query(qb => qb.select('*', db.st.asGeoJSON('geom'))) }; })
     .fetch();
 
   res.send(await serialize(req, trails, policy));
@@ -33,7 +36,8 @@ exports.retrieve = route(async function(req, res) {
 
 exports.fetchTrail = fetcher({
   model: Trail,
-  resourceName: 'trail'
+  resourceName: 'trail',
+  queryHandler: query => query.query(qb => qb.select('*', db.st.asGeoJSON('geom')))
 });
 
 function validateTrail(req) {
@@ -44,6 +48,17 @@ function validateTrail(req) {
         this.required(),
         this.type('string'),
         this.notEmpty()
+      ),
+      this.validate(
+        this.json('/geometry'),
+        this.required(),
+        this.type('object'),
+        this.validate(
+          this.json('/type'),
+          this.required(),
+          this.type('string'),
+          this.inclusion('MultiLineString')
+        )
       )
     );
   });

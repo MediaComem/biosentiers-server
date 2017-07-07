@@ -79,7 +79,7 @@ exports.cleanDatabase = function() {
     'participant',
     'excursions_themes', 'excursions_zones', 'excursion',
     'trails_zones',
-    'path', 'path_type', 'zone_point', 'zone',
+    'zone_point', 'zone',
     'theme', 'trail',
     'user_account'
   ];

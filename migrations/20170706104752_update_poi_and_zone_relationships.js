@@ -117,29 +117,34 @@ function addPoisZonesTable(knex) {
 function makeZonesTrailForeignKeyNotNullable(knex) {
   return knex.schema.alterTable('zone', t => {
     t.bigInteger('trail_id').notNullable().alter();
+    t.integer('position').notNullable().alter();
   });
 }
 
 function fillTrailForeignKeyInZones(knex) {
-  return knex('trails_zones').select('trail_id', 'zone_id').then(results => {
+  return knex('trails_zones').select('trail_id', 'zone_id', 'position').then(results => {
 
     const zonesTrailIds = _.reduce(results, (memo, result) => {
       if (!memo[result.zone_id]) {
         memo[result.zone_id] = [];
       }
 
-      memo[result.zone_id].push(result.trail_id);
+      memo[result.zone_id].push({
+        trail_id: result.trail_id,
+        position: result.position
+      });
+
       return memo;
     }, {});
 
-    return Promise.all(_.map(zonesTrailIds, (trailIds, zoneId) => {
-      if (trailIds.length === 0) {
+    return Promise.all(_.map(zonesTrailIds, (trailsData, zoneId) => {
+      if (trailsData.length === 0) {
         throw new Error(`Zone ${zoneId} is not linked to any trail`);
-      } else if (trailIds.length >= 2) {
-        throw new Error(`Zone ${zoneId} is linked to multiple trails: ${trailIds.join(', ')}`);
+      } else if (trailsData.length >= 2) {
+        throw new Error(`Zone ${zoneId} is linked to multiple trails: ${_.map(trailsData, 'trail_id').join(', ')}`);
       }
 
-      return knex('zone').where({ id: zoneId }).update({ trail_id: trailIds[0] });
+      return knex('zone').where({ id: zoneId }).update({ trail_id: trailsData[0].trail_id, position: trailsData[0].position });
     }));
   });
 }
@@ -151,6 +156,8 @@ function addTrailForeignKeyToZones(knex) {
       .withKeyName('zone_trail_id_fkey')
       .onUpdate('cascade')
       .onDelete('restrict');
+
+    t.integer('position');
   });
 }
 
