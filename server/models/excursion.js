@@ -7,6 +7,7 @@ const Excursion = Abstract.extend({
   tableName: 'excursion',
 
   apiId: true,
+  hrefBase: '/api/excursions',
   timestamps: true,
 
   creator: function() {

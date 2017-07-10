@@ -1,15 +1,18 @@
+const _ = require('lodash');
 const Abstract = require('./abstract');
 const bookshelf = require('../db');
+
+const proto = Abstract.prototype;
 
 const Poi = Abstract.extend({
   tableName: 'poi',
 
-  virtuals: {
+  virtuals: _.merge({
     geom: {
       get: getGeom,
       set: setGeom
     }
-  },
+  }, proto.virtuals),
 
   bird: function() {
     return this.belongsTo('Bird', 'id');

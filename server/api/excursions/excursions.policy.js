@@ -35,14 +35,12 @@ exports.parse = function(req, excursion = new Excursion()) {
 exports.serialize = function(req, excursion) {
 
   const id = excursion.get('api_id');
-  const creatorId = excursion.related('creator').get('api_id');
-  const trailId = excursion.related('trail').get('api_id');
 
   const result = {
     id: id,
-    href: `/api/excursions/${id}`,
-    trailHref: `/api/trails/${trailId}`,
-    creatorHref: `/api/users/${creatorId}`,
+    href: excursion.get('href'),
+    trailHref: excursion.related('trail').get('href'),
+    creatorHref: excursion.related('creator').get('href'),
     name: excursion.get('name'),
     participantsHref: `/api/excursions/${id}/participants`,
     participantsCount: excursion.get('participants_count') || 0,

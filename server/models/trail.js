@@ -10,6 +10,7 @@ const Trail = Abstract.extend({
   geometry: true,
 
   apiId: true,
+  hrefBase: '/api/trails',
   timestamps: true,
 
   constructor: function() {

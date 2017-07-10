@@ -33,15 +33,11 @@ exports.parse = function(req, participant = new Participant()) {
 };
 
 exports.serialize = function(req, participant) {
-
-  const id = participant.get('api_id');
-  const excursionId = participant.related('excursion').get('api_id');
-
   return {
-    id: id,
-    href: `/api/excursions/${excursionId}/participants/${id}`,
+    id: participant.get('api_id'),
+    href: participant.get('href'),
     name: participant.get('name'),
-    excursionHref: `/api/excursions/${excursionId}`,
+    excursionHref: participant.related('excursion').get('href'),
     createdAt: participant.get('created_at'),
     updatedAt: participant.get('updated_at')
   };

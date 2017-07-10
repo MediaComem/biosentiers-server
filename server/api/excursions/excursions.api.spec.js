@@ -36,7 +36,7 @@ describe('Excursions API', function() {
         });
 
         data.reqBody = {
-          trailId: data.trail.call('get', 'api_id'),
+          trailHref: data.trail.get('href'),
           themes: [ data.themes.get(0).call('get', 'name') ],
           zones: [ 2 ],
           plannedAt: moment().add(2, 'days').toDate()
@@ -47,7 +47,6 @@ describe('Excursions API', function() {
     it('should create an excursion', function() {
 
       const expected = _.extend({
-        trailId: data.trail.get('api_id'),
         creatorId: data.user.get('api_id'),
         createdAfter: data.now,
         updatedAt: 'createdAt'

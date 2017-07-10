@@ -2,6 +2,7 @@ const _ = require('lodash');
 const db = require('../../db');
 const Excursion = require('../../models/excursion');
 const fetcher = require('../fetcher');
+const hrefToApiId = require('../../lib/href').hrefToApiId;
 const np = require('../../lib/native-promisify');
 const policy = require('./excursions.policy');
 const QueryBuilder = require('../query-builder');
@@ -79,11 +80,11 @@ function validateExcursion(req, patchMode) {
       // Validate the excursion (except the zones, see below this parallel call)
       this.parallel(
         this.validate(
-          this.json('/trailId'),
+          this.json('/trailHref'),
           this.if(patchMode, this.while(this.isSet())),
           this.required(),
           this.type('string'),
-          this.resource(fetchTrailByApiId).replace(trail => trail.get('id'))
+          this.resource(fetchTrailByHref).moveTo('/trailId').replace(trail => trail.get('id'))
         ),
         this.validate(
           this.json('/name'),
@@ -115,7 +116,7 @@ function validateExcursion(req, patchMode) {
       ),
       // Validate the zones (but only if the trail ID is valid, otherwise we cannot tell which zone positions are valid)
       this.if(
-        this.noError({ location: '/trailId' }),
+        this.noError({ location: '/trailHref' }),
         validate.relatedArrayData('zones', preloadZones(excursion)),
         this.parallel(
           this.validate(
@@ -175,8 +176,8 @@ function findZoneByPosition(col, position) {
   return _.find(col.models, zone => zone.pivot.get('position') === position);
 }
 
-function fetchTrailByApiId(apiId) {
-  return new Trail({ api_id: apiId }).query(qb => qb.select('*', db.st.asGeoJSON('geom'))).fetch();
+function fetchTrailByHref(href) {
+  return new Trail({ api_id: hrefToApiId(href) }).query(qb => qb.select('*', db.st.asGeoJSON('geom'))).fetch();
 }
 
 function saveExcursion(excursion, req) {

@@ -10,6 +10,7 @@ const Participant = Abstract.extend({
   tableName: 'participant',
 
   apiId: true,
+  hrefBuilder: buildParticipantHref,
   timestamps: true,
 
   constructor: function() {
@@ -39,6 +40,16 @@ function generateUniqueApiId(excursionId) {
   return new Participant({ api_id: newApiId, excursion_id: excursionId }).fetch().then(function(existingParticipant) {
     return existingParticipant ? generateUniqueApiId(excursionId) : newApiId;
   });
+}
+
+function buildParticipantHref() {
+  if (!this.related('excursion') || !this.related('excursion').get('api_id')) {
+    throw new Error('Participant "href" virtual property requires the "excursion" relationship to be eager-loaded');
+  }
+
+  const id = this.get('api_id');
+  const excursionId = this.related('excursion').get('api_id');
+  return `/api/excursions/${excursionId}/participants/${id}`;
 }
 
 module.exports = bookshelf.model('Participant', Participant);

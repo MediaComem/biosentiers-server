@@ -65,7 +65,7 @@ exports.serialize = function(req, user) {
   if (admin || sameUser || invitedUser) {
     _.extend(serialized, {
       id: user.get('api_id'),
-      href: `/api/users/${user.get('api_id')}`,
+      href: user.get('href'),
       active: user.get('active'),
       role: user.get('role'),
       firstName: user.get('first_name'),

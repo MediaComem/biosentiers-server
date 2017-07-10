@@ -6,11 +6,13 @@ const config = require('../../config');
 const jwt = require('../lib/jwt');
 
 const availableRoles = [ 'user', 'admin' ];
+const proto = Abstract.prototype;
 
 const User = Abstract.extend({
   tableName: 'user_account',
 
   apiId: true,
+  hrefBase: '/api/users',
   timestamps: true,
 
   defaults: {
@@ -18,7 +20,7 @@ const User = Abstract.extend({
     role: 'user'
   },
 
-  virtuals: {
+  virtuals: _.merge({
     password: {
       get: function() {
         return this._password;
@@ -35,7 +37,7 @@ const User = Abstract.extend({
         }
       }
     }
-  },
+  }, proto.virtuals),
 
   hasRole: function(role) {
     return _.includes(availableRoles, role) && this.get('role') === role;

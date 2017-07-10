@@ -32,7 +32,7 @@ exports.serialize = function(req, trail) {
 
   const result = {
     id: trail.get('api_id'),
-    href: `/api/trails/${trail.get('api_id')}`,
+    href: trail.get('href'),
     name: trail.get('name'),
     length: trail.get('path_length'),
     createdAt: trail.get('created_at'),
