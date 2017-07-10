@@ -50,7 +50,7 @@ exports.scope = function(req) {
 
 exports.parseRequestIntoRecord = function(req, user) {
   return parsing.parseJsonIntoRecord(req.body, user, [ 'active', 'email', 'role', 'firstName', 'lastName' ]);
-};;
+};
 
 exports.serialize = function(req, user) {
 
@@ -65,6 +65,7 @@ exports.serialize = function(req, user) {
   if (admin || sameUser || invitedUser) {
     _.extend(serialized, {
       id: user.get('api_id'),
+      href: `/api/users/${user.get('api_id')}`,
       active: user.get('active'),
       role: user.get('role'),
       firstName: user.get('first_name'),

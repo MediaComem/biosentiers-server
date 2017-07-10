@@ -33,10 +33,15 @@ exports.parseRequestIntoRecord = function(req, participant) {
 };
 
 exports.serialize = function(req, participant) {
+
+  const id = participant.get('api_id');
+  const excursionId = participant.related('excursion').get('api_id');
+
   return {
-    id: participant.get('api_id'),
+    id: id,
+    href: `/api/excursions/${excursionId}/participants/${id}`,
     name: participant.get('name'),
-    excursionId: participant.related('excursion').get('api_id'),
+    excursionId: excursionId,
     createdAt: participant.get('created_at'),
     updatedAt: participant.get('updated_at')
   };

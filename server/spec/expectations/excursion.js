@@ -11,7 +11,7 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   // Check the actual object.
   expect(actual, 'excursion').to.be.an('object');
 
-  const keys = [ 'id', 'trailId', 'themes', 'zones', 'plannedAt', 'creatorId', 'createdAt', 'updatedAt' ];
+  const keys = [ 'id', 'href', 'trailId', 'themes', 'zones', 'plannedAt', 'creatorId', 'createdAt', 'updatedAt' ];
   if (_.has(expected, 'name')) {
     keys.push('name');
   }
@@ -19,6 +19,7 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   expect(actual, 'res.body').to.have.all.keys(keys);
 
   expect(actual.id, 'excursion.id').to.be.a('string');
+  expect(actual.href, 'excursion.href').to.equal(`/api/excursions/${actual.id}`);
   expect(actual.trailId, 'excursion.trailId').to.equal(expected.trail ? expected.trail.get('api_id') : expected.trailId);
   expect(actual.creatorId, 'excursion.creatorId').to.equal(expected.creator ? expected.creator.get('api_id') : expected.creatorId);
   expect(actual.name, 'excursion.name').to.equal(expected.name);

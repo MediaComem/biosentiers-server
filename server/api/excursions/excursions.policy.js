@@ -34,8 +34,11 @@ exports.parseRequestIntoRecord = function(req, excursion) {
 
 exports.serialize = function(req, excursion) {
 
+  const id = excursion.get('api_id');
+
   const result = {
-    id: excursion.get('api_id'),
+    id: id,
+    href: `/api/excursions/${id}`,
     trailId: excursion.related('trail').get('api_id'),
     creatorId: excursion.related('creator').get('api_id'),
     name: excursion.get('name'),
