@@ -40,9 +40,10 @@ const Abstract = bookshelf.Model.extend({
     if (this.timestamps) {
       if (!this.has('created_at')) {
         this.set('created_at', new Date());
+        this.set('updated_at', this.get('created_at'));
+      } else {
+        this.set('updated_at', new Date());
       }
-
-      this.set('updated_at', new Date());
     }
   },
 
