@@ -11,15 +11,18 @@ const Trail = require('../../models/trail');
 const validate = require('../validate');
 const validations = require('./participants.validations');
 
+const EAGER_LOAD = [ 'excursion' ];
+
 // API resource name (used in some API errors)
 exports.resourceName = 'participant';
 
 exports.create = route.transactional(async function(req, res) {
   await np(validateParticipant(req));
 
-  const participant = Participant.parseJson(req);
+  const participant = policy.parse(req);
   participant.set('excursion_id', req.excursion.get('id'));
 
+  await participant.load(EAGER_LOAD);
   await participant.save();
   res.status(201).send(await serialize(req, participant, policy));
 });
@@ -30,7 +33,7 @@ exports.list = route(async function(req, res) {
   const participants = await new QueryBuilder(req, res, query)
     .paginate()
     .sort('createdAt', 'updatedAt')
-    .eagerLoad([ 'excursion' ])
+    .eagerLoad(EAGER_LOAD)
     .fetch();
 
   res.send(await serialize(req, participants, policy));
@@ -51,6 +54,7 @@ exports.delete = route.transactional(async function(req, res) {
 exports.fetchParticipant = fetcher({
   model: Participant,
   resourceName: exports.resourceName,
+  eagerLoad: EAGER_LOAD,
   queryHandler: (query, req) => query.where('excursion_id', req.excursion.get('id'))
 });
 
