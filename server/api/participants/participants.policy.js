@@ -41,7 +41,7 @@ exports.serialize = function(req, participant) {
     id: id,
     href: `/api/excursions/${excursionId}/participants/${id}`,
     name: participant.get('name'),
-    excursionId: excursionId,
+    excursionHref: `/api/excursions/${excursionId}`,
     createdAt: participant.get('created_at'),
     updatedAt: participant.get('updated_at')
   };

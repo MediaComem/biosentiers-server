@@ -11,7 +11,13 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   // Check the actual object.
   expect(actual, 'excursion').to.be.an('object');
 
-  const keys = [ 'id', 'href', 'trailId', 'themes', 'zones', 'plannedAt', 'creatorId', 'createdAt', 'updatedAt' ];
+  const keys = [
+    'id', 'href',
+    'themes', 'zones', 'trailHref', 'plannedAt',
+    'participantsHref', 'participantsCount',
+    'creatorHref', 'createdAt', 'updatedAt'
+  ];
+
   if (_.has(expected, 'name')) {
     keys.push('name');
   }
@@ -20,8 +26,24 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
 
   expect(actual.id, 'excursion.id').to.be.a('string');
   expect(actual.href, 'excursion.href').to.equal(`/api/excursions/${actual.id}`);
-  expect(actual.trailId, 'excursion.trailId').to.equal(expected.trail ? expected.trail.get('api_id') : expected.trailId);
-  expect(actual.creatorId, 'excursion.creatorId').to.equal(expected.creator ? expected.creator.get('api_id') : expected.creatorId);
+
+  let expectedTrailHref = expected.trailHref;
+  if (!expectedTrailHref) {
+    const expectedTrailId = expected.trail ? expected.trail.get('api_id') : expected.trailId;
+    expectedTrailHref = `/api/trails/${expectedTrailId}`;
+  }
+
+  expect(actual.trailHref, 'excursion.trailId').to.equal(expectedTrailHref);
+
+  let expectedCreatorHref = expected.creatorHref;
+  if (!expectedCreatorHref) {
+    const expectedCreatorId = expected.creator ? expected.creator.get('api_id') : expected.creatorId;
+    expectedCreatorHref = `/api/users/${expectedCreatorId}`;
+  }
+
+  expect(actual.creatorHref, 'excursion.creatorHref').to.equal(expectedCreatorHref);
+
+  expect(actual.participantsHref, 'excursion.participantsHref').to.equal(`/api/excursions/${actual.id}/participants`);
   expect(actual.name, 'excursion.name').to.equal(expected.name);
   expect(actual.themes, 'excursion.themes').to.eql(expected.themes || []);
   expect(actual.zones, 'excursion.zones').to.eql(expected.zones || []);
