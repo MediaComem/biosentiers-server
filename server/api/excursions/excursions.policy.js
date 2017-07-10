@@ -27,8 +27,8 @@ exports.scope = function(req) {
   return new Excursion();
 };
 
-exports.parseRequestIntoRecord = function(req, excursion) {
-  parsing.parseJsonIntoRecord(req.body, excursion, [ 'trailId', 'plannedAt', 'name' ]);
+exports.parse = function(req, excursion = new Excursion()) {
+  parsing.parseJsonIntoRecord(req.body, excursion, 'name', 'plannedAt', 'trailId');
   return excursion;
 };
 

@@ -28,7 +28,7 @@ exports.resourceName = 'excursion';
 exports.create = route.transactional(async function(req, res) {
   await np(validateExcursion(req));
 
-  const excursion = policy.parseRequestIntoRecord(req, new Excursion());
+  const excursion = policy.parse(req);
   excursion.set('creator_id', req.currentUser.get('id'));
 
   await saveExcursion(excursion, req);
@@ -56,7 +56,7 @@ exports.retrieve = route(async function(req, res) {
 exports.update = route.transactional(async function(req, res) {
   await np(validateExcursion(req, true));
 
-  policy.parseRequestIntoRecord(req, req.excursion);
+  policy.parse(req, req.excursion);
   await saveExcursion(req.excursion, req);
 
   res.send(await serialize(req, req.excursion, policy));

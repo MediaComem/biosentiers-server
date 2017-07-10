@@ -28,8 +28,8 @@ exports.scope = function(req) {
   return new Participant();
 };
 
-exports.parseRequestIntoRecord = function(req, participant) {
-  return parsing.parseJsonIntoRecord(req.body, participant, [ 'name' ]);
+exports.parse = function(req, participant = new Participant()) {
+  return parsing.parseJsonIntoRecord(req.body, participant, 'name');
 };
 
 exports.serialize = function(req, participant) {

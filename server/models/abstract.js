@@ -66,51 +66,9 @@ const Abstract = bookshelf.Model.extend({
     });
   }
 }, {
-  parseJson: function(req, record) {
-    if (!record) {
-      record = new this();
-    }
-
-    let attrs = _.toArray(arguments).slice(2);
-    if (!attrs.length) {
-      attrs = resolveParsingAttributes(record);
-    }
-
-    const underscored = _.reduce(req.body, function(memo, value, key) {
-      memo[inflection.underscore(key)] = value;
-      return memo;
-    }, {});
-
-    record.set(_.pick(underscored, attrs));
-
-    return record;
-  },
-
   transaction: function(callback) {
     return bookshelf.transaction(callback);
   }
 });
 
 module.exports = bookshelf.model('Abstract', Abstract);
-
-function resolveParsingAttributes(record) {
-
-  let attrs;
-  const config = record.parsing;
-
-  if (_.isObject(config)) {
-    attrs = config[record.isNew() ? 'create' : 'update'] || config.default;
-  } else if (_.isString(config) || _.isArray(config)) {
-    attrs = config;
-  } else {
-    throw new Error('Unsupported parsing configuration type ' + typeof(config) + '; must be an object, string or array');
-  }
-
-  if (_.isString(attrs)) {
-    attrs = attrs.split(/\s+/);
-  } else if (!_.isArray(attrs)) {
-    throw new Error('Unsupported parsing configuration attributes type ' + typeof(attrs) + '; must be a string or array');
-  }
-
-  return attrs;
-}

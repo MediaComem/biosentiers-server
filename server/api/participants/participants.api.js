@@ -38,7 +38,7 @@ exports.list = route(async function(req, res) {
 
 exports.update = route.transactional(async function(req, res) {
   await np(validateParticipant(req, true));
-  policy.parseRequestIntoRecord(req, req.participant);
+  policy.parse(req, req.participant);
   await req.participant.save();
   res.send(await serialize(req, req.participant, policy));
 });

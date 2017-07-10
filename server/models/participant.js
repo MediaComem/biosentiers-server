@@ -12,10 +12,6 @@ const Participant = Abstract.extend({
   apiId: true,
   timestamps: true,
 
-  parsing: {
-    default: 'excursion name'
-  },
-
   constructor: function() {
     proto.constructor.apply(this, arguments);
     this.on('creating', () => increment('excursion', this.get('excursion_id'), 'participants'));

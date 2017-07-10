@@ -30,7 +30,7 @@ exports.create = route.transactional(async function(req, res) {
 
   await np(validateUser(req));
 
-  const user = User.parseJson(req);
+  const user = policy.parse(req, new User(), 'password');
   await user.save();
 
   if (req.jwtToken.authType == 'invitation') {
@@ -66,7 +66,7 @@ exports.update = route.transactional(async function(req, res) {
 
   const user = req.user;
   await np(validateUserForUpdate(req));
-  policy.parseRequestIntoRecord(req, user);
+  policy.parse(req, user);
 
   const password = req.body.password;
   const previousPassword = req.body.previousPassword;

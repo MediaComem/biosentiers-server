@@ -20,11 +20,10 @@ exports.scope = function(req) {
   return new Trail();
 };
 
-exports.parseRequestIntoRecord = function(req, trail) {
-  parsing.parseJsonIntoRecord(req.body, trail, [ 'name' ]);
-  if (req.body.geometry) {
-    trail.set('geom', req.body.geometry);
-  }
+exports.parse = function(req, trail = new Trail()) {
+  parsing.parseJsonIntoRecord(req.body, trail, 'name', {
+    geom: 'geometry'
+  });
 
   return trail;
 };

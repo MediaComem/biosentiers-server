@@ -48,8 +48,8 @@ exports.scope = function(req) {
   return scope;
 }
 
-exports.parseRequestIntoRecord = function(req, user) {
-  return parsing.parseJsonIntoRecord(req.body, user, [ 'active', 'email', 'role', 'firstName', 'lastName' ]);
+exports.parse = function(req, user = new User(), ...extras) {
+  return parsing.parseJsonIntoRecord(req.body, user, 'active', 'email', 'role', 'firstName', 'lastName', ...extras);
 };
 
 exports.serialize = function(req, user) {

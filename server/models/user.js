@@ -18,10 +18,6 @@ const User = Abstract.extend({
     role: 'user'
   },
 
-  parsing: {
-    default: 'active email password role first_name last_name'
-  },
-
   virtuals: {
     password: {
       get: function() {
