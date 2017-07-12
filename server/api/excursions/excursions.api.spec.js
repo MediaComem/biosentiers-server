@@ -29,16 +29,16 @@ describe('Excursions API', function() {
         ]);
 
         data.zones = data.trail.then((trail) => {
-          return [
+          return Promise.all([
             zoneFixtures.zone({ trail: trail, position: 1 }),
             zoneFixtures.zone({ trail: trail, position: 2 })
-          ];
+          ]);
         });
 
         data.reqBody = {
           trailHref: data.trail.get('href'),
           themes: [ data.themes.get(0).call('get', 'name') ],
-          zones: [ 2 ],
+          zoneHrefs: [ data.zones.then(zones => `/api/zones/${zones[1].get('api_id')}`) ],
           plannedAt: moment().add(2, 'days').toDate()
         };
       });

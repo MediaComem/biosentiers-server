@@ -13,7 +13,7 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
 
   const keys = [
     'id', 'href',
-    'themes', 'zones', 'trailHref', 'plannedAt',
+    'themes', 'zoneHrefs', 'trailHref', 'plannedAt',
     'participantsHref', 'participantsCount',
     'creatorHref', 'createdAt', 'updatedAt'
   ];
@@ -46,7 +46,7 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   expect(actual.participantsHref, 'excursion.participantsHref').to.equal(`/api/excursions/${actual.id}/participants`);
   expect(actual.name, 'excursion.name').to.equal(expected.name);
   expect(actual.themes, 'excursion.themes').to.eql(expected.themes || []);
-  expect(actual.zones, 'excursion.zones').to.eql(expected.zones || []);
+  expect(actual.zoneHrefs, 'excursion.zoneHrefs').to.eql(expected.zoneHrefs || []);
 
   spec.expectTimestamp('excursion', actual, expected, 'planned', { required: false });
   spec.expectTimestamp('excursion', actual, expected, 'created');

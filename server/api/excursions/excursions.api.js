@@ -114,13 +114,14 @@ function validateExcursion(req, patchMode) {
           )
         )
       ),
-      // Validate the zones (but only if the trail ID is valid, otherwise we cannot tell which zone positions are valid)
+      // Validate the zones (but only if the trail ID is valid, otherwise we cannot tell which zones are valid)
       this.if(
         this.noError({ location: '/trailHref' }),
-        validate.relatedArrayData('zones', preloadZones(excursion)),
+        validate.relatedArrayData('zones', 'zoneHrefs', preloadZones(excursion)),
         this.parallel(
           this.validate(
-            this.json('/zones'),
+            this.json('/zoneHrefs'),
+            this.type('array'),
             this.ifElse(
               // If the excursion is new or zones have changed...
               validate.newOrChanged(patchMode, zonesHaveChanged(excursion)),
@@ -128,7 +129,8 @@ function validateExcursion(req, patchMode) {
               this.each((c, value, i) => {
                 return this.validate(
                   this.json(`/${i}`),
-                  this.resource(validate.related('zones', findZoneByPosition)).replace(_.identity)
+                  this.type('string'),
+                  this.resource(validate.related('zones', (zones, href) => zones.findWhere({ api_id: hrefToApiId(href) }))).replace(_.identity)
                 );
               }),
               // Otherwise remove them from the request body
@@ -148,13 +150,13 @@ function preloadThemes() {
 }
 
 function preloadZones(excursion) {
-  return function(positions, context) {
+  return function(apiIds, context) {
     const trailId = context.get('value').trailId || excursion.get('trail_id');
     return new Trail({ id: trailId }).query(qb => qb.select('*', db.st.asGeoJSON('geom'))).fetch().then(trail => {
       return trail.zones().query(qb => {
         return qb
           .select('zone.*', db.st.asGeoJSON('geom'))
-          .where('trails_zones.position', 'in', positions);
+          .where('zone.api_id', 'in', zoneHrefsToApiIds(apiIds));
       }).fetch();
     });
   };
@@ -168,12 +170,8 @@ function themesHaveChanged(excursion) {
 
 function zonesHaveChanged(excursion) {
   return function(zones) {
-    return !_.isEqual(_.uniq(excursion.related('zones').pluck('position')).sort(), _.uniq(zones).sort());
+    return !_.isEqual(_.uniq(excursion.related('zones').pluck('api_id')).sort(), zoneHrefsToApiIds(zones));
   };
-}
-
-function findZoneByPosition(col, position) {
-  return _.find(col.models, zone => zone.pivot.get('position') === position);
 }
 
 function fetchTrailByHref(href) {
@@ -184,7 +182,11 @@ function saveExcursion(excursion, req) {
   return excursion.save().then(() => {
     return Promise.all([
       utils.updateManyToMany(excursion, 'themes', req.body.themes),
-      utils.updateManyToMany(excursion, 'zones', req.body.zones)
+      utils.updateManyToMany(excursion, 'zones', req.body.zoneHrefs)
     ]);
   });
+}
+
+function zoneHrefsToApiIds(hrefs) {
+  return _.uniq(_.filter(hrefs, _.isString).map(hrefToApiId)).sort();
 }

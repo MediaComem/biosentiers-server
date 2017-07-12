@@ -3,7 +3,7 @@ const controller = require('./trails.api');
 const express = require('express');
 const poisRoutes = require('../pois/pois.routes');
 const policy = require('./trails.policy');
-const zonesRoutes = require('../zones/zones.routes');
+const zonesRoutes = require('../zones/zones.trail-routes');
 
 const router = express.Router();
 

@@ -82,19 +82,16 @@ exports.related = function(name, predicate) {
       return;
     }
 
-    if (_.isString(predicate) && data instanceof Collection) {
+    if (_.isString(predicate)) {
       const idProperty = predicate;
       predicate = function(predicateValue, predicateId) {
-        const criteria = {};
-        criteria[idProperty] = predicateId;
-        return predicateId ? predicateValue.findWhere(criteria) : undefined;
-      };
-    } else if (_.isString(predicate)) {
-      const idProperty = predicate;
-      predicate = function(predicateValue, predicateId) {
-        const criteria = {};
-        criteria[idProperty] = predicateId;
-        return predicateId ? _.find(predicateValue, criteria) : undefined;
+        if (!predicateId) {
+          return undefined;
+        } else if (data instanceof Collection) {
+          return predicateValue.findWhere({ [idProperty]: predicateId });
+        } else {
+          return _.find(predicateValue, { [idProperty]: predicateId });
+        }
       };
     } else if (!predicate) {
       predicate = function(predicateValue) {

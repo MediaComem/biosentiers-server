@@ -36,7 +36,7 @@ exports.retrieve = route(async function(req, res) {
 
 exports.fetchTrail = fetcher({
   model: Trail,
-  resourceName: 'trail',
+  resourceName: exports.resourceName,
   queryHandler: query => query.query(qb => qb.select('*', db.st.asGeoJSON('geom')))
 });
 

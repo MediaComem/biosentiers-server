@@ -45,6 +45,7 @@ exports.serialize = function(req, excursion) {
     participantsHref: `/api/excursions/${id}/participants`,
     participantsCount: excursion.get('participants_count') || 0,
     themes: serializeThemes(excursion),
+    zoneHrefs: excursion.related('zones').map(zone => zone.get('href')),
     plannedAt: excursion.get('planned_at'),
     createdAt: excursion.get('created_at'),
     updatedAt: excursion.get('updated_at')
@@ -58,25 +59,9 @@ exports.serialize = function(req, excursion) {
     result.trail = trailsPolicy.serialize(req, excursion.related('trail'));
   }
 
-  return serializeZones(excursion).then(zones => {
-    result.zones = zones;
-    return result;
-  });
+  return result;
 };
 
 function serializeThemes(excursion) {
   return excursion.related('themes').map(theme => theme.get('name')).sort();
-}
-
-// FIXME: find a way to eager load zone positions for excursions
-function serializeZones(excursion) {
-
-  const zoneIds = excursion.related('zones').map(zone => zone.get('id'));
-  if (!zoneIds.length) {
-    return Promise.resolve([]);
-  }
-
-  return db.knex('trails_zones').select('position').where('zone_id', 'IN', zoneIds).then(result => {
-    return _.map(result, 'position').sort();
-  });
 }

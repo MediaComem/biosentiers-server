@@ -12,14 +12,16 @@ exports.zone = function(data) {
   const trailId = data.trailId || _.get(data.trail, 'get', _.constant()).call(data.trail, 'id');
 
   return spec.createRecord(Zone, {
-    keyword: chance.sentence({ words: 2 }),
+    type: chance.sentence({ words: 2 }),
     description: chance.paragraph(),
-    keyword_nature: chance.sentence(),
+    nature_type: chance.sentence(),
     geom: db.st.geomFromText(wellKnown.stringify(chance.polygon()), 4326),
     created_at: data.createdAt || _.get(data.trail, 'get', _.constant()).call(data.trail, 'created_at')
   }).then(zone => {
     if (trailId || position) {
-      return zone.trails().attach({ trail_id: trailId, position: position });
+      return zone.trails().attach({ trail_id: trailId, position: position }).then(() => zone);
+    } else {
+      return zone;
     }
   });
 };

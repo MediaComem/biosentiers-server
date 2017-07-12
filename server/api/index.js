@@ -17,6 +17,7 @@ router.use('/excursions', require('./excursions/excursions.routes'));
 router.use('/themes', require('./themes/themes.routes'));
 router.use('/trails', require('./trails/trails.routes'));
 router.use('/users', require('./users/users.routes'));
+router.use('/zones', require('./zones/zones.routes'));
 
 // API metadata route
 router.get('/', function(req, res) {

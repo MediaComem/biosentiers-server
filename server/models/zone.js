@@ -2,6 +2,8 @@ const Abstract = require('./abstract');
 const bookshelf = require('../db');
 
 const Zone = Abstract.extend({
+  apiId: true,
+  hrefBase: '/api/zones',
   tableName: 'zone',
   geometry: true,
 

@@ -7,15 +7,21 @@ exports.canList = function(req) {
   return true;
 };
 
+exports.canRetrieve = function(req) {
+  return true;
+};
+
 exports.scope = function(req, baseQuery) {
   return baseQuery || new Zone();
 };
 
 exports.serialize = function(req, zone) {
   return {
-    keyword: zone.get('keyword'),
+    id: zone.get('api_id'),
+    href: zone.get('href'),
+    type: zone.get('type'),
     description: zone.get('description'),
-    nature: zone.get('keyword_nature'),
+    natureType: zone.get('nature_type'),
     geometry: zone.get('geom'),
     points: zone.related('points').reduce((memo, point) => {
       memo[point.get('type')] = _.omit(pointsPolicy.serialize(req, point), 'type');

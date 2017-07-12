@@ -5,9 +5,8 @@ const policy = require('./zones.policy');
 
 const router = express.Router();
 
-router.get('/:id',
-  controller.fetchZone,
-  auth.authorize(policy.canRetrieve, controller.resourceName),
-  controller.retrieve);
+router.get('/',
+  auth.authorize(policy.canList),
+  controller.list);
 
 module.exports = router;
