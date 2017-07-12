@@ -2,7 +2,6 @@ const _ = require('lodash');
 const BPromise = require('bluebird');
 
 // TODO: rename this file to query/params
-
 exports.includes = function(req, related) {
 
   let includes = req.query.include;
@@ -15,6 +14,18 @@ exports.includes = function(req, related) {
   }
 
   return _.includes(includes, related);
+};
+
+exports.multiValueParam = function(value, filter, converter) {
+  if (value === undefined) {
+    return [];
+  }
+
+  converter = converter || _.identity;
+  filter = filter || _.constant(true);
+  value = _.isArray(value) ? value : [ value ];
+
+  return _.uniq(_.map(_.filter(value, filter), converter)).sort();
 };
 
 exports.updateManyToMany = function(model, relation, records) {

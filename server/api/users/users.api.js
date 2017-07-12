@@ -50,12 +50,6 @@ exports.list = route(async function(req, res) {
     .fetch();
 
   res.send(await serialize(req, users, policy));
-
-  function filterByEmail(query) {
-    if (_.isString(req.query.email)) {
-      return query.whereEmail(req.query.email);
-    }
-  }
 });
 
 exports.retrieve = route(async function(req, res) {
@@ -86,6 +80,12 @@ exports.fetchUser = fetcher({
   model: User,
   resourceName: 'user'
 });
+
+function filterByEmail(query, req) {
+  if (_.isString(req.query.email)) {
+    return query.whereEmail(req.query.email);
+  }
+}
 
 function validateUser(req) {
   return validate.requestBody(req, function() {

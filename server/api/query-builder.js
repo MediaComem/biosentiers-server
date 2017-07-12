@@ -182,7 +182,7 @@ function applyFiltersRecursively(data, filters) {
   }
 
   return BPromise.map(currentFilters, function(filter) {
-    return BPromise.resolve(filter(data.query)).then(function(result) {
+    return BPromise.resolve(filter(data.query, data.req)).then(function(result) {
       if (result) {
         data.query = result;
         data.filtered = true;

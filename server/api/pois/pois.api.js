@@ -1,9 +1,11 @@
 const _ = require('lodash');
 const db = require('../../db');
+const hrefToApiId = require('../../lib/href').hrefToApiId;
 const policy = require('./pois.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
+const utils = require('../utils');
 
 // API resource name (used in some API errors)
 exports.resourceName = 'poi';
@@ -20,6 +22,7 @@ exports.list = route(async function(req, res) {
     .where('trails_zones.trail_id', req.trail.get('id'));
 
   const col = await new QueryBuilder(req, res, query)
+    .filter(filterByZone)
     .paginate()
     .eagerLoad([ 'theme' ])
     .fetch({ collection: true });
@@ -37,3 +40,13 @@ exports.list = route(async function(req, res) {
 
   res.send(await serialize(req, col.models, policy));
 });
+
+function filterByZone(query, req) {
+
+  const hrefs = utils.multiValueParam(req.query.zone, _.isString, hrefToApiId);
+  if (!hrefs.length) {
+    return;
+  }
+
+  return query.query(qb => qb.where('zone.api_id', 'in', hrefs));
+}
