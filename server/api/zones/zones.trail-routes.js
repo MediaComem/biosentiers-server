@@ -6,7 +6,7 @@ const policy = require('./zones.policy');
 const router = express.Router();
 
 router.get('/',
-  auth.authorize(policy.canList),
-  controller.list);
+  auth.authorize(policy.canListByTrail),
+  controller.listByTrail);
 
 module.exports = router;

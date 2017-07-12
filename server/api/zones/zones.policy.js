@@ -7,6 +7,10 @@ exports.canList = function(req) {
   return true;
 };
 
+exports.canListByTrail = function(req) {
+  return true;
+};
+
 exports.canRetrieve = function(req) {
   return true;
 };

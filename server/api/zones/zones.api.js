@@ -1,10 +1,12 @@
 const _ = require('lodash');
 const db = require('../../db');
 const fetcher = require('../fetcher');
+const hrefToApiId = require('../../lib/href').hrefToApiId;
 const policy = require('./zones.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
+const utils = require('../utils');
 const Zone = require('../../models/zone');
 
 const EAGER_LOAD = {
@@ -17,10 +19,23 @@ exports.resourceName = 'zone';
 
 exports.list = route(async function(req, res) {
 
+  const query = policy.scope();
+  const zones = await new QueryBuilder(req, res, query)
+    .filter(filterByHref)
+    .paginate()
+    .eagerLoad(EAGER_LOAD)
+    .modify(q => { return { query: q.query(qb => qb.select('zone.*', db.st.asGeoJSON('geom'))) }; })
+    .fetch();
+
+  res.send(await serialize(req, zones, policy));
+});
+
+exports.listByTrail = route(async function(req, res) {
+
   const query = policy.scope(req.trail.zones());
   const zones = await new QueryBuilder(req, res, query)
+    .filter(filterByHref)
     .paginate()
-    .sort('position')
     .eagerLoad(EAGER_LOAD)
     .modify(q => { return { query: q.query(qb => qb.select('zone.*', db.st.asGeoJSON('geom'))) }; })
     .fetch();
@@ -38,3 +53,13 @@ exports.fetchZone = fetcher({
   eagerLoad: EAGER_LOAD,
   queryHandler: query => query.query(qb => qb.select('*', db.st.asGeoJSON('geom')))
 });
+
+function filterByHref(query, req) {
+
+  const hrefs = utils.multiValueParam(req.query.href, _.isString, hrefToApiId);
+  if (!hrefs.length) {
+    return;
+  }
+
+  return query.query(qb => qb.where('zone.api_id', 'in', hrefs));
+}
