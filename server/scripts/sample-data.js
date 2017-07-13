@@ -52,7 +52,7 @@ function createUser() {
 }
 
 function createTrail() {
-  return new Trail(_.pick(sampleTrail, 'name')).fetch().then(function(trail) {
+  return new Trail(_.pick(sampleTrail, 'name')).query(qb => qb.select('*', db.st.asGeoJSON('geom'))).fetch().then(function(trail) {
     if (trail) {
       logger.info(`Trail ${trail.get('name')} already exists`);
       return trail;
