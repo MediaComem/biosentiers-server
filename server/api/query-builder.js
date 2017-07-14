@@ -2,6 +2,7 @@ const _ = require('lodash');
 const BPromise = require('bluebird');
 const inflection = require('inflection');
 const pagination = require('./pagination');
+const utils = require('./utils');
 
 function QueryBuilder(req, res, base) {
   this.req = req;
@@ -11,12 +12,15 @@ function QueryBuilder(req, res, base) {
   this.filters = [];
   this.related = [];
   this.modifiers = [];
+  this.possibleSorts = {};
 }
 
 _.extend(QueryBuilder.prototype, {
   paginate: activePagination,
   filter: addFilters,
-  sort: setPossibleSorts,
+  sort: addPossibleSort,
+  sorts: addPossibleSorts,
+  defaultSort: setDefaultSort,
   fetch: fetch,
   eagerLoad: loadRelated,
   modify: addModifier
@@ -39,25 +43,77 @@ function addFilters() {
   return this;
 }
 
-function setPossibleSorts(sorts) {
-  if (!_.isObject(sorts)) {
-    sorts = _.reduce(Array.prototype.slice.call(arguments), function(memo, criterion) {
-      memo[criterion] = inflection.underscore(criterion);
-      return memo;
-    }, {});
+function setDefaultSort(property, direction) {
+  if (!this.possibleSorts[property]) {
+    throw new Error(`Sort "${property}" is not defined`);
+  } else if (direction !== undefined && (!_.isString(direction) || !direction.match(/^(?:asc|desc)$/i))) {
+    throw new Error('Direction must be "ASC" or "DESC"');
   }
 
-  _.each(sorts, function(column, criterion) {
-    if (!_.isFunction(column)) {
-      sorts[criterion] = function(query, direction) {
-        return query.orderBy(column, direction);
-      };
+  this._defaultSort = {
+    property: property,
+    direction: direction ? direction.toUpperCase() : 'ASC'
+  };
+
+  return this;
+}
+
+function addPossibleSort(property, ...sortDef) {
+  setPossibleSort(this.possibleSorts, property, sortDefinitionsToSortFunction(...sortDef));
+  return this;
+}
+
+function addPossibleSorts(...sorts) {
+  _.each(sorts, sort => {
+    if (_.isString(sort)) {
+      setPossibleSort(this.possibleSorts, sort, sortDefinitionsToSortFunction(sort));
+    } else if (_.isObject(sort)) {
+      _.each(sort, (value, key) => {
+        if (_.isArray(value)) {
+          setPossibleSort(this.possibleSorts, key, sortDefinitionsToSortFunction(...value));
+        } else {
+          setPossibleSort(this.possibleSorts, key, sortDefinitionsToSortFunction(value));
+        }
+      });
+    } else if (!_.isFunction(sort)) {
+      throw new Error('Sort definitions must be a string, object or function');
     }
   });
 
-  this.sorts = sorts;
-
   return this;
+}
+
+function setPossibleSort(sorts, property, sortFunc) {
+  if (!property) {
+    throw new Error('Sort property is required');
+  } else if (sorts[property]) {
+    throw new Error(`There is already a sorting function defined for property "${property}"`);
+  }
+
+  sorts[property] = sortFunc;
+}
+
+function sortDefinitionsToSortFunction(...sortDef) {
+  if (!sortDef.length) {
+    throw new Error('At least one sort property or function must be specified');
+  }
+
+  const sorts = sortDef.map(property => {
+    if (_.isFunction(property)) {
+      return property;
+    } else if (_.isString(property)) {
+      return function(query, direction) {
+        return query.orderBy(inflection.underscore(property), direction);
+      };
+    } else {
+      throw new Error(`Sort property must be a string or a function, got ${JSON.stringify(property)} (${typeof(property)})`);
+    }
+  });
+
+  return function(query, direction) {
+    sorts.forEach(sortFunc => query = sortFunc(query, direction));
+    return query;
+  };
 }
 
 function fetch(options) {
@@ -67,7 +123,8 @@ function fetch(options) {
     res: this.res,
     query: this.query,
     filters: this.filters,
-    sorts: this.sorts
+    possibleSorts: this.possibleSorts,
+    defaultSort: this._defaultSort
   };
 
   let promise = BPromise.resolve();
@@ -76,12 +133,6 @@ function fetch(options) {
     promise = promise
       .return(data)
       .then(paginate);
-  }
-
-  if (this.sorts) {
-    promise = promise
-      .return(data)
-      .then(applySorting);
   }
 
   if (this.modifiers) {
@@ -98,6 +149,12 @@ function fetch(options) {
           });
         });
     });
+  }
+
+  if (!_.isEmpty(this.possibleSorts)) {
+    promise = promise
+      .return(data)
+      .then(applySorting);
   }
 
   promise = promise
@@ -192,24 +249,23 @@ function applyFiltersRecursively(data, filters) {
 }
 
 function applySorting(data) {
-  if (!data.sorts) {
-    return;
-  }
 
-  let orderBy = data.req.query.sort;
-  if (!orderBy) {
-    return;
-  }
+  let querySorts = utils.multiValueParam(data.req.query.sort, _.identity, criterion => {
+    const match = criterion.match(/^(.*?)(?:-(asc|desc))?$/i);
+    return {
+      property: match[1],
+      direction: match[2] ? match[2].toUpperCase() : 'ASC'
+    };
+  });
 
-  let direction = 'ASC';
-  if (orderBy.match(/-desc$/i)) {
-    direction = 'DESC';
-    orderBy = orderBy.replace(/-desc$/i, '');
-  }
+  // TODO: validate sort query parameters instead of silently ignoring invalid ones
+  querySorts = _.filter(querySorts, sort => data.possibleSorts[sort.property]);
 
-  if (!data.sorts[orderBy]) {
-    return;
-  }
+  _.each(querySorts, sort => {
+    data.query = data.possibleSorts[sort.property](data.query, sort.direction);
+  });
 
-  data.query = data.sorts[orderBy](data.query, direction);
+  if (data.defaultSort && !_.find(querySorts, { property: data.defaultSort.property })) {
+    data.query = data.possibleSorts[data.defaultSort.property](data.query, data.defaultSort.direction);
+  }
 }

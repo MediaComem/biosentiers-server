@@ -5,7 +5,10 @@ const policy = require('./pois.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
+const sorting = require('../sorting');
 const utils = require('../utils');
+
+const THEME_JOINED = Symbol('theme-joined');
 
 // API resource name (used in some API errors)
 exports.resourceName = 'poi';
@@ -24,6 +27,9 @@ exports.list = route(async function(req, res) {
   const col = await new QueryBuilder(req, res, query)
     .filter(filterByZone)
     .paginate()
+    .sorts('createdAt')
+    .sort('themeName', sorting.sortByRelatedProperty('name', THEME_JOINED, { table: 'poi', relationTable: 'theme' }))
+    .defaultSort('createdAt', 'DESC')
     .eagerLoad([ 'theme' ])
     .fetch({ collection: true });
 

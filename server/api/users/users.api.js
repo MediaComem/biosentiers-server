@@ -46,7 +46,8 @@ exports.list = route(async function(req, res) {
   const users = await new QueryBuilder(req, res, query)
     .paginate()
     .filter(filterByEmail)
-    .sort('email', 'createdAt')
+    .sorts('firstName', 'lastName', 'email', 'createdAt', 'updatedAt')
+    .defaultSort('email')
     .fetch();
 
   res.send(await serialize(req, users, policy));

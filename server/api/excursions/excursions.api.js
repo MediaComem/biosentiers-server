@@ -8,6 +8,7 @@ const policy = require('./excursions.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
+const sorting = require('../sorting');
 const Theme = require('../../models/theme');
 const Trail = require('../../models/trail');
 const utils = require('../utils');
@@ -22,6 +23,8 @@ const EAGER_LOAD = [
     zones: qb => qb.select('zone.*', db.st.asGeoJSON('geom'))
   }
 ];
+
+const CREATOR_JOINED = Symbol('creator-joined');
 
 // API resource name (used in some API errors).
 exports.resourceName = 'excursion';
@@ -43,7 +46,10 @@ exports.list = route(async function(req, res) {
   const query = policy.scope(req);
   const excursions = await new QueryBuilder(req, res, query)
     .paginate()
-    .sort('name', 'createdAt', 'plannedAt', 'updatedAt')
+    .sorts('name', 'participantsCount', 'createdAt', 'plannedAt', 'updatedAt')
+    .sort('creatorLastName', sorting.sortByRelatedProperty('lastName', CREATOR_JOINED, { table: 'excursion', relationTable: 'user_account', relation: 'creator' }))
+    .sort('creatorFirstName', sorting.sortByRelatedProperty('firstName', CREATOR_JOINED, { table: 'excursion', relationTable: 'user_account', relation: 'creator' }))
+    .defaultSort('createdAt', 'desc')
     .eagerLoad(EAGER_LOAD)
     .fetch();
 

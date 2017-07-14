@@ -12,7 +12,8 @@ exports.list = route(async function(req, res) {
 
   const themes = await new QueryBuilder(req, res, policy.scope(req))
     .paginate()
-    .sort('name')
+    .sorts('name')
+    .defaultSort('name')
     .fetch();
 
   res.send(await serialize(req, themes, policy));

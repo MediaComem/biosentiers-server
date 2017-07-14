@@ -32,7 +32,8 @@ exports.list = route(async function(req, res) {
   const query = policy.scope(req).where('excursion_id', req.excursion.get('id'));
   const participants = await new QueryBuilder(req, res, query)
     .paginate()
-    .sort('createdAt', 'updatedAt')
+    .sorts('name', 'createdAt', 'updatedAt')
+    .defaultSort('name')
     .eagerLoad(EAGER_LOAD)
     .fetch();
 

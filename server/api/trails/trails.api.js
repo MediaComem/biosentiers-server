@@ -23,7 +23,9 @@ exports.list = route(async function(req, res) {
 
   const trails = await new QueryBuilder(req, res, policy.scope(req))
     .paginate()
-    .sort('createdAt', 'updatedAt')
+    .sorts('name', 'createdAt', 'updatedAt')
+    .sort('length', 'pathLength')
+    .defaultSort('name')
     .modify(q => { return { query: q.query(qb => qb.select('*', db.st.asGeoJSON('geom'))) }; })
     .fetch();
 
