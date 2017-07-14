@@ -46,6 +46,7 @@ exports.list = route(async function(req, res) {
     .joins('excursion', j => {
       j.join('creator', { joinTable: 'user_account', key: 'excursion.creator_id', joinKey: 'creator.id' });
     })
+    .filter(search)
     .filter(filterByCreator)
     .paginate()
     .sorts('name', 'participantsCount', 'createdAt', 'plannedAt', 'updatedAt')
@@ -208,4 +209,15 @@ function filterByCreator(query, req, qb) {
 
   qb.requireRelation('creator');
   return query.query(qb => qb.where('creator.api_id', 'in', hrefs));
+}
+
+function search(query, req, qb) {
+  if (!_.isString(req.query.search)) {
+    return;
+  }
+
+  const term = `%${req.query.search.toLowerCase()}%`;
+
+  qb.requireRelation('creator');
+  return query.query(qb => qb.whereRaw('(LOWER(creator.first_name) LIKE ? OR LOWER(creator.last_name) LIKE ? OR LOWER(excursion.name) LIKE ?)', [ term, term, term ]));
 }
