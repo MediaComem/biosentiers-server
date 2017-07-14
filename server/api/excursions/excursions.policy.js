@@ -16,15 +16,27 @@ exports.canList = function(req) {
 };
 
 exports.canRetrieve = function(req) {
-  return policy.authenticated(req);
+  if (policy.hasRole(req, 'admin')) {
+    return true;
+  } else {
+    return policy.authenticated(req) && req.excursion.get('creator_id') === req.currentUser.get('id');
+  }
 };
 
 exports.canUpdate = function(req) {
-  return policy.authenticated(req);
+  if (policy.hasRole(req, 'admin')) {
+    return true;
+  } else {
+    return policy.authenticated(req) && req.excursion.get('creator_id') === req.currentUser.get('id');
+  }
 };
 
 exports.scope = function(req) {
-  return new Excursion();
+  if (policy.hasRole(req, 'admin')) {
+    return new Excursion();
+  } else {
+    return new Excursion().where('creator_id', req.currentUser.get('id'));
+  }
 };
 
 exports.parse = function(req, excursion = new Excursion()) {
