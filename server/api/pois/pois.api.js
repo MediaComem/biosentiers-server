@@ -8,8 +8,6 @@ const serialize = require('../serialize');
 const sorting = require('../sorting');
 const utils = require('../utils');
 
-const THEME_JOINED = Symbol('theme-joined');
-
 // API resource name (used in some API errors)
 exports.resourceName = 'poi';
 
@@ -25,10 +23,14 @@ exports.list = route(async function(req, res) {
     .where('trails_zones.trail_id', req.trail.get('id'));
 
   const col = await new QueryBuilder(req, res, query)
-    .filter(filterByZone)
+    .joins('poi', j => {
+      j.join('theme', { key: 'poi.theme_id', joinKey: 'theme.id' })
+    })
+    .filter(filterByThemes)
+    .filter(filterByZones)
     .paginate()
     .sorts('createdAt')
-    .sort('themeName', sorting.sortByRelatedProperty('name', THEME_JOINED, { table: 'poi', relationTable: 'theme' }))
+    .sort('themeName', sorting.sortByRelated('theme', 'name'))
     .defaultSort('createdAt', 'DESC')
     .eagerLoad([ 'theme' ])
     .fetch({ collection: true });
@@ -47,7 +49,7 @@ exports.list = route(async function(req, res) {
   res.send(await serialize(req, col.models, policy));
 });
 
-function filterByZone(query, req) {
+function filterByZones(query, req) {
 
   const hrefs = utils.multiValueParam(req.query.zone, _.isString, hrefToApiId);
   if (!hrefs.length) {
@@ -55,4 +57,15 @@ function filterByZone(query, req) {
   }
 
   return query.query(qb => qb.where('zone.api_id', 'in', hrefs));
+}
+
+function filterByThemes(query, req, queryBuilder) {
+
+  const names = utils.multiValueParam(req.query.theme, _.isString);
+  if (!names.length) {
+    return;
+  }
+
+  queryBuilder.requireRelation('theme');
+  return query.query(qb => qb.where('theme.name', 'in', names));
 }

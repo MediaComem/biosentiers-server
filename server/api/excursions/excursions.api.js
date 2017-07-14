@@ -24,8 +24,6 @@ const EAGER_LOAD = [
   }
 ];
 
-const CREATOR_JOINED = Symbol('creator-joined');
-
 // API resource name (used in some API errors).
 exports.resourceName = 'excursion';
 
@@ -45,10 +43,14 @@ exports.list = route(async function(req, res) {
 
   const query = policy.scope(req);
   const excursions = await new QueryBuilder(req, res, query)
+    .joins('excursion', j => {
+      j.join('creator', { joinTable: 'user_account', key: 'excursion.creator_id', joinKey: 'creator.id' });
+    })
+    .filter(filterByCreator)
     .paginate()
     .sorts('name', 'participantsCount', 'createdAt', 'plannedAt', 'updatedAt')
-    .sort('creatorLastName', sorting.sortByRelatedProperty('lastName', CREATOR_JOINED, { table: 'excursion', relationTable: 'user_account', relation: 'creator' }))
-    .sort('creatorFirstName', sorting.sortByRelatedProperty('firstName', CREATOR_JOINED, { table: 'excursion', relationTable: 'user_account', relation: 'creator' }))
+    .sort('creatorLastName', sorting.sortByRelated('creator', 'lastName'))
+    .sort('creatorFirstName', sorting.sortByRelated('creator', 'firstName'))
     .defaultSort('createdAt', 'desc')
     .eagerLoad(EAGER_LOAD)
     .fetch();
@@ -195,4 +197,15 @@ function saveExcursion(excursion, req) {
 
 function zoneHrefsToApiIds(hrefs) {
   return _.uniq(_.filter(hrefs, _.isString).map(hrefToApiId)).sort();
+}
+
+function filterByCreator(query, req, qb) {
+
+  const hrefs = utils.multiValueParam(req.query.creator, _.isString, hrefToApiId);
+  if (!hrefs.length) {
+    return;
+  }
+
+  qb.requireRelation('creator');
+  return query.query(qb => qb.where('creator.api_id', 'in', hrefs));
 }

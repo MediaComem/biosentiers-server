@@ -4,6 +4,9 @@ const inflection = require('inflection');
 const pagination = require('./pagination');
 const utils = require('./utils');
 
+// This corresponds to Knex's query builder methods.
+const JOIN_TYPES = [ 'innerJoin', 'leftOuterJoin', 'rightOuterJoin' ];
+
 function QueryBuilder(req, res, base) {
   this.req = req;
   this.res = res;
@@ -13,6 +16,7 @@ function QueryBuilder(req, res, base) {
   this.related = [];
   this.modifiers = [];
   this.possibleSorts = {};
+  this.requiredRelations = [];
 }
 
 _.extend(QueryBuilder.prototype, {
@@ -23,10 +27,28 @@ _.extend(QueryBuilder.prototype, {
   defaultSort: setDefaultSort,
   fetch: fetch,
   eagerLoad: loadRelated,
-  modify: addModifier
+  modify: addModifier,
+  joins: addJoinManager,
+  requireRelation: requireRelation
 });
 
-module.exports = QueryBuilder;
+function requireRelation(relation) {
+  if (!relation) {
+    throw new Error('Join relation is required');
+  } else if (!_.includes(this.joinsManager.relations, relation)) {
+    throw new Error(`No join defined for relation "${relation}"`);
+  }
+
+  if (!_.includes(this.requiredRelations, relation)) {
+    this.requiredRelations.push(relation);
+  }
+}
+
+function addJoinManager(table, callback) {
+  this.joinsManager = new QueryJoins(table);
+  callback(this.joinsManager);
+  return this;
+}
 
 function addModifier(...args) {
   this.modifiers.push(...args);
@@ -110,8 +132,8 @@ function sortDefinitionsToSortFunction(...sortDef) {
     }
   });
 
-  return function(query, direction) {
-    sorts.forEach(sortFunc => query = sortFunc(query, direction));
+  return function(...args) {
+    sorts.forEach(sortFunc => query = sortFunc(...args));
     return query;
   };
 }
@@ -124,7 +146,10 @@ function fetch(options) {
     query: this.query,
     filters: this.filters,
     possibleSorts: this.possibleSorts,
-    defaultSort: this._defaultSort
+    defaultSort: this._defaultSort,
+    filterJoins: [],
+    sortJoins: [],
+    queryBuilder: this
   };
 
   let promise = BPromise.resolve();
@@ -156,6 +181,14 @@ function fetch(options) {
       .return(data)
       .then(applySorting);
   }
+
+  promise = promise
+    .return(data)
+    .then(() => {
+      if (this.requiredRelations.length) {
+        data.query = data.queryBuilder.joinsManager.apply(data.query, data.queryBuilder.requiredRelations);
+      }
+    });
 
   promise = promise
     .return(data)
@@ -205,7 +238,7 @@ function countTotal(data) {
 }
 
 function countFilteredTotal(data) {
-  return data.query.clone().count().then(function(count) {
+  return data.query.count().then(function(count) {
     pagination.setPaginationFilteredTotal(data.res, count);
   });
 }
@@ -222,12 +255,24 @@ function checkFiltered(data) {
     return;
   }
 
+  data.originalQuery = data.query;
+  data.query = data.query.clone();
+
   return applyFiltersRecursively(data, data.filters.slice()).then(function() {
+
+    let promise = BPromise.resolve();
     if (data.filtered) {
-      return countFilteredTotal(data);
+      data.query = data.queryBuilder.joinsManager.apply(data.query, data.queryBuilder.requiredRelations);
+      promise = countFilteredTotal(data);
     } else {
       pagination.setPaginationFilteredTotal(data.res, data.total);
     }
+
+    return promise.then(() => {
+      data.query = data.originalQuery;
+      delete data.originalQuery;
+      return applyFiltersRecursively(data, data.filters.slice());
+    });
   });
 }
 
@@ -239,7 +284,7 @@ function applyFiltersRecursively(data, filters) {
   }
 
   return BPromise.map(currentFilters, function(filter) {
-    return BPromise.resolve(filter(data.query, data.req)).then(function(result) {
+    return BPromise.resolve(filter(data.query, data.req, data.queryBuilder)).then(function(result) {
       if (result) {
         data.query = result;
         data.filtered = true;
@@ -262,10 +307,147 @@ function applySorting(data) {
   querySorts = _.filter(querySorts, sort => data.possibleSorts[sort.property]);
 
   _.each(querySorts, sort => {
-    data.query = data.possibleSorts[sort.property](data.query, sort.direction);
+    data.query = data.possibleSorts[sort.property](data.query, sort.direction, data.queryBuilder);
   });
 
   if (data.defaultSort && !_.find(querySorts, { property: data.defaultSort.property })) {
-    data.query = data.possibleSorts[data.defaultSort.property](data.query, data.defaultSort.direction);
+    data.query = data.possibleSorts[data.defaultSort.property](data.query, data.defaultSort.direction, data.queryBuilder);
   }
 }
+
+class QueryJoins {
+  constructor(table) {
+    if (!_.isString(table)) {
+      throw new Error('Table name must be a string');
+    }
+
+    this.table = table;
+    this.possibleJoins = [];
+    this.relations = [];
+    this.mandatoryJoins = {};
+  }
+
+  join(...args) {
+
+    const joinDef = new JoinDefinition(this.table, ...args);
+    this.possibleJoins.push(joinDef);
+
+    _.each(joinDef.relations, relation => {
+      if (_.includes(this.relations, relation)) {
+        delete this.mandatoryJoins[relation];
+      } else {
+        this.relations.push(relation);
+        this.mandatoryJoins[relation] = joinDef;
+      }
+    });
+
+    return this;
+  }
+
+  apply(query, requiredRelations) {
+    if (!requiredRelations.length) {
+      return query;
+    }
+
+    const joinsToApply = [];
+    const remainingRelations = requiredRelations.slice();
+
+    _.each(_.intersection(requiredRelations, _.keys(this.mandatoryJoins)), relation => {
+
+      const mandatoryJoin = this.mandatoryJoins[relation];
+      if (!_.includes(joinsToApply, mandatoryJoin)) {
+        joinsToApply.push(mandatoryJoin);
+      }
+
+      _.pull(remainingRelations, relation);
+    });
+
+    if (remainingRelations.length) {
+      const remainingJoins = _.difference(this.possibleJoins, joinsToApply);
+
+      const validJoinChain = this.recursivelyFindCompatibleJoinsChain(remainingJoins, remainingRelations.slice());
+      if (validJoinChain) {
+        _.each(validJoinChain, join => joinsToApply.push(join));
+        remainingRelations.length = 0;
+      }
+
+      if (remainingRelations.length) {
+        throw new Error(`Could not find enough compatible joins to give access to the following relations: ${requiredRelations.join(', ')}`);
+      }
+    }
+
+    _.each(joinsToApply, join => {
+      query = join.apply(query);
+    });
+
+    return query;
+  }
+
+  recursivelyFindCompatibleJoinsChain(joins, relations) {
+
+    const joinScores = _.reduce(joins, (memo, join, i) => {
+      memo[i] = _.intersection(join.relations, relations).length;
+      return memo;
+    }, []);
+
+    if (_.includes(joinScores, relations.length)) {
+      return [
+        _.find(joins, (join, i) => joinScores[i] === relations.length)
+      ];
+    } else {
+
+      let currentScore = _.min(joinScores);
+      const maxScore = _.max(joinScores);
+      while (currentScore <= maxScore) {
+
+        const currentJoins = _.filter(joins, (join, i) => joinScores[i] === currentScore);
+        while (currentJoins.length) {
+          const currentJoin = currentJoins.shift();
+          const validChain = this.recursivelyFindCompatibleJoinsChain(currentJoins, _.difference(relations, currentJoin.relations));
+          if (validChain) {
+            return [ currentJoin, ...validChain ];
+          }
+        }
+
+        currentScore++;
+      }
+    }
+  }
+}
+
+class JoinDefinition {
+  constructor(table, relations, options) {
+    this.table = table;
+
+    this.relations = _.uniq(_.isArray(relations) ? relations : _.compact([ relations ]));
+    if (!this.relations.length) {
+      throw new Error('Relations is required');
+    } else if (!_.every(this.relations, _.isString)) {
+      throw new Error('Relations must be an array of strings');
+    }
+
+    this.relationOptions = _.extend({}, options);
+  }
+
+  apply(query) {
+    return query.query(qb => {
+      return _.reduce(this.relations, (memo, relation) => {
+
+        const options = this.relationOptions;
+        const table = this.table;
+        const joinType = options.type || 'innerJoin';
+        const joinTable = options.joinTable || relation;
+        const key = options.key || `${table}.id`;
+        const joinKey = options.joinKey || `${joinTable}.${table}_id`;
+
+        return memo[joinType](`${joinTable} as ${relation}`, key, joinKey);
+      }, qb);
+    })
+  }
+
+  isCompatibleWith(otherJoin) {
+    return _.intersection(this.relations, otherJoin.relations).length === 0;
+  }
+}
+
+module.exports = QueryBuilder;

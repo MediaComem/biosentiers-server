@@ -15,8 +15,6 @@ const EAGER_LOAD = {
   trails: qb => qb.select('trail.*', db.st.asGeoJSON('geom'))
 };
 
-const TRAIL_PIVOT_JOINED = Symbol('trail-pivot-joined');
-
 // API resource name (used in some API errors)
 exports.resourceName = 'zone';
 
@@ -39,10 +37,13 @@ exports.listByTrail = route(async function(req, res) {
 
   const query = policy.scope(req.trail.zones());
   const zones = await new QueryBuilder(req, res, query)
+    .joins('zone', j => {
+      j.join('trails_zones', { key: 'zone.id', joinKey: 'trails_zones.zone_id' });
+    })
     .filter(filterByHref)
     .paginate()
     .sorts('createdAt')
-    .sort('position', sorting.sortByRelatedProperty('position', TRAIL_PIVOT_JOINED, { table: 'zone', relationTable: 'trails_zones', foreignKey: 'id', relationForeignKey: 'zone_id' }))
+    .sort('position', sorting.sortByRelated('trails_zones', 'position'))
     .defaultSort('position')
     .eagerLoad(EAGER_LOAD)
     .modify(q => { return { query: q.query(qb => qb.select('zone.*', db.st.asGeoJSON('geom'))) }; })

@@ -1,5 +1,12 @@
 const inflection = require('inflection');
 
+exports.sortByRelated = function(relation, property) {
+  return function(query, direction, queryBuilder) {
+    queryBuilder.requireRelation(relation);
+    return query.query(qb => qb.orderBy(`${relation}.${inflection.underscore(property)}`, direction));
+  };
+};
+
 exports.sortByRelatedProperty = function(property, marker, options) {
   if (!options) {
     throw new Error('Options are required');
