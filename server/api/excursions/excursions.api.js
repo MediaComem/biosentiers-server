@@ -218,6 +218,12 @@ function search(query, req, qb) {
 
   const term = `%${req.query.search.toLowerCase()}%`;
 
-  qb.requireRelation('creator');
-  return query.query(qb => qb.whereRaw('(LOWER(creator.first_name) LIKE ? OR LOWER(creator.last_name) LIKE ? OR LOWER(excursion.name) LIKE ?)', [ term, term, term ]));
+  let clauses = [ 'LOWER(excursion.name) LIKE ?' ];
+
+  if (req.currentUser.hasRole('admin')) {
+    qb.requireRelation('creator');
+    clauses.push('LOWER(creator.first_name) LIKE ?', 'LOWER(creator.last_name) LIKE ?');
+  }
+
+  return query.query(qb => qb.whereRaw(`(${clauses.join(' OR ')})`, Array(clauses.length).fill(term)));
 }
