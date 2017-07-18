@@ -61,7 +61,7 @@ exports.createInvitation = route(async function(req, res) {
     to: invitation.email,
     subject: 'Invitation BioSentiers',
     text: 'Bienvenue sur BioSentiers!\n===========================\n\nVeuillez suivre ce lien pour créer votre compte: ' + invitationLink
-  }).return(token);
+  });
 
   res.status(201).json(_.extend(invitation, {
     createdAt: createdAt
@@ -70,24 +70,68 @@ exports.createInvitation = route(async function(req, res) {
 
 exports.retrieveInvitation = route(async function(req, res) {
 
-  /**
-   * If a user already exists with the same e-mail, then the invitation
-   * has already been used and is no longer valid.
-   */
+  // If a user already exists with the same e-mail, then the invitation
+  // has already been used and is no longer valid.
   await new User().whereEmail(req.jwtToken.email).fetch().then(function(user) {
     if (user) {
       throw errors.invalidAuthorizationError();
     }
   });
 
-  /**
-   * Returns a pseudo-resource containing the invitation's data.
-   */
+  // Returns a pseudo-resource containing the invitation's data.
   const invitation = _.extend(_.pick(req.jwtToken, 'email', 'role', 'firstName', 'lastName'), {
-    createdAt: new Date(req.jwtToken.iat * 1000)
+    createdAt: new Date(req.jwtToken.iat)
   });
 
   return res.json(invitation);
+});
+
+exports.requestPasswordReset = route(async function(req, res) {
+  const validation = await np(validatePasswordReset(req));
+
+  const now = new Date();
+  const email = req.body.email;
+
+  const tokenData = {
+    email: email,
+    authType: 'passwordReset',
+    iat: now.getTime(),
+    exp: now.getTime() + (1000 * 60 * 60) // 1 hour
+  };
+
+  if (req.currentUser) {
+    tokenData.iss = req.currentUser.get('api_id');
+  }
+
+  const passwordResetUser = validation.getData('passwordResetUser');
+  const resetPasswordLink = config.baseUrl + '/resetPassword?' + qs.stringify({
+    otp: jwt.generateToken(tokenData)
+  });
+
+  await mailer.send({
+    to: email,
+    subject: 'Changement de mot de passe BioSentiers',
+    text: `Bonjour ${passwordResetUser.get('first_name')}\n===========================\n\nVous avez demandé à changer votre mot de passe BioSentiers. Veuillez suivre ce lien pour le faire: ${resetPasswordLink}`
+  });
+
+  res.sendStatus(204);
+});
+
+exports.retrievePasswordResetRequest = route(async function(req, res) {
+
+  // If a user does not exist with that e-mail, then the request is invalid.
+  await new User().whereEmail(req.jwtToken.email).fetch().then(function(user) {
+    if (!user) {
+      throw errors.invalidAuthorizationError();
+    }
+  });
+
+  // Returns a pseudo-resource containing the request's data.
+  const passwordReset = _.extend(_.pick(req.jwtToken, 'email'), {
+    createdAt: new Date(req.jwtToken.iat)
+  });
+
+  return res.json(passwordReset);
 });
 
 function validateInvitation(req) {
@@ -106,6 +150,18 @@ function validateInvitation(req) {
         this.required(),
         this.inclusion({ in: User.roles })
       )
+    );
+  });
+}
+
+function validatePasswordReset(req) {
+  return validate.requestBody(req, function() {
+    return this.validate(
+      this.json('/email'),
+      this.type('string'),
+      this.required(),
+      this.email(),
+      validations.emailExists('passwordResetUser')
     );
   });
 }

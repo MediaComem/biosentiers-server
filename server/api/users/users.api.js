@@ -1,4 +1,6 @@
 const _ = require('lodash');
+const BPromise = require('bluebird');
+const errors = require('../errors');
 const fetcher = require('../fetcher');
 const mailer = require('../../lib/mailer');
 const np = require('../../lib/native-promisify');
@@ -61,12 +63,18 @@ exports.update = route.transactional(async function(req, res) {
 
   const user = req.user;
   await np(validateUserForUpdate(req));
-  policy.parse(req, user);
 
   const password = req.body.password;
   const previousPassword = req.body.previousPassword;
+  const passwordChangeRequest = req.jwtToken.authType == 'passwordReset';
 
-  if (user.get('password_hash') && password && user.hasPassword(previousPassword)) {
+  if (!passwordChangeRequest) {
+    policy.parse(req, user);
+  }
+
+  if (user.get('password_hash') && password && passwordChangeRequest) {
+    user.set('password', password);
+  } else if (user.get('password_hash') && password && user.hasPassword(previousPassword)) {
     user.set('password', password);
   } else if (!user.get('password_hash') && password) {
     user.set('password', password);
@@ -81,6 +89,30 @@ exports.fetchUser = fetcher({
   model: User,
   resourceName: 'user'
 });
+
+exports.fetchMe = function(req, res, next) {
+  BPromise.resolve().then(() => {
+    if (req.jwtToken.authType == 'user') {
+      return new User().where('api_id', req.jwtToken.sub).fetch().then(user => {
+        if (!user) {
+          throw new Error(`Could not fetch user from JWT token "sub" property (${req.jwtToken.sub})`);
+        }
+
+        req.user = user;
+      });
+    } else if (req.jwtToken.authType == 'passwordReset') {
+      return new User().where('email', req.jwtToken.email).fetch().then(user => {
+        if (!user) {
+          throw errors.unauthorized();
+        }
+
+        req.user = user;
+      });
+    } else {
+      throw new Error('Cannot fetch "me" user; no valid "user" or "passwordReset" JWT token found');
+    }
+  }).then(next, next);
+};
 
 function filterByEmail(query, req) {
   if (_.isString(req.query.email)) {
@@ -139,6 +171,9 @@ function validateUserForUpdate(req) {
         this.while(this.changed()),
         this.type('string'),
         this.notEmpty()
+      ),
+      this.validate(
+        validations.previousPasswordMatches(req.user)
       )
     );
   });

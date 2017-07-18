@@ -7,3 +7,11 @@ exports.canInvite = function(req) {
 exports.canBeInvited = function(req) {
   return policy.authenticated(req, { authTypes: [ 'invitation' ] });
 };
+
+exports.canResetPassword = function(req) {
+  return true;
+};
+
+exports.canRetrievePasswordReset = function(req) {
+  return policy.authenticated(req, { authTypes: [ 'passwordReset' ] });
+};

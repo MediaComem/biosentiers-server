@@ -6,7 +6,8 @@ const jwt = require('express-jwt');
 const p = require('bluebird');
 const User = require('../models/user');
 
-const authTypes = [ 'user', 'invitation' ];
+// FIXME: extract auth types somewhere else (also used in jwt.js)
+const authTypes = [ 'user', 'invitation', 'passwordReset' ];
 const logger = config.logger('auth');
 
 /**
@@ -47,22 +48,29 @@ exports.authorize = function(policy, resourceName, options) {
   }
 
   options = _.defaults({}, options, {
+    authenticate: true,
     required: false,
     active: false,
     resourceName: resourceName
   });
 
-  return compose()
-    .use(exports.authenticate(options)) // Perform authentication.
-    .use(function(req, res, next) {     // Perform authorization.
-      p.resolve().then(_.partial(policy, req)).then(function(authorized) {
-        if (authorized) {
-          next();
-        } else {
-          next(options.resourceName ? errors.recordNotFound(resourceName, req.params.id) : errors.forbidden());
-        }
-      }).catch(next);
-    });
+  let chain = compose();
+
+  // Perform authentication
+  if (options.authenticate) {
+    chain = chain.use(exports.authenticate(options));
+  }
+
+  // Perform authorization
+  return chain.use(function(req, res, next) {
+    p.resolve().then(_.partial(policy, req)).then(function(authorized) {
+      if (authorized) {
+        next();
+      } else {
+        next(options.resourceName ? errors.recordNotFound(resourceName, req.params.id) : errors.forbidden());
+      }
+    }).catch(next);
+  });
 };
 
 function loadAuthenticatedUser(options) {

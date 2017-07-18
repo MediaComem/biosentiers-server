@@ -27,3 +27,39 @@ exports.emailAvailable = function(existingUser) {
     });
   };
 };
+
+exports.emailExists = function(dataKey) {
+  return function(context) {
+    const email = context.get('value');
+    return new User()
+      .whereEmail(email)
+      .fetch()
+      .then(function(user) {
+        if (!user) {
+          context.addError({
+            validator: 'user.emailExists',
+            message: 'does not exist'
+          });
+        } else if (dataKey) {
+          context.setData(dataKey, user);
+        }
+      });
+  };
+}
+
+exports.previousPasswordMatches = function(user) {
+  return function(context) {
+
+    const password = context.get('value').password;
+    const previousPassword = context.get('value').previousPassword;
+
+    if (password && (!previousPassword || !user.hasPassword(previousPassword))) {
+      context.json('/previousPassword')(context);
+
+      context.addError({
+        validator: 'user.previousPassword',
+        message: 'is incorrect'
+      });
+    }
+  };
+}

@@ -4,9 +4,9 @@ const policy = require('../policy');
 const User = require('../../models/user');
 
 exports.canCreate = function(req) {
-  policy.authenticated(req, { authTypes: [ 'user', 'invitation' ] });
-
-  if (req.jwtToken.authType == 'invitation') {
+  if (!policy.authenticated(req, { authTypes: [ 'user', 'invitation' ] })) {
+    return false;
+  } else if (req.jwtToken.authType == 'invitation') {
     return policy.forbidChanges(req, {
       active: { value: true, message: 'set the status of an invited user' },
       email: { value: req.jwtToken.email, message: 'set the e-mail of an invited user' },
@@ -26,9 +26,19 @@ exports.canRetrieve = function(req) {
 };
 
 exports.canUpdate = function(req) {
-  if (policy.hasRole(req, 'admin')) {
+  if (!policy.authenticated(req, { authTypes: [ 'user', 'passwordReset' ] })) {
+    return false;
+  } else if (policy.hasRole(req, 'admin')) {
     return true;
-  } else if (policy.authenticated(req) && policy.sameRecord(req.currentUser, req.user)) {
+  } else if (req.jwtToken.authType == 'passwordReset') {
+    return policy.forbidChanges(req, {
+      firstName: { value: req.user.get('first_name'), message: 'change the first name of a user' },
+      lastName: { value: req.user.get('last_name'), message: 'change the last name of a user' },
+      active: { value: req.user.get('active'), message: 'change the status of a user' },
+      email: { value: req.user.get('email'), message: 'change the e-mail of a user' },
+      role: { value: req.user.get('role'), message: 'change the role of a user' }
+    });
+  } else if (policy.sameRecord(req.currentUser, req.user)) {
     return policy.forbidChanges(req, {
       active: { value: req.currentUser.get('active'), message: 'change the status of a user' },
       email: { value: req.currentUser.get('email'), message: 'change the e-mail of a user' },

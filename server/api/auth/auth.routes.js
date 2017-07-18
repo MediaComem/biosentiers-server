@@ -76,4 +76,12 @@ router.get('/invitation',
   auth.authorize(policy.canBeInvited, { authTypes: [ 'invitation' ] }),
   controller.retrieveInvitation);
 
+router.post('/passwordReset',
+  auth.authorize(policy.canResetPassword),
+  controller.requestPasswordReset);
+
+router.get('/passwordReset',
+  auth.authorize(policy.canRetrievePasswordReset, { authTypes: [ 'passwordReset' ] }),
+  controller.retrievePasswordResetRequest);
+
 module.exports = router;
