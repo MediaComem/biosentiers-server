@@ -5,6 +5,7 @@ const errors = require('../errors');
 const jwt = require('../../lib/jwt');
 const LocalStrategy = require('passport-local').Strategy;
 const mailer = require('../../lib/mailer');
+const moment = require('moment');
 const np = require('../../lib/native-promisify');
 const passport = require('passport');
 const policy = require('../users/users.policy');
@@ -31,7 +32,9 @@ exports.authenticate = function(req, res, next) {
     req.currentUser = user;
 
     res.json({
-      token: user.generateJwt(),
+      token: user.generateJwt({
+        exp: moment().add(2, 'weeks').unix()
+      }),
       user: policy.serialize(req, user)
     });
   })(req, res, next);
@@ -46,8 +49,8 @@ exports.createInvitation = route(async function(req, res) {
 
   const token = jwt.generateToken(_.extend({}, invitation, {
     authType: 'invitation',
-    iat: createdAt.getTime(),
-    exp: createdAt.getTime() + (1000 * 60 * 60 * 24 * 2), // 2 days
+    iat: moment(createdAt).unix(),
+    exp: moment(createdAt).add(2, 'days').unix(),
     iss: req.currentUser.get('api_id')
   }));
 
@@ -95,8 +98,8 @@ exports.requestPasswordReset = route(async function(req, res) {
   const tokenData = {
     email: email,
     authType: 'passwordReset',
-    iat: now.getTime(),
-    exp: now.getTime() + (1000 * 60 * 60) // 1 hour
+    iat: moment(now).unix(),
+    exp: moment(now).add(1, 'hour').unix()
   };
 
   if (req.currentUser) {

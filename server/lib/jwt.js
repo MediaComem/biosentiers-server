@@ -1,13 +1,15 @@
 const _ = require('lodash');
 const config = require('../../config');
 const jwt = require('jsonwebtoken');
+const moment = require('moment');
 
 const authTypes = [ 'user', 'invitation', 'passwordReset' ];
 
 exports.generateToken = function(options) {
 
   const jwtOptions = _.extend({
-    iat: new Date().getTime()
+    exp: options.exp || moment().add(1, 'hour').unix(),
+    iat: new Date().getTime() / 1000
   }, options);
 
   if (!_.includes(authTypes, jwtOptions.authType)) {
