@@ -14,7 +14,7 @@ router.get('/',
 router.patch('/',
   auth.authenticate({ authTypes: [ 'user', 'passwordReset' ] }),
   controller.fetchMe,
-  auth.authorize(policy.canUpdate, controller.resourceName, { authTypes: [ 'user', 'passwordReset' ] }),
+  auth.authorize(policy.canUpdate, controller.resourceName, { authenticate: false }),
   controller.update);
 
 module.exports = router;
