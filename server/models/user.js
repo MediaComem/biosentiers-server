@@ -3,6 +3,7 @@ const Abstract = require('./abstract');
 const bcrypt = require('bcryptjs');
 const bookshelf = require('../db');
 const config = require('../../config');
+const db = require('../db');
 const jwt = require('../lib/jwt');
 
 const availableRoles = [ 'user', 'admin' ];
@@ -66,6 +67,22 @@ const User = Abstract.extend({
     return this.query(function(builder) {
       return builder.whereRaw('LOWER(email) = LOWER(?)', email);
     });
+  },
+
+  incrementPasswordResetCount: function() {
+
+    const id = this.get('id');
+    if (!id) {
+      throw new Error('User has not been saved');
+    }
+
+    return db.knex(this.tableName)
+      .where('id', id)
+      .increment('password_reset_count', 1)
+      .then(() => {
+        this.set('password_reset_count', this.get('password_reset_count') + 1);
+        return this;
+      });
   }
 }, {
   roles: availableRoles

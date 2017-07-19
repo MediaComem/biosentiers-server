@@ -64,14 +64,23 @@ exports.update = route.transactional(async function(req, res) {
   const user = req.user;
   await np(validateUserForUpdate(req));
 
-  const password = req.body.password;
-  const previousPassword = req.body.previousPassword;
   const passwordChangeRequest = req.jwtToken.authType == 'passwordReset';
+  if (passwordChangeRequest) {
 
-  if (!passwordChangeRequest) {
+    // Make sure the password reset count in the JWT token is the same as the user's
+    const passwordResetCount = user.get('password_reset_count');
+    if (!_.isNumber(passwordResetCount) || passwordResetCount < 0 || req.jwtToken.passwordResetCount !== passwordResetCount) {
+      throw errors.invalidAuthorization();
+    }
+
+    // Increment the password reset count so that the token is no longer valid
+    await user.incrementPasswordResetCount();
+  } else {
     policy.parse(req, user);
   }
 
+  const password = req.body.password;
+  const previousPassword = req.body.previousPassword;
   if (user.get('password_hash') && password && passwordChangeRequest) {
     user.set('password', password);
   } else if (user.get('password_hash') && password && user.hasPassword(previousPassword)) {

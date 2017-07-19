@@ -77,7 +77,7 @@ exports.retrieveInvitation = route(async function(req, res) {
   // has already been used and is no longer valid.
   await new User().whereEmail(req.jwtToken.email).fetch().then(function(user) {
     if (user) {
-      throw errors.invalidAuthorizationError();
+      throw errors.invalidAuthorization();
     }
   });
 
@@ -95,9 +95,24 @@ exports.requestPasswordReset = route(async function(req, res) {
   const now = new Date();
   const email = req.body.email;
 
+  const passwordResetUser = validation.getData('passwordResetUser');
+
+  // The password reset count (a number associated with the user)
+  // is sent in the JWT token and will be incremented when the token
+  // is used. This makes sures it can only be used once.
+  const passwordResetCount = passwordResetUser.get('password_reset_count');
+  if (!_.isNumber(passwordResetCount) || passwordResetCount < 0) {
+    throw new Error(`Unexpected password reset count ${passwordResetCount} (should have been 0 or more)`);
+  }
+
+  // Increment the password reset count once to make sure all
+  // previous password request tokens are invalid.
+  await passwordResetUser.incrementPasswordResetCount();
+
   const tokenData = {
     email: email,
     authType: 'passwordReset',
+    passwordResetCount: passwordResetCount + 1,
     iat: moment(now).unix(),
     exp: moment(now).add(1, 'hour').unix()
   };
@@ -106,7 +121,6 @@ exports.requestPasswordReset = route(async function(req, res) {
     tokenData.iss = req.currentUser.get('api_id');
   }
 
-  const passwordResetUser = validation.getData('passwordResetUser');
   const resetPasswordLink = config.baseUrl + '/resetPassword?' + qs.stringify({
     otp: jwt.generateToken(tokenData)
   });
@@ -128,7 +142,14 @@ exports.retrievePasswordResetRequest = route(async function(req, res) {
   // If a user does not exist with that e-mail, then the request is invalid.
   await new User().whereEmail(req.jwtToken.email).fetch().then(function(user) {
     if (!user) {
-      throw errors.invalidAuthorizationError();
+      throw errors.invalidAuthorization();
+    }
+
+    // If the password reset count in the token is not the same as the user's,
+    // it means that this is an old token or that it was already used.
+    const passwordResetCount = user.get('password_reset_count');
+    if (!_.isNumber(passwordResetCount) || req.jwtToken.passwordResetCount !== passwordResetCount) {
+      throw errors.invalidAuthorization();
     }
   });
 
