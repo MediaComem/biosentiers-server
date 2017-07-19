@@ -117,7 +117,10 @@ exports.requestPasswordReset = route(async function(req, res) {
     text: `Bonjour ${passwordResetUser.get('first_name')}\n===========================\n\nVous avez demandé à changer votre mot de passe BioSentiers. Veuillez suivre ce lien pour le faire: ${resetPasswordLink}`
   });
 
-  res.sendStatus(204);
+  res.status(201).send({
+    email: email,
+    createdAt: now
+  });
 });
 
 exports.retrievePasswordResetRequest = route(async function(req, res) {
