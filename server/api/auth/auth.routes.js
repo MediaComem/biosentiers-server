@@ -77,7 +77,7 @@ router.get('/invitation',
   controller.retrieveInvitation);
 
 router.post('/passwordReset',
-  auth.authorize(policy.canResetPassword),
+  auth.authorize(policy.canResetPassword, { authenticate: false }),
   controller.requestPasswordReset);
 
 router.get('/passwordReset',
