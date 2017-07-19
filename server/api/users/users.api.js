@@ -172,8 +172,20 @@ function validateUserForUpdate(req) {
         this.type('string'),
         this.notEmpty()
       ),
-      this.validate(
-        validations.previousPasswordMatches(req.user)
+      // Validate previous password if password is set
+      this.if(
+        context => context.get('value').password !== undefined && req.jwtToken.authType != 'passwordReset',
+        this.validate(
+          this.json('/previousPassword'),
+          this.required(),
+          this.type('string'),
+          this.notEmpty()
+        ),
+        // If the previous password is a valid string, check that it's the correct password
+        this.if(
+          this.noError({ location: '/previousPassword' }),
+          validations.previousPasswordMatches(req.user, req.jwtToken)
+        )
       )
     );
   });

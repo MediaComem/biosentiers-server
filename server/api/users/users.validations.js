@@ -47,13 +47,15 @@ exports.emailExists = function(dataKey) {
   };
 }
 
-exports.previousPasswordMatches = function(user) {
+exports.previousPasswordMatches = function(user, jwtToken) {
   return function(context) {
 
     const password = context.get('value').password;
     const previousPassword = context.get('value').previousPassword;
+    const passwordResetRequest = jwtToken.authType == 'passwordReset';
 
-    if (password && (!previousPassword || !user.hasPassword(previousPassword))) {
+    // If the previous password is incorrect and this is not a password reset request, add a validation error
+    if (password && !passwordResetRequest && (!previousPassword || !user.hasPassword(previousPassword))) {
       context.json('/previousPassword')(context);
 
       context.addError({
