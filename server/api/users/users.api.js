@@ -84,6 +84,8 @@ exports.update = route.transactional(async function(req, res) {
   const previousPassword = req.body.previousPassword;
   if (user.get('password_hash') && password && passwordChangeRequest) {
     user.set('password', password);
+  } else if (user.get('password_hash') && password && req.currentUser.hasRole('admin')) {
+    user.set('password', password);
   } else if (user.get('password_hash') && password && user.hasPassword(previousPassword)) {
     user.set('password', password);
   }
@@ -191,9 +193,11 @@ function validateUserForUpdate(req) {
         this.type('string'),
         this.notEmpty()
       ),
-      // Validate previous password if password is set
+      // Validate previous password if password is set (except for admins)
       this.if(
-        context => context.get('value').password !== undefined && req.jwtToken.authType != 'passwordReset',
+        context => {
+          return context.get('value').password !== undefined && req.jwtToken.authType != 'passwordReset' && !req.currentUser.hasRole('admin');
+        },
         this.validate(
           this.json('/previousPassword'),
           this.required(),
