@@ -262,7 +262,10 @@ function checkFiltered(data) {
 
     let promise = BPromise.resolve();
     if (data.filtered) {
-      data.query = data.queryBuilder.joinsManager.apply(data.query, data.queryBuilder.requiredRelations);
+      if (data.queryBuilder.joinsManager) {
+        data.query = data.queryBuilder.joinsManager.apply(data.query, data.queryBuilder.requiredRelations);
+      }
+
       promise = countFilteredTotal(data);
     } else {
       pagination.setPaginationFilteredTotal(data.res, data.total);
