@@ -167,7 +167,7 @@ describe('Users API', function() {
           return spec
             .testRetrieve('/users/' + data.user.get('api_id'))
             .set('Authorization', 'Bearer ' + admin.generateJwt())
-            .then(expectUser.inBody(getExpectedExistingUser()));
+            .then(expectUser.inBody(getExpectedExistingUser({ loginCount: 0 })));
         });
       });
 
@@ -239,7 +239,7 @@ describe('Users API', function() {
             .testUpdate('/users/' + data.user.get('api_id'))
             .set('Authorization', 'Bearer ' + admin.generateJwt())
             .send(body)
-            .then(expectUser.inBody(getExpectedPatchedUser(body)));
+            .then(expectUser.inBody(getExpectedPatchedUser(_.extend({ loginCount: 0 }, body))));
         });
       });
 

@@ -11,6 +11,12 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   expect(actual, 'user').to.be.an('object');
 
   const keys = [ 'id', 'href', 'firstName', 'lastName', 'email', 'active', 'role', 'createdAt', 'updatedAt' ];
+  _.each([ 'lastActiveAt', 'lastLoginAt', 'loginCount' ], attr => {
+    if (_.has(expected, attr)) {
+      keys.push(attr);
+    }
+  });
+
   expect(actual, 'res.body').to.have.all.keys(keys);
 
   expect(actual.id, 'user.id').to.be.a('string');
@@ -20,6 +26,9 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   expect(actual.email, 'user.email').to.equal(expected.email);
   expect(actual.active, 'user.active').to.equal(_.get(expected, 'active', true));
   expect(actual.role, 'user.role').to.equal(_.get(expected, 'role', 'user'));
+  expect(actual.loginCount, 'user.loginCount').to.equal(expected.loginCount);
+  expect(actual.lastActiveAt, 'user.lastActiveAt').to.equal(expected.lastActiveAt);
+  expect(actual.lastLoginAt, 'user.lastLoginAt').to.equal(expected.lastLoginAt);
 
   spec.expectTimestamp('user', actual, expected, 'created');
   spec.expectTimestamp('user', actual, expected, 'updated');
