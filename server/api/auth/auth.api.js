@@ -17,6 +17,8 @@ const validations = require('../users/users.validations');
 
 setUpPassport();
 
+const logger = config.logger('api:auth');
+
 // API resource name (used in some API errors).
 exports.resourceName = 'auth';
 
@@ -30,6 +32,9 @@ exports.authenticate = function(req, res, next) {
     }
 
     req.currentUser = user;
+
+    // Save asynchronously, no need to wait
+    req.currentUser.saveNewLogin().catch(err => logger.warn('Coult not save new user login', err));
 
     res.json({
       token: user.generateJwt({

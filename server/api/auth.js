@@ -63,6 +63,11 @@ exports.authorize = function(policy, resourceName, options) {
 
   // Perform authorization
   return chain.use(function(req, res, next) {
+    if (req.currentUser) {
+      // Save user last activity date asynchronously, no need to wait
+      req.currentUser.saveNewActivity().catch(err => logger.warn('Could not save new user activity', err));
+    }
+
     p.resolve().then(_.partial(policy, req)).then(function(authorized) {
       if (authorized) {
         next();

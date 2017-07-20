@@ -85,5 +85,24 @@ exports.serialize = function(req, user) {
     });
   }
 
+  if (admin) {
+    serialized.loginCount = user.get('login_count');
+
+    const firstActivatedAt = user.get('first_activated_at');
+    if (firstActivatedAt) {
+      serialized.firstActivatedAt = firstActivatedAt;
+    }
+
+    const lastActiveAt = user.get('last_active_at');
+    if (lastActiveAt) {
+      serialized.lastActiveAt = lastActiveAt;
+    }
+
+    const lastLoginAt = user.get('last_login_at');
+    if (lastLoginAt) {
+      serialized.lastLoginAt = lastLoginAt;
+    }
+  }
+
   return serialized;
 };

@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const Abstract = require('./abstract');
 const bcrypt = require('bcryptjs');
+const BPromise = require('bluebird');
 const bookshelf = require('../db');
 const config = require('../../config');
 const db = require('../db');
@@ -70,17 +71,42 @@ const User = Abstract.extend({
   },
 
   incrementPasswordResetCount: function() {
-
-    const id = this.get('id');
-    if (!id) {
-      throw new Error('User has not been saved');
-    }
-
+    ensureSaved(this);
     return db.knex(this.tableName)
-      .where('id', id)
+      .where('id', this.get('id'))
       .increment('password_reset_count', 1)
       .then(() => {
         this.set('password_reset_count', this.get('password_reset_count') + 1);
+        return this;
+      });
+  },
+
+  saveNewActivity: function(activeAt) {
+    ensureSaved(this);
+    activeAt = activeAt || new Date();
+    return db.knex(this.tableName)
+      .where('id', this.get('id'))
+      .update('last_active_at', activeAt)
+      .then(() => {
+        this.set('last_active_at', activeAt);
+        return this;
+      });
+  },
+
+  saveNewLogin: function(loginAt) {
+    ensureSaved(this);
+    loginAt = loginAt || new Date();
+    return BPromise.all([
+      db.knex(this.tableName).where('id', this.get('id')).update({
+        last_login_at: loginAt,
+        last_active_at: loginAt
+      }),
+      db.knex(this.tableName).where('id', this.get('id')).increment('login_count', 1)
+    ])
+      .then(() => {
+        this.set('last_login_at', loginAt);
+        this.set('last_active_at', loginAt);
+        this.set('login_count', this.get('login_count') + 1);
         return this;
       });
   }
@@ -89,3 +115,9 @@ const User = Abstract.extend({
 });
 
 module.exports = bookshelf.model('User', User);
+
+function ensureSaved(user) {
+  if (!user.get('id')) {
+    throw new Error('User has not been saved');
+  }
+}

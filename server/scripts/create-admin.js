@@ -44,6 +44,7 @@ function createAdmin(existingUser) {
 
   return new User({
     active: true,
+    first_activated_at: new Date(),
     role: 'admin',
     email: adminEmail,
     password: adminPassword,
