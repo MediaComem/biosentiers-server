@@ -89,6 +89,13 @@ function addPossibleSorts(...sorts) {
   _.each(sorts, sort => {
     if (_.isString(sort)) {
       setPossibleSort(this.possibleSorts, sort, sortDefinitionsToSortFunction(sort));
+    } else if (_.isFunction(sort)) {
+      const result = sort();
+      if (_.isArray(result)) {
+        addPossibleSorts.apply(this, result);
+      } else if (result) {
+        addPossibleSorts.call(this, result);
+      }
     } else if (_.isObject(sort)) {
       _.each(sort, (value, key) => {
         if (_.isArray(value)) {
@@ -97,7 +104,7 @@ function addPossibleSorts(...sorts) {
           setPossibleSort(this.possibleSorts, key, sortDefinitionsToSortFunction(value));
         }
       });
-    } else if (!_.isFunction(sort)) {
+    } else {
       throw new Error('Sort definitions must be a string, object or function');
     }
   });
