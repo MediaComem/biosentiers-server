@@ -48,8 +48,9 @@ exports.list = route(async function(req, res) {
   const users = await new QueryBuilder(req, res, query)
     .paginate()
     .filter(filterByEmail)
+    .filter(search)
     .sorts('firstName', 'lastName', 'email', 'createdAt', 'updatedAt')
-    .defaultSort('email')
+    .defaultSort('createdAt', 'DESC')
     .fetch();
 
   res.send(await serialize(req, users, policy));
@@ -127,6 +128,17 @@ function filterByEmail(query, req) {
   if (_.isString(req.query.email)) {
     return query.whereEmail(req.query.email);
   }
+}
+
+function search(query, req) {
+  if (!_.isString(req.query.search)) {
+    return query;
+  }
+
+  const term = `%${req.query.search.toLowerCase()}%`;
+  const clauses = _.map([ 'email', 'first_name', 'last_name' ], attr => `LOWER(user_account.${attr}) LIKE ?`);
+
+  return query.query(qb => qb.whereRaw(`(${clauses.join(' OR ')})`, Array(clauses.length).fill(term)));
 }
 
 function validateUser(req) {
