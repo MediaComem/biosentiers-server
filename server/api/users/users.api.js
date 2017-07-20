@@ -49,7 +49,7 @@ exports.list = route(async function(req, res) {
     .paginate()
     .filter(filterByEmail)
     .filter(search)
-    .sorts('firstName', 'lastName', 'email', 'createdAt', 'updatedAt')
+    .sorts('firstName', 'lastName', 'email', 'loginCount', 'lastActiveAt', 'lastLoginAt', 'createdAt', 'updatedAt')
     .defaultSort('createdAt', 'DESC')
     .fetch();
 
