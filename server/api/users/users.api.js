@@ -86,8 +86,6 @@ exports.update = route.transactional(async function(req, res) {
     user.set('password', password);
   } else if (user.get('password_hash') && password && user.hasPassword(previousPassword)) {
     user.set('password', password);
-  } else if (!user.get('password_hash') && password) {
-    user.set('password', password);
   }
 
   await user.save();

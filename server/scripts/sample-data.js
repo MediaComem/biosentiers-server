@@ -44,7 +44,7 @@ function createUser() {
       return user;
     }
 
-    return new User(_.extend({ active: true, first_activated_at: new Date(), role: 'user' }, sampleUser)).save().then(function(user) {
+    return new User(_.extend({ active: true, role: 'user' }, sampleUser)).save().then(function(user) {
       logger.info(`User ${user.get('email')} created`);
       return user;
     });
