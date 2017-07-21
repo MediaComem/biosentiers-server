@@ -68,19 +68,19 @@ const router = express.Router();
 router.post('/',
   controller.authenticate);
 
-router.post('/invitation',
+router.post('/invitations',
   auth.authorize(policy.canInvite),
   controller.createInvitation);
 
-router.get('/invitation',
+router.get('/invitations',
   auth.authorize(policy.canBeInvited, { authTypes: [ 'invitation' ] }),
   controller.retrieveInvitation);
 
-router.post('/passwordReset',
-  auth.authorize(policy.canResetPassword, { authenticate: false }),
+router.post('/passwordResets',
+  auth.authorize(policy.canResetPassword),
   controller.requestPasswordReset);
 
-router.get('/passwordReset',
+router.get('/passwordResets',
   auth.authorize(policy.canRetrievePasswordReset, { authTypes: [ 'passwordReset' ] }),
   controller.retrievePasswordResetRequest);
 
