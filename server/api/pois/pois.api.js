@@ -11,30 +11,13 @@ const utils = require('../utils');
 // API resource name (used in some API errors)
 exports.resourceName = 'poi';
 
+exports.head = route(async function(req, res) {
+  await createPoiQueryBuilder(req, res).fetch({ head: true });
+  res.sendStatus(200);
+});
+
 exports.list = route(async function(req, res) {
-
-  const query = policy.scope()
-    .query(qb => {
-      return qb
-        .innerJoin('pois_zones', 'poi.id', 'pois_zones.poi_id')
-        .innerJoin('zone', 'pois_zones.zone_id', 'zone.id')
-        .innerJoin('trails_zones', 'zone.id', 'trails_zones.zone_id');
-    })
-    .where('trails_zones.trail_id', req.trail.get('id'));
-
-  const col = await new QueryBuilder(req, res, query)
-    .joins('poi', j => {
-      j.join('theme', { key: 'poi.theme_id', joinKey: 'theme.id' })
-    })
-    .filter(filterByThemes)
-    .filter(filterByZones)
-    .paginate()
-    .sorts('createdAt')
-    .sort('themeName', sorting.sortByRelated('theme', 'name'))
-    .defaultSort('createdAt', 'DESC')
-    .eagerLoad([ 'theme' ])
-    .fetch({ collection: true });
-
+  const col = await createPoiQueryBuilder(req, res).fetch({ collection: true });
   const pois = col.models;
 
   if (pois.length) {
@@ -48,6 +31,30 @@ exports.list = route(async function(req, res) {
 
   res.send(await serialize(req, col.models, policy));
 });
+
+function createPoiQueryBuilder(req, res) {
+
+  const query = policy.scope()
+    .query(qb => {
+      return qb
+        .innerJoin('pois_zones', 'poi.id', 'pois_zones.poi_id')
+        .innerJoin('zone', 'pois_zones.zone_id', 'zone.id')
+        .innerJoin('trails_zones', 'zone.id', 'trails_zones.zone_id');
+    })
+    .where('trails_zones.trail_id', req.trail.get('id'));
+
+  return new QueryBuilder(req, res, query)
+    .joins('poi', j => {
+      j.join('theme', { key: 'poi.theme_id', joinKey: 'theme.id' })
+    })
+    .filter(filterByThemes)
+    .filter(filterByZones)
+    .paginate()
+    .sorts('createdAt')
+    .sort('themeName', sorting.sortByRelated('theme', 'name'))
+    .defaultSort('createdAt', 'DESC')
+    .eagerLoad([ 'theme' ]);
+}
 
 function filterByZones(query, req) {
 
