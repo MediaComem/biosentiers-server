@@ -197,6 +197,12 @@ function fetch(options) {
       }
     });
 
+  if (_.get(options, 'head')) {
+    return promise.then(() => {
+      return _.pick(data, 'total', 'filteredTotal');
+    });
+  }
+
   promise = promise
     .return(data)
     .then(data => {
@@ -246,6 +252,7 @@ function countTotal(data) {
 
 function countFilteredTotal(data) {
   return data.query.count().then(function(count) {
+    data.filteredTotal = count;
     pagination.setPaginationFilteredTotal(data.res, count);
   });
 }
