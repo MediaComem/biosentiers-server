@@ -2,6 +2,7 @@ const _ = require('lodash');
 const db = require('../../db');
 const Excursion = require('../../models/excursion');
 const fetcher = require('../fetcher');
+const filters = require('../lib/filters');
 const hrefToApiId = require('../../lib/href').hrefToApiId;
 const np = require('../../lib/native-promisify');
 const policy = require('./excursions.policy');
@@ -48,6 +49,9 @@ exports.list = route(async function(req, res) {
     })
     .filter(search)
     .filter(filterByCreator)
+    .filter(filters.date('createdAt'))
+    .filter(filters.date('plannedAt'))
+    .filter(filters.date('updatedAt'))
     .paginate()
     .sorts('name', 'participantsCount', 'createdAt', 'plannedAt', 'updatedAt')
     .sort('creatorLastName', sorting.sortByRelated('creator', 'lastName'))
