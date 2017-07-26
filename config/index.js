@@ -102,7 +102,7 @@ function createLogger(name) {
   const logger = log4js.getLogger(name);
 
   if (config.logLevel) {
-    logger.setLevel(config.logLevel);
+    logger.level = config.logLevel;
   }
 
   return logger;

@@ -2,7 +2,6 @@ const bodyParser = require('body-parser');
 const config = require('../config');
 const errors = require('./lib/express-errors');
 const express = require('express');
-const log4js = require('log4js');
 const path = require('path');
 
 const app = express();

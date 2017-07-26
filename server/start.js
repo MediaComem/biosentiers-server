@@ -3,11 +3,10 @@ const app = require('./app');
 const config = require('../config');
 const db = require('./db');
 const http = require('http');
-const log4js = require('log4js');
 
 module.exports = function() {
 
-  const logger = log4js.getLogger('start');
+  const logger = config.logger('start');
 
   // Get port from environment and store in Express.
   const port = normalizePort(config.port);
