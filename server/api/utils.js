@@ -2,17 +2,10 @@ const _ = require('lodash');
 const BPromise = require('bluebird');
 
 // TODO: rename this file to query/params
-exports.includes = function(req, related) {
-
-  let includes = req.query.include;
-  if (!includes) {
-    return false;
-  }
-
-  if (!_.isArray(includes)) {
-    includes = [ includes ];
-  }
-
+exports.includes = function(req, related, options) {
+  const includesFromQuery = normalizeIncludes(req.query.include);
+  const includesFromOptions = normalizeIncludes(_.get(options, 'include'));
+  const includes = _.uniq(includesFromQuery.concat(includesFromOptions));
   return _.includes(includes, related);
 };
 
@@ -52,3 +45,7 @@ exports.updateManyToMany = function(model, relation, records) {
 
   return promise;
 };
+
+function normalizeIncludes(includes) {
+  return _.isArray(includes) ? includes : _.compact([ includes ]);
+}

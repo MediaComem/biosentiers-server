@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const dataPackage = require('./trails.data-package');
 const db = require('../../db');
 const fetcher = require('../fetcher');
 const np = require('../../lib/native-promisify');
@@ -34,6 +35,10 @@ exports.list = route(async function(req, res) {
 
 exports.retrieve = route(async function(req, res) {
   res.send(await serialize(req, req.trail, policy));
+});
+
+exports.retrieveDataPackage = route(async function(req, res) {
+  res.send(await dataPackage(req));
 });
 
 exports.fetchTrail = fetcher({

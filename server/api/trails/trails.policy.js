@@ -16,6 +16,10 @@ exports.canRetrieve = function(req) {
   return true;
 };
 
+exports.canRetrieveDataPackage = function(req) {
+  return true;
+};
+
 exports.scope = function(req) {
   return new Trail();
 };
@@ -28,7 +32,7 @@ exports.parse = function(req, trail = new Trail()) {
   return trail;
 };
 
-exports.serialize = function(req, trail) {
+exports.serialize = function(req, trail, options) {
 
   const result = {
     id: trail.get('api_id'),
@@ -39,7 +43,7 @@ exports.serialize = function(req, trail) {
     updatedAt: trail.get('updated_at')
   };
 
-  if (utils.includes(req, 'geometry')) {
+  if (utils.includes(req, 'geometry', options)) {
     result.geometry = trail.get('geom');
   }
 

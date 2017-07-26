@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-module.exports = function(req, data, serializer) {
+module.exports = function(req, data, serializer, options) {
   if (!req) {
     throw new Error('The request object must be given as the first argument');
   } else if (!req.app) {
@@ -14,8 +14,8 @@ module.exports = function(req, data, serializer) {
   }
 
   if (!_.isArray(data)) {
-    return Promise.resolve(serializer(req, data));
+    return Promise.resolve(serializer(req, data, options));
   } else {
-    return Promise.all(_.map(data, item => serializer(req, item)));
+    return Promise.all(_.map(data, item => serializer(req, item, options)));
   }
 };

@@ -20,6 +20,11 @@ router.get('/:id',
   auth.authorize(policy.canRetrieve, controller.resourceName),
   controller.retrieve);
 
+router.get('/:id/data-package',
+  controller.fetchTrail,
+  auth.authorize(policy.canRetrieveDataPackage, controller.resourceName),
+  controller.retrieveDataPackage);
+
 router.use('/:id/pois',
   controller.fetchTrail,
   poisRoutes);
