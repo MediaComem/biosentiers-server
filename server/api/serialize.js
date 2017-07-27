@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const BPromise = require('bluebird');
 
 module.exports = function(req, data, serializer, options) {
   if (!req) {
@@ -14,8 +15,40 @@ module.exports = function(req, data, serializer, options) {
   }
 
   if (!_.isArray(data)) {
-    return Promise.resolve(serializer(req, data, options));
+    return BPromise.resolve(serializer(req, data, options)).then(result => filterData(req, result, options));
   } else {
-    return Promise.all(_.map(data, item => serializer(req, item, options)));
+    return BPromise.all(_.map(data, item => serializer(req, item, options))).map(result => filterData(req, result, options));
   }
 };
+
+function filterData(req, data, options) {
+
+  let except = _.get(options, 'except');
+  let only = _.get(options, 'only');
+  if (!only && !except) {
+    return data;
+  }
+
+  if (only) {
+    only = _.isArray(only) ? only : [ only ];
+    data = _.pick(data, ...only);
+  }
+
+  if (except) {
+    except = _.isArray(except) ? except : [ except ];
+    data = _.omit(data, ...except);
+  }
+
+  return data;
+}
+
+function queryArray(req, param) {
+  const value = req.query[param];
+  if (_.isArray(value)) {
+    return value;
+  } else if (_.isString(value) && value.trim().length) {
+    return [ value ];
+  } else {
+    return [];
+  }
+}
