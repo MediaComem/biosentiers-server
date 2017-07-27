@@ -1,17 +1,28 @@
 const _ = require('lodash');
 const bookshelf = require('../db');
 const BPromise = require('bluebird');
+const db = require('../db');
+const Collection = db.Collection;
 const inflection = require('inflection');
 const uuid = require('uuid');
 
 const proto = bookshelf.Model.prototype;
 
-const Abstract = bookshelf.Model.extend({
+const protoProps = {};
+enrichRelationsWithGeometry(protoProps, 'belongsTo', 'belongsToMany', 'hasMany', 'hasOne');
+
+const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
   constructor: function() {
     proto.constructor.apply(this, arguments);
+
     this.on('creating', this._setApiId, this);
     this.on('creating', this._setDefaults, this);
     this.on('saving', this.touch, this);
+
+    const geomProperty = getGeomProperty(this);
+    if (geomProperty) {
+      this.query(qb => qb.select(`${this.tableName}.*`, db.st.asGeoJSON(geomProperty)));
+    }
   },
 
   virtuals: {
@@ -28,15 +39,7 @@ const Abstract = bookshelf.Model.extend({
 
   parse: function(response) {
 
-    let geomProperty;
-    if (_.isString(this.geometry)) {
-      geomProperty = this.geometry;
-    } else if (this.geometry === true) {
-      geomProperty = 'geom';
-    } else if (this.geometry !== undefined) {
-      throw new Error(`Model "geometry" property must be a string or boolean, got ${this.geometry} (${typeof(this.geometry)})`)
-    }
-
+    const geomProperty = getGeomProperty(this);
     if (geomProperty && response[geomProperty]) {
       response[geomProperty] = JSON.parse(response[geomProperty]);
     }
@@ -74,7 +77,7 @@ const Abstract = bookshelf.Model.extend({
       }
     });
   }
-}, {
+}), {
   transaction: function(callback) {
     return bookshelf.transaction(callback);
   }
@@ -108,6 +111,38 @@ function getHref() {
   } else {
     throw new Error('Virtual "href" property could not be determined');
   }
+}
+
+
+function getGeomProperty(record) {
+  if (_.isString(record.geometry)) {
+    return record.geometry;
+  } else if (record.geometry === true) {
+    return 'geom';
+  } else if (record.geometry !== undefined) {
+    throw new Error(`Model "geometry" property must be a string or boolean, got ${JSON.stringify(record.geometry)} (${typeof(record.geometry)})`)
+  }
+}
+
+function enrichRelationWithGeometry(record, relationType, target, ...args) {
+  let relation = proto[relationType].call(record, target, ...args);
+
+  const targetProto = db.model(target).prototype;
+  const geomProperty = getGeomProperty(targetProto);
+  if (geomProperty) {
+    relation = relation.query(qb => qb.select(`${targetProto.tableName}.*`, db.st.asGeoJSON(geomProperty)));
+  }
+
+  return relation;
+}
+
+function enrichRelationsWithGeometry(protoProps, ...relations) {
+  relations.forEach(relation => {
+    const originalRelationMethod = proto[relation];
+    protoProps[relation] = function(target, ...args) {
+      return enrichRelationWithGeometry(this, relation, target, ...args);
+    };
+  });
 }
 
 module.exports = bookshelf.model('Abstract', Abstract);

@@ -27,7 +27,6 @@ exports.list = route(async function(req, res) {
     .sorts('name', 'createdAt', 'updatedAt')
     .sort('length', 'pathLength')
     .defaultSort('name')
-    .modify(q => { return { query: q.query(qb => qb.select('*', db.st.asGeoJSON('geom'))) }; })
     .fetch();
 
   res.send(await serialize(req, trails, policy));
@@ -43,8 +42,7 @@ exports.retrieveDataPackage = route(async function(req, res) {
 
 exports.fetchTrail = fetcher({
   model: Trail,
-  resourceName: exports.resourceName,
-  queryHandler: query => query.query(qb => qb.select('*', db.st.asGeoJSON('geom')))
+  resourceName: exports.resourceName
 });
 
 function validateTrail(req) {

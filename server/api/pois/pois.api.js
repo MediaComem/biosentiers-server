@@ -6,33 +6,35 @@ const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
 const sorting = require('../sorting');
+const Theme = require('../../models/theme');
 const utils = require('../utils');
+
+const EAGER_LOAD = [
+  'bird',
+  'butterfly',
+  'flower',
+  'theme',
+  'tree'
+];
 
 // API resource name (used in some API errors)
 exports.resourceName = 'poi';
 
 exports.head = route(async function(req, res) {
-  await createPoiQueryBuilder(req, res).fetch({ head: true });
+  const queryBuilder = await createPoiQueryBuilder(req, res);
+  await queryBuilder.fetch({ head: true });
   res.sendStatus(200);
 });
 
 exports.list = route(async function(req, res) {
-  const col = await createPoiQueryBuilder(req, res).fetch({ collection: true });
-  const pois = col.models;
-
-  if (pois.length) {
-    const themes = _.uniq(_.map(pois, poi => poi.related('theme').get('name')));
-    await col.load(_.reduce(themes, (memo, theme) => {
-      const themePois = _.filter(pois, poi => poi.related('theme').get('name') === theme);
-      memo[theme] = qb => qb.select(`${theme}.*`, db.st.asGeoJSON('geom')).where('id', 'IN', _.map(themePois, poi => poi.get('id')));
-      return memo;
-    }, {}));
-  }
-
-  res.send(await serialize(req, col.models, policy));
+  const queryBuilder = await createPoiQueryBuilder(req, res);
+  const pois = await queryBuilder.fetch();
+  res.send(await serialize(req, pois, policy));
 });
 
-function createPoiQueryBuilder(req, res) {
+async function createPoiQueryBuilder(req, res) {
+
+  const themes = await new Theme().fetchAll();
 
   const query = policy.scope()
     .query(qb => {
@@ -53,7 +55,7 @@ function createPoiQueryBuilder(req, res) {
     .sorts('createdAt')
     .sort('themeName', sorting.sortByRelated('theme', 'name'))
     .defaultSort('createdAt', 'DESC')
-    .eagerLoad([ 'theme' ]);
+    .eagerLoad(EAGER_LOAD, { themes: themes });
 }
 
 function filterByZones(query, req) {

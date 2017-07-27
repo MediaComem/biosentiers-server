@@ -10,10 +10,10 @@ const sorting = require('../sorting');
 const utils = require('../utils');
 const Zone = require('../../models/zone');
 
-const EAGER_LOAD = {
-  points: qb => qb.select('*', db.st.asGeoJSON('geom')),
-  trails: qb => qb.select('trail.*', db.st.asGeoJSON('geom'))
-};
+const EAGER_LOAD = [
+  'points',
+  'trails'
+];
 
 // API resource name (used in some API errors)
 exports.resourceName = 'zone';
@@ -27,7 +27,6 @@ exports.list = route(async function(req, res) {
     .sorts('createdAt')
     .defaultSort('createdAt')
     .eagerLoad(EAGER_LOAD)
-    .modify(q => { return { query: q.query(qb => qb.select('zone.*', db.st.asGeoJSON('geom'))) }; })
     .fetch();
 
   res.send(await serialize(req, zones, policy));
@@ -46,7 +45,6 @@ exports.listByTrail = route(async function(req, res) {
     .sort('position', sorting.sortByRelated('trails_zones', 'position'))
     .defaultSort('position')
     .eagerLoad(EAGER_LOAD)
-    .modify(q => { return { query: q.query(qb => qb.select('zone.*', db.st.asGeoJSON('geom'))) }; })
     .fetch();
 
   res.send(await serialize(req, zones, policy));
@@ -59,8 +57,7 @@ exports.retrieve = route(async function(req, res) {
 exports.fetchZone = fetcher({
   model: Zone,
   resourceName: exports.resourceName,
-  eagerLoad: EAGER_LOAD,
-  queryHandler: query => query.query(qb => qb.select('*', db.st.asGeoJSON('geom')))
+  eagerLoad: EAGER_LOAD
 });
 
 function filterByHref(query, req) {

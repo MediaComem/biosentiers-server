@@ -214,9 +214,10 @@ function fetch(options) {
     });
 
   if (this.related && this.related.length) {
+    const relatedOptions = this.relatedOptions;
     _.each(this.related, related => {
       promise = promise.then(function(collection) {
-        return collection.load(related).then(() => collection);
+        return collection.load(related, relatedOptions).then(() => collection);
       });
     });
   }
@@ -228,8 +229,9 @@ function fetch(options) {
   }
 }
 
-function loadRelated(related) {
+function loadRelated(related, options) {
   this.related.push(related);
+  this.relatedOptions = _.extend({}, this.relatedOptions, options);
   return this;
 }
 
@@ -244,14 +246,14 @@ function paginate(data) {
 }
 
 function countTotal(data) {
-  return data.query.clone().count().then(function(count) {
+  return data.query.clone().query(qb => qb.clearSelect()).count().then(function(count) {
     data.total = count;
     pagination.setPaginationTotal(data.res, count);
   });
 }
 
 function countFilteredTotal(data) {
-  return data.query.count().then(function(count) {
+  return data.query.query(qb => qb.clearSelect()).count().then(function(count) {
     data.filteredTotal = count;
     pagination.setPaginationFilteredTotal(data.res, count);
   });

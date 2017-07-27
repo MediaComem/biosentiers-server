@@ -28,9 +28,7 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
 
 module.exports.inDb = function(apiId, expected) {
 
-  const query = new Trail({ api_id: apiId })
-    .query(qb => qb.select('*', db.st.asGeoJSON('geom')))
-    .fetch();
+  const query = new Trail({ api_id: apiId }).fetch();
 
   return query.then(function(trail) {
     expect(trail, 'db.trail').to.be.an.instanceof(Trail);

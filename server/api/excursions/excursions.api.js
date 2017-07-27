@@ -19,10 +19,8 @@ const Zone = require('../../models/zone');
 const EAGER_LOAD = [
   'creator',
   'themes',
-  {
-    trail: qb => qb.select('trail.*', db.st.asGeoJSON('geom')),
-    zones: qb => qb.select('zone.*', db.st.asGeoJSON('geom'))
-  }
+  'trail',
+  'zones'
 ];
 
 // API resource name (used in some API errors).
@@ -165,11 +163,9 @@ function preloadThemes() {
 function preloadZones(excursion) {
   return function(apiIds, context) {
     const trailId = context.get('value').trailId || excursion.get('trail_id');
-    return new Trail({ id: trailId }).query(qb => qb.select('*', db.st.asGeoJSON('geom'))).fetch().then(trail => {
+    return new Trail({ id: trailId }).fetch().then(trail => {
       return trail.zones().query(qb => {
-        return qb
-          .select('zone.*', db.st.asGeoJSON('geom'))
-          .where('zone.api_id', 'in', zoneHrefsToApiIds(apiIds));
+        return qb.where('zone.api_id', 'in', zoneHrefsToApiIds(apiIds));
       }).fetch();
     });
   };
@@ -188,7 +184,7 @@ function zonesHaveChanged(excursion) {
 }
 
 function fetchTrailByHref(href) {
-  return new Trail({ api_id: hrefToApiId(href) }).query(qb => qb.select('*', db.st.asGeoJSON('geom'))).fetch();
+  return new Trail({ api_id: hrefToApiId(href) }).fetch();
 }
 
 function saveExcursion(excursion, req) {
