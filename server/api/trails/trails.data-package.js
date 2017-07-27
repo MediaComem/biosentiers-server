@@ -65,46 +65,17 @@ function buildPoi(poi, zones) {
     throw new Error(`Could not find a zone for POI ${poi.get('id')} (zone ID ${zoneId})`);
   }
 
-  const result = {
+  return {
     // TODO: change to random API id
     id: poi.get('id'),
     createdAt: poi.get('created_at'),
     geometry: poi.related(theme).get('geom'),
     ownerName: poi.related('owner').get('name'),
-    periodStart: species.get('period_start'),
-    periodEnd: species.get('period_end'),
     // TODO: change to random API id
     speciesId: species.get('id'),
     theme: theme,
     zoneId: zone.get('api_id')
   };
-
-  switch (theme) {
-    case 'bird':
-      _.merge(result, {
-        commonName: getCommonName(species)
-      });
-      break;
-    case 'butterfly':
-      _.merge(result, {
-        commonName: getCommonName(species)
-      });
-      break;
-    case 'flower':
-      _.merge(result, {
-        commonName: getCommonName(species, 'fr', 'de', 'it', 'la')
-      });
-      break;
-    case 'tree':
-      _.merge(result, {
-        commonName: getCommonName(species, 'fr', 'de', 'it', 'la')
-      });
-      break;
-    default:
-      throw new Error(`Unsupported theme ${theme}`);
-  }
-
-  return cleanUp(result);
 }
 
 function buildAllSpecies(pois) {
