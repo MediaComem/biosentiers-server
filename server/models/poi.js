@@ -15,15 +15,19 @@ const Poi = Abstract.extend({
   }, proto.virtuals),
 
   bird: function() {
-    return this.belongsTo('Bird', 'id');
+    return this.mtiParentOf('Bird', 'theme', 'id');
   },
 
   butterfly: function() {
-    return this.belongsTo('Butterfly', 'id');
+    return this.mtiParentOf('Butterfly', 'theme', 'id');
   },
 
   flower: function() {
-    return this.belongsTo('Flower', 'id');
+    return this.mtiParentOf('Flower', 'theme', 'id');
+  },
+
+  owner: function() {
+    return this.belongsTo('Owner');
   },
 
   theme: function() {
@@ -31,7 +35,7 @@ const Poi = Abstract.extend({
   },
 
   tree: function() {
-    return this.belongsTo('Tree', 'id');
+    return this.mtiParentOf('Tree', 'theme', 'id');
   }
 });
 

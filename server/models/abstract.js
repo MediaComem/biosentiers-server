@@ -58,6 +58,8 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
     }
   },
 
+  mtiParentOf: mtiParentOf,
+
   _setApiId: function() {
     if (this.apiId && !this.has('api_id')) {
       return BPromise.resolve().then(this.generateApiId.bind(this)).then(apiId => {
@@ -113,6 +115,61 @@ function getHref() {
   }
 }
 
+function mtiParentOf(target, mtiOptions, foreignKey, foreignKeyTarget, ...args) {
+  const filterOptions = {};
+  if (_.isString(mtiOptions)) {
+    filterOptions.query = (qb, options) => {
+
+      const discriminantModelsKey = inflection.pluralize(mtiOptions);
+      const discriminantModels = options[discriminantModelsKey];
+      if (!discriminantModels) {
+        throw new Error(`Expected load options to have a "${discriminantModelsKey}" property containing the ${mtiOptions} models used to discriminate the MTI relationship`);
+      } else if (!(discriminantModels instanceof Collection)) {
+        throw new Error(`Load options "${discriminantModelsKey}" must be a bookshelf collection of models`);
+      }
+
+      const discriminantModel = discriminantModels.find(model => {
+        return model.get('name') == inflection.underscore(target);
+      });
+
+      if (!discriminantModel) {
+        throw new Error(`Could not find ${mtiOptions} matching relation ${target}`);
+      }
+
+      const records = options.parentResponse;
+
+      const discriminantColumn = `${inflection.underscore(mtiOptions)}_id`;
+      const predicate = record => record[discriminantColumn] == discriminantModel.get('id');
+
+      const filterForeignKey = foreignKey || 'id';
+      const filterForeignKeyTable = db.model(target).prototype.tableName;
+      const filterForeignKeyTarget = foreignKeyTarget || `${filterForeignKeyTable}.id`;
+
+      qb.clearWhere().whereIn(filterForeignKeyTarget, _(records).filter(predicate).map(filterForeignKey).value())
+    };
+  } else if (_.isFunction(mtiOptions)) {
+    filterOptions.query = mtiOptions;
+  } else if (_.isPlainObject(mtiOptions)) {
+    _.extend(filterOptions, mtiOptions.filter);
+  } else {
+    throw new Error(`Multiple table inheritance options must be a string, function or object, got ${JSON.stringify(mtiOptions)} (${typeof(mtiOptions)})`);
+  }
+
+  return filteredRelation(this.belongsTo(target, foreignKey, foreignKeyTarget, ...args), filterOptions);
+}
+
+function filteredRelation(bookshelfRelation, options) {
+  const query = _.get(options, 'query', _.noop);
+
+  const originalSelectConstraints = bookshelfRelation.relatedData.selectConstraints;
+  bookshelfRelation.relatedData.selectConstraints = function(qb, options) {
+    const result = originalSelectConstraints.apply(this, arguments);
+    query(qb, options);
+    return result;
+  };
+
+  return bookshelfRelation;
+}
 
 function getGeomProperty(record) {
   if (_.isString(record.geometry)) {
