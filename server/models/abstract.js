@@ -6,6 +6,8 @@ const Collection = db.Collection;
 const inflection = require('inflection');
 const uuid = require('uuid');
 
+const DEFAULT_API_ID_COLUMN = 'api_id';
+
 const proto = bookshelf.Model.prototype;
 
 const protoProps = {};
@@ -15,8 +17,8 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
   constructor: function() {
     proto.constructor.apply(this, arguments);
 
-    this.on('creating', this._setApiId, this);
-    this.on('creating', this._setDefaults, this);
+    this.on('creating', this.initializeApiId, this);
+    this.on('creating', this.initializeDefaults, this);
     this.on('saving', this.touch, this);
 
     const geomProperty = getGeomProperty(this);
@@ -33,9 +35,30 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
 
   outputVirtuals: false,
 
+  initializeApiId: function() {
+    const column = this.getApiIdColumn();
+    if (this.apiId && !this.has(column)) {
+      return BPromise.resolve().then(() => this.generateUniqueApiId()).then(apiId => {
+        this.set(column, apiId);
+      });
+    }
+  },
+
   generateApiId: function() {
-    // TODO: generate unique API id
-    return uuid.v4();
+    return _.isFunction(this.apiId) ? this.apiId.call(this) : uuid.v4();
+  },
+
+  generateUniqueApiId: function() {
+    const apiId = this.generateApiId();
+    return new this.constructor()
+      .query(qb => qb.clearSelect())
+      .where(this.getApiIdColumn(), apiId)
+      .fetch()
+      .then(record => record ? this.generateUniqueApiId() : apiId);
+  },
+
+  getApiIdColumn: function() {
+    return this.apiIdColumn || DEFAULT_API_ID_COLUMN;
   },
 
   parse: function(response) {
@@ -61,22 +84,10 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
 
   mtiParentOf: mtiParentOf,
 
-  _setApiId: function() {
-    if (this.apiId && !this.has('api_id')) {
-      return BPromise.resolve().then(this.generateApiId.bind(this)).then(apiId => {
-        this.set('api_id', apiId);
-      });
-    }
-  },
-
-  _setDefaults: function() {
-
-    const has = _.bind(this.has, this);
-    const set = _.bind(this.set, this);
-
-    _.each(this.defaults || {}, function(value, key) {
-      if (!has(key)) {
-        set(key, value);
+  initializeDefaults: function() {
+    _.each(this.defaults || {}, (value, key) => {
+      if (!this.has(key)) {
+        this.set(key, value);
       }
     });
   }
@@ -103,7 +114,7 @@ function getHref() {
   }
 
   if (hrefBase) {
-    const id = this.get('api_id');
+    const id = this.get(this.getApiIdColumn());
     if (!id) {
       throw new Error('Virtual "href" property requires the model to have an "api_id" property');
     }

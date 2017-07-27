@@ -6,7 +6,7 @@ const randomString = require('randomstring');
 const Excursion = Abstract.extend({
   tableName: 'excursion',
 
-  apiId: true,
+  apiId: generateExcursionApiId,
   hrefBase: '/api/excursions',
   timestamps: true,
 
@@ -24,16 +24,11 @@ const Excursion = Abstract.extend({
 
   zones: function() {
     return this.belongsToMany('Zone', 'excursions_zones');
-  },
-
-  generateApiId: generateUniqueApiId
+  }
 });
 
-function generateUniqueApiId() {
-  const newApiId = randomString.generate({ length: 5, charset: 'alphanumeric', capitalization: 'lowercase' });
-  return new Excursion({ api_id: newApiId }).fetch().then(function(existingExcursion) {
-    return existingExcursion ? generateUniqueApiId() : newApiId;
-  });
-}
-
 module.exports = bookshelf.model('Excursion', Excursion);
+
+function generateExcursionApiId() {
+  return randomString.generate({ length: 5, charset: 'alphanumeric', capitalization: 'lowercase' });
+}
