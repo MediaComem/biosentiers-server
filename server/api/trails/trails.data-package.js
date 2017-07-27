@@ -66,13 +66,11 @@ function buildPoi(poi, zones) {
   }
 
   return {
-    // TODO: change to random API id
-    id: poi.get('id'),
+    id: poi.get('api_id'),
     createdAt: poi.get('created_at'),
     geometry: poi.related(theme).get('geom'),
     ownerName: poi.related('owner').get('name'),
-    // TODO: change to random API id
-    speciesId: species.get('id'),
+    speciesId: species.get('api_id'),
     theme: theme,
     zoneId: zone.get('api_id')
   };
@@ -102,8 +100,7 @@ function buildAllSpecies(pois) {
 function buildSpecies(theme, species) {
 
   const result = {
-    // TODO: change to random API id
-    id: species.get('id'),
+    id: species.get('api_id'),
     characteristics: {
       habitat: species.get('habitat_characteristics')
     },

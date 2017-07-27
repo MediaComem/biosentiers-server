@@ -7,6 +7,8 @@ const proto = Abstract.prototype;
 const Poi = Abstract.extend({
   tableName: 'poi',
 
+  apiId: true,
+
   virtuals: _.merge({
     geom: {
       get: getGeom,

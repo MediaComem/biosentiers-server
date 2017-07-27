@@ -4,6 +4,8 @@ const bookshelf = require('../db');
 const ButterflySpecies = Abstract.extend({
   tableName: 'butterfly_species',
 
+  apiId: true,
+
   family: function() {
     return this.belongsTo('ButterflyFamily', 'family_id');
   }

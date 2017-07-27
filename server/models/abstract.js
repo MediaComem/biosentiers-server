@@ -34,6 +34,7 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
   outputVirtuals: false,
 
   generateApiId: function() {
+    // TODO: generate unique API id
     return uuid.v4();
   },
 
