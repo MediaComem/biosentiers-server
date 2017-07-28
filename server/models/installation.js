@@ -35,5 +35,5 @@ const Installation = Abstract.extend({
 module.exports = bookshelf.model('Installation', Installation);
 
 function generateSharedSecret() {
-  return randomBytes(256).then(buf => buf.toString('hex'));
+  return randomBytes(256);
 }

@@ -91,8 +91,9 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
       this.set('created_at', new Date());
     }
 
+    const hasUpdatedAt = this.has('updated_at');
     if (isTimestampEnabled(this, 'updated_at')) {
-      this.set('updated_at', hasCreatedAt ? new Date() : this.get('created_at') || new Date());
+      this.set('updated_at', hasCreatedAt && hasUpdatedAt ? new Date() : this.get('created_at') || new Date());
     }
   },
 

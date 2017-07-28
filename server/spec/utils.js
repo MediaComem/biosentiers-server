@@ -70,6 +70,7 @@ exports.cleanDatabase = function() {
   const start = moment();
 
   const tablesToDelete = [
+    'installation_event', 'installation',
     'bird', 'butterfly', 'flower', 'tree',
     'bird_species', 'bird_family', 'bird_height',
     'butterfly_species', 'butterfly_family',
@@ -99,10 +100,17 @@ exports.cleanDatabase = function() {
 
 exports.enrichExpectation = function(checkFunc) {
 
-  checkFunc.inBody = exports.responseExpectationFactory(function(res) {
-    const args = Array.prototype.slice.call(arguments, 1);
-    args.unshift(res.body);
-    return checkFunc.apply(undefined, args);
+  checkFunc.inBody = exports.responseExpectationFactory(function(res, ...args) {
+    return BPromise.resolve().then(() => checkFunc(res.body, ...args));
+  });
+
+  checkFunc.listInBody = exports.responseExpectationFactory(function(res, expected, ...args) {
+    expect(res.body).to.be.an('array');
+
+    return BPromise
+      .resolve()
+      .then(() => BPromise.all(expected.map((exp, i) => checkFunc(res.body[i], exp, ...args))))
+      .then(() => expect(res.body).to.have.lengthOf(expected.length));
   });
 
   return checkFunc;

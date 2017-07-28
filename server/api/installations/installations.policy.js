@@ -37,6 +37,7 @@ exports.serialize = function(req, installation, options) {
 
   const serialized = {
     id: installation.get('api_id'),
+    href: installation.get('href'),
     properties: installation.get('properties'),
     createdAt: installation.get('created_at'),
     updatedAt: installation.get('updated_at')
