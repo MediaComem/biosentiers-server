@@ -14,6 +14,7 @@ _.each(models, model => require(`../models/${model}`));
 // Plug in API routes
 router.use('/auth', require('./auth/auth.routes'));
 router.use('/excursions', require('./excursions/excursions.routes'));
+router.use('/installations', require('./installations/installations.routes'));
 router.use('/me', require('./users/users.me.routes'));
 router.use('/themes', require('./themes/themes.routes'));
 router.use('/trails', require('./trails/trails.routes'));
