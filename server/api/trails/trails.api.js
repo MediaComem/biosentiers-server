@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const dataPackage = require('./trails.data-package');
-const db = require('../../db');
 const fetcher = require('../fetcher');
 const np = require('../../lib/native-promisify');
 const policy = require('./trails.policy');
