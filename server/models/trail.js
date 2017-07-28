@@ -1,7 +1,6 @@
 const Abstract = require('./abstract');
 const bookshelf = require('../db');
 const geoJsonLength = require('geojson-length');
-const wellKnown = require('wellknown');
 
 const proto = Abstract.prototype;
 
@@ -13,20 +12,9 @@ const Trail = Abstract.extend({
   hrefBase: '/api/trails',
   timestamps: true,
 
-  constructor: function() {
-    proto.constructor.apply(this, arguments);
+  initialize: function() {
+    proto.initialize.apply(this, arguments);
     this.on('saving', () => this.autoSetLength());
-  },
-
-  format: function(attributes) {
-    attributes = proto.format.call(this, attributes);
-
-    // TODO: move to Abstract
-    if (attributes.geom) {
-      attributes.geom = bookshelf.st.geomFromText(wellKnown.stringify(attributes.geom), 4326);
-    }
-
-    return attributes;
   },
 
   zones: function() {

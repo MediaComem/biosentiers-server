@@ -15,7 +15,7 @@ exports.zone = function(data) {
     type: chance.sentence({ words: 2 }),
     description: chance.paragraph(),
     nature_type: chance.sentence(),
-    geom: db.st.geomFromText(wellKnown.stringify(chance.polygon()), 4326),
+    geom: chance.polygon(),
     created_at: data.createdAt || _.get(data.trail, 'get', _.constant()).call(data.trail, 'created_at')
   }).then(zone => {
     if (trailId || position) {

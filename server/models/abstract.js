@@ -5,6 +5,7 @@ const db = require('../db');
 const Collection = db.Collection;
 const inflection = require('inflection');
 const uuid = require('uuid');
+const wellKnown = require('wellknown');
 
 const DEFAULT_API_ID_COLUMN = 'api_id';
 
@@ -62,13 +63,25 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
   },
 
   parse: function(response) {
+    const parsed = proto.parse.call(this, response);
 
     const geomProperty = getGeomProperty(this);
-    if (geomProperty && response[geomProperty]) {
-      response[geomProperty] = JSON.parse(response[geomProperty]);
+    if (geomProperty && parsed[geomProperty]) {
+      parsed[geomProperty] = JSON.parse(parsed[geomProperty]);
     }
 
-    return response;
+    return parsed;
+  },
+
+  format: function(attributes) {
+    const formatted = proto.format.call(this, attributes);
+
+    const geomProperty = 'geom';
+    if (geomProperty && formatted[geomProperty]) {
+      formatted[geomProperty] = bookshelf.st.geomFromText(wellKnown.stringify(formatted[geomProperty]), 4326);
+    }
+
+    return attributes;
   },
 
   touch: function() {
