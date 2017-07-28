@@ -17,8 +17,8 @@ exports.nameAvailable = function(excursion, existingParticipant) {
       });
     }
 
-    return query.fetch().then(function(user) {
-      if (user) {
+    return query.fetch().then(function(participant) {
+      if (participant) {
         context.addError({
           validator: 'participant.nameAvailable',
           message: 'is already taken'
