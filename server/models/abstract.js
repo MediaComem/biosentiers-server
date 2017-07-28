@@ -85,13 +85,14 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
   },
 
   touch: function() {
-    if (this.timestamps) {
-      if (!this.has('created_at')) {
-        this.set('created_at', new Date());
-        this.set('updated_at', this.get('created_at'));
-      } else {
-        this.set('updated_at', new Date());
-      }
+
+    const hasCreatedAt = this.has('created_at');
+    if (isTimestampEnabled(this, 'created_at') && !hasCreatedAt) {
+      this.set('created_at', new Date());
+    }
+
+    if (isTimestampEnabled(this, 'updated_at')) {
+      this.set('updated_at', hasCreatedAt ? new Date() : this.get('created_at') || new Date());
     }
   },
 
@@ -109,6 +110,21 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
     return bookshelf.transaction(callback);
   }
 });
+
+function isTimestampEnabled(record, timestamp) {
+  const timestamps = record.timestamps;
+  if (!timestamps) {
+    return false;
+  } else if (_.isArray(timestamps)) {
+    return _.includes(timestamps, timestamp);
+  } else if (_.isString(timestamps)) {
+    return timestamps == timestamp;
+  } else if (timestamps === true) {
+    return true;
+  } else {
+    throw new Error(`"timestamps" property should be true, a string or an array, got ${JSON.stringify(timestamps)} (${typeof(timestamps)})`);
+  }
+}
 
 function getHref() {
 
