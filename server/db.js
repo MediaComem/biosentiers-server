@@ -2,9 +2,8 @@ const _ = require('lodash');
 const bookshelf = require('bookshelf');
 const config = require('../config');
 const knex = require('knex');
+const logKnexQueries = require('./lib/log-knex-queries');
 const postgis = require('knex-postgis');
-
-const logger = config.logger('db');
 
 // Initialize knex.
 let db = createDatabase();
@@ -50,26 +49,9 @@ function createDatabase() {
     connection: config.db
   });
 
-  newDb.on('query', logDbQueries);
+  if (config.env == 'development' || config.env == 'test') {
+    newDb.on('query', logKnexQueries);
+  }
 
   return newDb;
-}
-
-function logDbQueries(query) {
-
-  let message = query.sql;
-
-  if (query.bindings) {
-    _.each(query.bindings, function(binding) {
-      // FIXME: only allow in development
-      const value = binding ? binding.toString() : binding;
-      message = message.replace(/\?/, (value && value.length > 50 ? `${value.substring(0, 50)}...` : value));
-    });
-  }
-
-  if (!message.match(/;$/)) {
-    message = message + ';';
-  }
-
-  logger.trace(message);
 }
