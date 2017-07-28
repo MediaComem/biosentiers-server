@@ -96,6 +96,10 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
     }
   },
 
+  updateDynamicProperties: function(attribute, properties) {
+    return this.set(attribute, cleanUpProperties(_.extend({}, this.get(attribute), properties)));
+  },
+
   mtiParentOf: mtiParentOf,
 
   initializeDefaults: function() {
@@ -110,6 +114,22 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
     return bookshelf.transaction(callback);
   }
 });
+
+function cleanUpProperties(properties) {
+  if (_.isPlainObject(properties)) {
+    return _.reduce(properties, (memo, value, key) => {
+      if (value !== null && value !== undefined) {
+        memo[key] = cleanUpProperties(value);
+      }
+
+      return memo;
+    }, {});
+  } else if (_.isArray(properties)) {
+    return properties.filter(value => value !== null && value !== undefined).map(cleanUpProperties);
+  } else {
+    return properties;
+  }
+}
 
 function isTimestampEnabled(record, timestamp) {
   const timestamps = record.timestamps;
