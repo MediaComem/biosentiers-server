@@ -2,7 +2,6 @@ const Abstract = require('./abstract');
 const bookshelf = require('../db');
 const BPromise = require('bluebird');
 const crypto = require('crypto');
-const wellKnown = require('wellknown');
 
 const proto = Abstract.prototype;
 const randomBytes = BPromise.promisify(crypto.randomBytes.bind(crypto));
