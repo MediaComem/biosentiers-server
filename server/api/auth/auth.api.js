@@ -1,7 +1,11 @@
 const _ = require('lodash');
 const auth = require('../auth');
+const BPromise = require('bluebird');
 const config = require('../../../config');
+const crypto = require('crypto');
 const errors = require('../errors');
+const Installation = require('../../models/installation');
+const installationsPolicy = require('../installations/installations.policy');
 const jwt = require('../../lib/jwt');
 const LocalStrategy = require('passport-local').Strategy;
 const mailer = require('../../lib/mailer');
@@ -13,39 +17,29 @@ const qs = require('qs');
 const route = require('../route');
 const serialize = require('../serialize');
 const User = require('../../models/user');
+const userValidations = require('../users/users.validations');
 const usersPolicy = require('../users/users.policy');
 const validate = require('../validate');
-const validations = require('../users/users.validations');
+const validations = require('../lib/validations');
+const { hrefToApiId } = require('../../lib/href');
 
 setUpPassport();
 
 const logger = config.logger('api:auth');
+const passportLocalAuthenticate = BPromise.promisify(passport.authenticate('local'));
 
 // API resource name (used in some API errors).
 exports.resourceName = 'auth';
 
-exports.authenticate = function(req, res, next) {
-  // TODO: use async route
-  passport.authenticate('local', function(err, user, info) {
-    if (err) {
-      return next(err);
-    } else if (!user) {
-      return next(new Error('Could not authenticate user'));
-    }
-
-    req.currentUser = user;
-
-    // Save asynchronously, no need to wait
-    req.currentUser.saveNewLogin().catch(err => logger.warn('Coult not save new user login', err));
-
-    res.json({
-      token: user.generateJwt({
-        exp: moment().add(2, 'weeks').unix()
-      }),
-      user: usersPolicy.serialize(req, user)
-    });
-  })(req, res, next);
-};
+exports.authenticate = route(async function(req, res) {
+  if (!req.body) {
+    throw errors.unauthorized('auth.invalid', 'Authentication request must have a JSON body');
+  } else if (req.body.installation) {
+    return authenticateInstallation(req, res);
+  } else {
+    return authenticateUser(req, res);
+  }
+});
 
 exports.createInvitation = route(async function(req, res) {
   const invitationLink = await createInvitationLink(req);
@@ -117,6 +111,73 @@ exports.retrievePasswordResetRequest = route(async function(req, res) {
 
   return res.json([ passwordReset ]);
 });
+
+async function authenticateUser(req, res) {
+
+  const email = _.get(req, 'body.email', '_').toString();
+  const user = await new User({ email: email.toLowerCase() }).fetch();
+  if (!user || !user.isActive()) {
+    throw errors.unauthorized('auth.invalidUser', 'This user account does not exist or is inactive.');
+  }
+
+  const password = _.get(req, 'body.password');
+  if (!_.isString(password) || !user.hasPassword(password)) {
+    throw errors.unauthorized('auth.invalidCredentials', 'The e-mail or password is invalid.');
+  }
+
+  req.currentUser = user;
+
+  // Save activity asynchronously, no need to wait
+  req.currentUser.saveNewLogin().catch(err => logger.warn('Could not save new user login', err));
+
+  res.status(201).json({
+    token: user.generateJwt({
+      exp: moment().add(2, 'weeks').unix()
+    }),
+    user: usersPolicy.serialize(req, user)
+  });
+}
+
+async function authenticateInstallation(req, res) {
+
+  const installationId = hrefToApiId(req.body.installation.toString());
+  const installation = await new Installation({ api_id: installationId }).fetch();
+  if (!installation) {
+    throw errors.unauthorized('auth.invalidInstallation', 'This installation does not exist or is inactive.');
+  }
+
+  await validateInstallationAuth(req);
+
+  const dateString = req.body.date;
+  const date = moment(dateString);
+  if (!date.isValid()) {
+    throw new Error(`Invalid installation authorization date ${req.body.date}`);
+  }
+
+  const minDate = moment().subtract(config.installationAuthThreshold, 'milliseconds');
+  const maxDate = moment().add(config.installationAuthThreshold, 'milliseconds');
+  if (!date.isBetween(minDate, maxDate)) {
+    throw errors.unauthorized('auth.invalidCredentials', 'The provided authorization token is invalid or has expired');
+  }
+
+  const nonce = req.body.nonce;
+  const authorization = req.body.authorization;
+
+  const hmac = crypto.createHmac(config.installationAuthAlgorithm, installation.get('shared_secret'));
+  hmac.update(`${nonce};${dateString}`);
+  const computedHmac = hmac.digest('hex');
+
+  if (authorization !== computedHmac) {
+    throw errors.unauthorized('auth.invalidCredentials', 'The provided authorization token is invalid or has expired');
+  }
+
+  res.status(201).send({
+    token: installation.generateJwt({
+      exp: moment().add(1, 'day').unix()
+    }),
+    installation: installationsPolicy.serialize(req, installation)
+  });
+}
 
 async function createInvitationLink(req) {
   await np(validateInvitation(req));
@@ -197,7 +258,7 @@ function validateInvitation(req) {
         this.required(),
         this.type('string'),
         this.email(),
-        validations.emailAvailable()
+        userValidations.emailAvailable()
       ),
       this.validate(
         this.json('/role'),
@@ -221,7 +282,38 @@ function validatePasswordReset(req) {
       this.type('string'),
       this.required(),
       this.email(),
-      validations.emailExists('passwordResetUser')
+      userValidations.emailExists('passwordResetUser')
+    );
+  });
+}
+
+function validateInstallationAuth(req) {
+  return validate.requestBody(req, function() {
+    return this.parallel(
+      this.validate(
+        this.json('/authorization'),
+        this.required(),
+        this.type('string'),
+        this.notBlank()
+      ),
+      this.validate(
+        this.json('/installation'),
+        this.required(),
+        this.type('string'),
+        this.notBlank()
+      ),
+      this.validate(
+        this.json('/date'),
+        this.required(),
+        this.type('string'),
+        validations.iso8601()
+      ),
+      this.validate(
+        this.json('/nonce'),
+        this.required(),
+        this.type('string'),
+        this.notBlank()
+      )
     );
   });
 }

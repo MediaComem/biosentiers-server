@@ -11,7 +11,7 @@ router.get('/',
 
 router.get('/:id',
   controller.fetchInstallationEvent,
-  auth.authorize(policy.canRetrieve, controller.resourceName),
+  auth.authorize(policy.canRetrieve, controller.resourceName, { authTypes: [ 'user', 'installation' ] }),
   controller.retrieve);
 
 module.exports = router;

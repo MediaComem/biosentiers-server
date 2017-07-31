@@ -11,11 +11,11 @@ exports.canList = function(req) {
 };
 
 exports.canRetrieve = function(req) {
-  return policy.authenticated(req) && policy.hasRole(req, 'admin');
+  return policy.authenticated(req, { authTypes: [ 'user', 'installation' ] }) && (policy.hasRole(req, 'admin') || policy.sameRecord(req.currentInstallation, req.installation));
 };
 
 exports.canUpdate = function(req) {
-  return policy.authenticated(req) && policy.hasRole(req, 'admin');
+  return policy.authenticated(req, { authTypes: [ 'user', 'installation' ] }) && (policy.hasRole(req, 'admin') || policy.sameRecord(req.currentInstallation, req.installation));
 };
 
 exports.scope = function(req) {

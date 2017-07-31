@@ -16,12 +16,12 @@ router.get('/',
 
 router.get('/:id',
   controller.fetchInstallation,
-  auth.authorize(policy.canRetrieve, controller.resourceName),
+  auth.authorize(policy.canRetrieve, controller.resourceName, { authTypes: [ 'user', 'installation' ] }),
   controller.retrieve);
 
 router.patch('/:id',
   controller.fetchInstallation,
-  auth.authorize(policy.canUpdate, controller.resourceName),
+  auth.authorize(policy.canUpdate, controller.resourceName, { authTypes: [ 'user', 'installation' ] }),
   controller.update);
 
 router.use('/:id/events',

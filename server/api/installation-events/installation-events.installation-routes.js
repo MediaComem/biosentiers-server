@@ -6,11 +6,11 @@ const policy = require('./installation-events.policy');
 const router = express.Router();
 
 router.post('/',
-  auth.authorize(policy.canCreate),
+  auth.authorize(policy.canCreate, { authTypes: [ 'installation' ] }),
   controller.create);
 
 router.get('/',
-  auth.authorize(policy.canListByInstallation),
+  auth.authorize(policy.canListByInstallation, { authTypes: [ 'user', 'installation' ]}),
   controller.listByInstallation);
 
 module.exports = router;

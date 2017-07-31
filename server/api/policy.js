@@ -28,6 +28,11 @@ exports.authenticated = function(req, options) {
     throw errors.invalidAuthorization();
   }
 
+  // If the auth type is "installation" and no installation was loaded, authentication is invalid.
+  if (authType == 'installation' && !req.currentInstallation) {
+    throw errors.invalidAuthorization();
+  }
+
   return req.currentUser || req.jwtToken;
 };
 

@@ -5,7 +5,6 @@ const db = require('./db');
 const http = require('http');
 
 module.exports = function() {
-
   const logger = config.logger('start');
 
   // Get port from environment and store in Express.

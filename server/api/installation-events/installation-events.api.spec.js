@@ -9,7 +9,7 @@ const moment = require('moment');
 const spec = require('../../spec/utils');
 const userFixtures = require('../../spec/fixtures/user');
 
-describe.only('Installation events API', function() {
+describe('Installation events API', function() {
 
   let data;
   beforeEach(function() {

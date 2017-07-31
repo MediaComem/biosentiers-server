@@ -4,7 +4,7 @@ const parsing = require('../parsing');
 const policy = require('../policy');
 
 exports.canCreate = function(req) {
-  return true;
+  return policy.authenticated(req, { authTypes: 'installation' }) && policy.sameRecord(req.currentInstallation, req.installation);
 };
 
 exports.canList = function(req) {
@@ -12,11 +12,11 @@ exports.canList = function(req) {
 };
 
 exports.canListByInstallation = function(req) {
-  return policy.authenticated(req) && policy.hasRole(req, 'admin');
+  return policy.authenticated(req, { authTypes: [ 'user', 'installation' ] }) && (policy.hasRole(req, 'admin') || policy.sameRecord(req.currentInstallation, req.installation));
 };
 
 exports.canRetrieve = function(req) {
-  return policy.authenticated(req) && policy.hasRole(req, 'admin');
+  return policy.authenticated(req, { authTypes: [ 'user', 'installation' ] }) && (policy.hasRole(req, 'admin') || policy.sameRecord(req.currentInstallation, req.installationEvent.related('installation')));
 };
 
 exports.scope = function(req) {

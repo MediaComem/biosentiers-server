@@ -19,7 +19,11 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   expect(actual, 'res.body').to.have.all.keys(keys);
 
   expect(actual.id, 'user.id').to.be.a('string');
-  expect(actual.href, 'user.href').to.equal(`/api/users/${actual.id}`);
+  if (expected.id) {
+    expect(actual.id, 'user.id').to.equal(expected.id);
+  }
+
+  expect(actual.href, 'user.href').to.equal(expected.href || `/api/users/${actual.id}`);
   expect(actual.firstName, 'user.firstName').to.equal(expected.firstName);
   expect(actual.lastName, 'user.lastName').to.equal(expected.lastName);
   expect(actual.email, 'user.email').to.equal(expected.email);

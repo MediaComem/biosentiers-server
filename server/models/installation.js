@@ -1,7 +1,9 @@
+const _ = require('lodash');
 const Abstract = require('./abstract');
 const bookshelf = require('../db');
 const BPromise = require('bluebird');
 const crypto = require('crypto');
+const jwt = require('../lib/jwt');
 
 const proto = Abstract.prototype;
 const randomBytes = BPromise.promisify(crypto.randomBytes.bind(crypto));
@@ -28,6 +30,13 @@ const Installation = Abstract.extend({
 
   updateProperties: function(properties) {
     return this.updateDynamicProperties('properties', properties);
+  },
+
+  generateJwt: function(options) {
+    return jwt.generateToken(_.extend({
+      authType: 'installation',
+      sub: this.get('api_id')
+    }, options));
   }
 });
 

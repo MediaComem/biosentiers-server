@@ -1,13 +1,14 @@
 const _ = require('lodash');
+const authTypes = require('../lib/auth').types;
+const BPromise = require('bluebird');
 const compose = require('composable-middleware');
 const config = require('../../config');
 const errors = require('../api/errors');
+const Installation = require('../models/installation');
 const jwt = require('express-jwt');
 const p = require('bluebird');
 const User = require('../models/user');
 
-// FIXME: extract auth types somewhere else (also used in jwt.js)
-const authTypes = [ 'user', 'invitation', 'passwordReset' ];
 const logger = config.logger('auth');
 
 /**
@@ -30,7 +31,7 @@ exports.authenticate = function(options) {
   return compose()
     .use(validateJwt()) // Parse the JWT bearer token (if any).
     .use(checkJwtError) // Respond with HTTP 401 Unauthorized if there is a token and it is invalid.
-    .use(loadAuthenticatedUser(options)); // Load the user corresponding to the JWT token (if any).
+    .use(loadAuthenticatedResource(options)); // Load the user corresponding to the JWT token (if any).
 };
 
 /**
@@ -78,44 +79,70 @@ exports.authorize = function(policy, resourceName, options) {
   });
 };
 
-function loadAuthenticatedUser(options) {
+function loadAuthenticatedResource(options) {
+  const required = options.required;
+  const active = options.active;
+
+  const allowedAuthTypes = options.authTypes;
+  if (!allowedAuthTypes) {
+    throw new Error(`Authentication type(s) must be specified; possible types are ${authTypes.join(', ')}`);
+  } else if (!_.isArray(allowedAuthTypes)) {
+    throw new Error(`Authentication type(s) must be an array; got ${JSON.stringify(allowedAuthTypes)} (${typeof(allowedAuthTypes)})`);
+  } else if (!allowedAuthTypes.length) {
+    throw new Error(`Authentication type(s) cannot be empty; possible types are ${authTypes.join(', ')}`);
+  }
+
+  const unknownAuthTypes = _.difference(allowedAuthTypes, authTypes);
+  if (unknownAuthTypes.length) {
+    throw new Error(`Unknown authentication type(s) ${unknownAuthTypes.join(', ')}; possible types are ${authTypes.join(', ')}`);
+  }
+
   return function(req, res, next) {
-
-    const required = options.required;
-    const active = options.active;
-    const authTypes = options.authTypes;
-
     if (!req.jwtToken) {
       return next(required ? errors.missingAuthorization() : undefined);
-    } else if (!_.includes(authTypes, req.jwtToken.authType)) {
-      return next(errors.invalidAuthorization());
-    }
-
-    if (authTypes && !_.isArray(authTypes)) {
-      return next(new Error('Authentication `authTypes` option must be an array'));
-    } else if (authTypes && !_.includes(authTypes, req.jwtToken.authType)) {
+    } else if (!_.includes(allowedAuthTypes, req.jwtToken.authType)) {
       return next(errors.invalidAuthorization());
     }
 
     // No need to load the user for other auth types.
-    if (req.jwtToken.authType != 'user') {
-      return next();
+    if (req.jwtToken.authType == 'user') {
+      BPromise.resolve([ req, options ]).spread(loadAuthenticatedUser).then(next, next);
+    } else if (req.jwtToken.authType == 'installation') {
+      BPromise.resolve([ req, options ]).spread(loadAuthenticatedInstallation).then(next, next);
+    } else {
+      next();
+    }
+  };
+}
+
+function loadAuthenticatedUser(req, options) {
+  const active = options.active;
+
+  return User.where({
+    api_id: req.jwtToken.sub || ''
+  }).fetch().then(function(user) {
+    if (!user) {
+      throw new errors.invalidAuthorization();
+    } else if (active && !user.get('active')) {
+      throw new errors.invalidAuthorization();
     }
 
-    User.where({
-      api_id: req.jwtToken.sub || ''
-    }).fetch().then(function(user) {
-      if (!user) {
-        return next(errors.invalidAuthorization());
-      } else if (active && !user.get('active')) {
-        return next(errors.invalidAuthorization());
-      }
+    logger.debug('Authenticated with user ' + user.get('api_id'));
+    req.currentUser = user;
+  });
+}
 
-      logger.debug('Authenticated with user ' + user.get('api_id'));
-      req.currentUser = user;
-      next();
-    }).catch(next);
-  };
+function loadAuthenticatedInstallation(req, options) {
+  return new Installation({
+    api_id: req.jwtToken.sub || ''
+  }).fetch().then(installation => {
+    if (!installation) {
+      throw new errors.invalidAuthorization();
+    }
+
+    logger.debug(`Authenticated with installation ${installation.get('api_id')}`);
+    req.currentInstallation = installation;
+  });
 }
 
 function validateJwt() {
@@ -128,8 +155,12 @@ function validateJwt() {
 
 function checkJwtError(err, req, res, next) {
   if (!err) {
-    next();
-  } else if (err.code == 'credentials_required') {
+    return next();
+  }
+
+  logger.debug(err);
+
+  if (err.code == 'credentials_required') {
     next(errors.missingAuthorization());
   } else if (err.code == 'credentials_bad_format' || err.code == 'credentials_bad_scheme') {
     next(errors.malformedAuthorization());
