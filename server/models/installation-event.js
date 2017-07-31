@@ -7,7 +7,7 @@ const InstallationEvent = Abstract.extend({
   tableName: 'installation_event',
 
   apiId: true,
-  hrefBase: '/api/installations-events',
+  hrefBase: '/api/installation-events',
   timestamps: 'created_at',
 
   installation: function() {

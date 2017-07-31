@@ -1,7 +1,6 @@
 const _ = require('lodash');
 const bcrypt = require('bcryptjs');
 const expect = require('../chai').expect;
-const moment = require('moment');
 const spec = require('../utils');
 const User = require('../../models/user');
 

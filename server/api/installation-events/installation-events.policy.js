@@ -11,6 +11,10 @@ exports.canList = function(req) {
   return policy.authenticated(req) && policy.hasRole(req, 'admin');
 };
 
+exports.canListByInstallation = function(req) {
+  return policy.authenticated(req) && policy.hasRole(req, 'admin');
+};
+
 exports.canRetrieve = function(req) {
   return policy.authenticated(req) && policy.hasRole(req, 'admin');
 };
@@ -29,6 +33,7 @@ exports.serialize = function(req, installationEvent, options) {
   return {
     id: installationEvent.get('api_id'),
     href: installationEvent.get('href'),
+    installationHref: installationEvent.related('installation').get('href'),
     properties: installationEvent.get('properties'),
     createdAt: installationEvent.get('created_at'),
     occurredAt: installationEvent.get('occurred_at')

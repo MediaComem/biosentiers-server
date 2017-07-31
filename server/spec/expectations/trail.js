@@ -1,7 +1,6 @@
 const _ = require('lodash');
 const db = require('../../db');
 const expect = require('../chai').expect;
-const moment = require('moment');
 const spec = require('../utils');
 const Trail = require('../../models/trail');
 

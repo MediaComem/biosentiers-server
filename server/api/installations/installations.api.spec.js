@@ -8,7 +8,7 @@ const moment = require('moment');
 const spec = require('../../spec/utils');
 const userFixtures = require('../../spec/fixtures/user');
 
-describe.only('Installations API', function() {
+describe('Installations API', function() {
 
   let data;
   beforeEach(function() {
@@ -47,6 +47,22 @@ describe.only('Installations API', function() {
       data.reqBody.id = installationFixtures.id();
 
       const expected = _.extend({
+        sharedSecret: true,
+        createdAfter: data.now,
+        updatedAt: 'createdAt'
+      }, data.reqBody);
+
+      return spec
+        .testCreate('/installations', data.reqBody)
+        .set('Authorization', `Bearer ${data.admin.generateJwt()}`)
+        .then(expectInstallation.inBody(expected));
+    });
+
+    it('should create an installation with no properties', function() {
+      delete data.reqBody.properties;
+
+      const expected = _.extend({
+        properties: {},
         sharedSecret: true,
         createdAfter: data.now,
         updatedAt: 'createdAt'

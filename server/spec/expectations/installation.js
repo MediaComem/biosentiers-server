@@ -3,7 +3,6 @@ const base64Regexp = require('base64-regex');
 const db = require('../../db');
 const expect = require('../chai').expect;
 const Installation = require('../../models/installation');
-const moment = require('moment');
 const spec = require('../utils');
 
 module.exports = spec.enrichExpectation(function(actual, expected) {

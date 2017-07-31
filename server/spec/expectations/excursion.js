@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const expect = require('../chai').expect;
-const moment = require('moment');
 const spec = require('../utils');
 const Excursion = require('../../models/excursion');
 
@@ -33,7 +32,7 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
     expectedTrailHref = `/api/trails/${expectedTrailId}`;
   }
 
-  expect(actual.trailHref, 'excursion.trailId').to.equal(expectedTrailHref);
+  expect(actual.trailHref, 'excursion.trailHref').to.equal(expectedTrailHref);
 
   let expectedCreatorHref = expected.creatorHref;
   if (!expectedCreatorHref) {

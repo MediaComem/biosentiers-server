@@ -9,4 +9,8 @@ router.post('/',
   auth.authorize(policy.canCreate),
   controller.create);
 
+router.get('/',
+  auth.authorize(policy.canListByInstallation),
+  controller.listByInstallation);
+
 module.exports = router;

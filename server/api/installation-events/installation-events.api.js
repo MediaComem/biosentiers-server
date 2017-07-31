@@ -6,7 +6,12 @@ const policy = require('./installation-events.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
+const { setRelated } = require('../../lib/models');
 const validate = require('../validate');
+
+const EAGER_LOAD = [
+  'installation'
+];
 
 // API resource name (used in some API errors)
 exports.resourceName = 'installation event';
@@ -17,18 +22,19 @@ exports.create = route.transactional(async function(req, res) {
   const installationEvent = policy.parse(req);
   installationEvent.set('installation_id', req.installation.get('id'));
   await installationEvent.save();
+  setRelated(installationEvent, 'installation', req.installation);
 
   res.status(201).send(await serialize(req, installationEvent, policy, { sharedSecret: true }));
 });
 
 exports.list = route(async function(req, res) {
+  const installationEvents = await createEventQueryBuilder(req, res, policy.scope(req)).fetch();
+  res.send(await serialize(req, installationEvents, policy));
+});
 
-  const installationEvents = await new QueryBuilder(req, res, policy.scope(req))
-    .paginate()
-    .sorts('type', 'createdAt', 'occurredAt')
-    .defaultSort('createdAt', 'desc')
-    .fetch();
-
+exports.listByInstallation = route(async function(req, res) {
+  const baseQuery = policy.scope(req).where('installation_id', req.installation.get('id'));
+  const installationEvents = await createEventQueryBuilder(req, res, baseQuery).fetch();
   res.send(await serialize(req, installationEvents, policy));
 });
 
@@ -38,21 +44,37 @@ exports.retrieve = route(async function(req, res) {
 
 exports.fetchInstallationEvent = fetcher({
   model: InstallationEvent,
-  resourceName: 'installationEvent'
+  resourceName: 'installationEvent',
+  eagerLoad: EAGER_LOAD
 });
+
+function createEventQueryBuilder(req, res, baseQuery) {
+  return new QueryBuilder(req, res, baseQuery)
+    .paginate()
+    .sorts('type', 'createdAt', 'occurredAt')
+    .defaultSort('occurredAt', 'desc')
+    .eagerLoad(EAGER_LOAD);
+}
 
 function validateInstallationEvent(req, patchMode) {
   return validate.requestBody(req, function() {
     return this.parallel(
       this.validate(
         this.json('/type'),
+        this.required(),
         this.type('string'),
         this.notBlank()
       ),
       this.validate(
         this.json('/occurredAt'),
+        this.required(),
         this.type('string'),
         this.notBlank()
+      ),
+      this.validate(
+        this.json('/properties'),
+        this.while(this.isSet()),
+        this.type('object')
       )
     );
   });
