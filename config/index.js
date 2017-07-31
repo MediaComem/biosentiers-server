@@ -1,5 +1,5 @@
-// FIXME: validate config (e.g. required properties)
 const _ = require('lodash');
+const crypto = require('crypto');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const log4js = require('log4js');
@@ -36,17 +36,20 @@ const fixed = {
   logger: createLogger,
   path: joinPathSegments,
   parseBoolean: parseConfigBoolean,
-  parseInt: parseConfigInt
+  parseInt: parseConfigInt,
+  validate: validate
 };
 
 const config = {
-  port: parseConfigInt(get('PORT')) || 3000,
+  port: parseConfigInt(get('PORT'), 3000),
   baseUrl: get('BASE_URL') || buildBaseUrl(),
 
   db: get('DATABASE_URL') || buildDatabaseUrl(),
 
-  jwtSecret: get('SECRET') || 'changeme', // FIXME: no production default, validate
-  bcryptCost: parseConfigInt(get('BCRYPT_COST')) || 10,
+  jwtSecret: get('SECRET'),
+  bcryptCost: parseConfigInt(get('BCRYPT_COST'), 10),
+  installationAuthThreshold: parseConfigInt(get('INSTALLATION_AUTH_THRESHOLD'), 300000),
+  installationAuthAlgorithm: get('INSTALLATION_AUTH_ALGORITHM') || 'sha512',
 
   logLevel: get('LOG_LEVEL'),
 
@@ -55,13 +58,13 @@ const config = {
   apiDoc: {
     open: parseConfigBoolean(get('APIDOC_OPEN'), false),
     host: get('APIDOC_HOST') || 'localhost',
-    port: parseConfigInt(get('APIDOC_PORT')) || 3001
+    port: parseConfigInt(get('APIDOC_PORT'), 3001)
   },
 
   mail: {
     enabled: parseConfigBoolean(get('SMTP_ENABLED'), true),
     host: get('SMTP_HOST'),
-    port: parseConfigInt(get('SMTP_PORT')) || 0,
+    port: parseConfigInt(get('SMTP_PORT'), 0),
     secure: parseConfigBoolean(get('SMTP_SECURE'), false),
     username: get('SMTP_USERNAME'),
     password: get('SMTP_PASSWORD'),
@@ -86,13 +89,15 @@ if (env == 'development') {
 } else if (env == 'test') {
   // Test overrides.
   _.merge(config, {
-    bcryptCost: parseConfigInt(get('BCRYPT_COST')) || 1,
+    bcryptCost: parseConfigInt(get('BCRYPT_COST'), 1),
     logLevel: config.logLevel || 'WARN',
     mail: {
       enabled: false
     }
   });
 }
+
+validate();
 
 // Export the configuration.
 module.exports = _.merge(config, fixed);
@@ -123,9 +128,9 @@ function parseConfigBoolean(value, defaultValue) {
   }
 }
 
-function parseConfigInt(value) {
+function parseConfigInt(value, defaultValue) {
   if (value === undefined) {
-    return undefined;
+    return defaultValue;
   }
 
   const parsed = parseInt(value, 10);
@@ -140,7 +145,7 @@ function buildBaseUrl() {
 
   let url = (get('PROTOCOL') || 'http') + '://' + (get('HOST') || 'localhost');
 
-  const port = parseConfigInt(get('PORT')) || 3000;
+  const port = parseConfigInt(get('PORT'), 3000);
   if (port && port != 80 && port != 443) {
     url = url + ':' + port;
   }
@@ -191,5 +196,17 @@ function get(varName) {
     }
   } catch (err) {
     // ignore
+  }
+}
+
+// FIXME: validate config (e.g. required properties)
+function validate() {
+  if (!_.isString(config.jwtSecret) || config.jwtSecret.match(/^\s*$/)) {
+    throw new Error('JWT secret is required');
+  }
+
+  const hashes = crypto.getHashes();
+  if (!_.includes(hashes, config.installationAuthAlgorithm)) {
+    throw new Error(`${config.installationAuthAlgorithm} is not a supported hash algorithm; possible values are ${hashes.join(', ')}`);
   }
 }
