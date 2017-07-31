@@ -15,6 +15,7 @@
     "migrate": "knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
     "migrate:test": "NODE_ENV=test knex migrate:latest",
+    "migrate:test:rollback": "NODE_ENV=test knex migrate:rollback",
     "server": "nodemon",
     "start": "node ./bin/www",
     "test": "NODE_ENV=test mocha server/**/*.spec.js"
