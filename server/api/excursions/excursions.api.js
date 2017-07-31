@@ -100,7 +100,7 @@ function validateExcursion(req, patchMode) {
         ),
         this.validate(
           this.json('/name'),
-          this.if(patchMode, this.while(this.isSet()), this.while(this.changed(excursion ? excursion.get('name') : ''))),
+          this.while(this.isSet()),
           this.type('string')
         ),
         this.validate(
