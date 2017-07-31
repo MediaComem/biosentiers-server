@@ -78,7 +78,7 @@ describe('Users API', function() {
               type: 'json',
               location: '/lastName',
               validator: 'type',
-              typeDescription: 'string',
+              types: [ 'string' ],
               value: 4,
               valueSet: true
             },
@@ -142,7 +142,7 @@ describe('Users API', function() {
   function getExpectedExistingUser(changes) {
     return _.extend({
       id: data.user.get('api_id'),
-      updatedBefore: data.now
+      updatedAt: 'createdAt'
     }, data.userProps, changes);
   }
 
@@ -199,7 +199,7 @@ describe('Users API', function() {
 
     function getExpectedPatchedUser(changes) {
       return getExpectedExistingUser(_.extend({
-        updatedBefore: null,
+        updatedAt: null,
         updatedAfter: data.now
       }, changes));
     }

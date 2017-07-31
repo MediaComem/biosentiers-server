@@ -158,6 +158,7 @@ function validateUser(req) {
       ),
       this.validate(
         this.json('/active'),
+        this.while(this.isSet()),
         this.type('boolean')
       ),
       this.validate(
