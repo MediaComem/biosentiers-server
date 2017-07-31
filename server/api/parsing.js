@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const inflection = require('inflection');
+const moment = require('moment');
 
 exports.parseJsonIntoRecord = function(source, record, ...properties) {
 
@@ -34,8 +35,16 @@ function createPropertiesParser(parser) {
 
   return function(source, record) {
     _.each(propertiesMap, function(sourceProperty, recordProperty) {
-      if (_.has(source, sourceProperty)) {
-        record.set(recordProperty, source[sourceProperty]);
+      if (_.isFunction(sourceProperty)) {
+        record.set(recordProperty, sourceProperty(source));
+      } else if (_.has(source, sourceProperty)) {
+
+        let value = source[sourceProperty];
+        if (sourceProperty.match(/.At$/)) {
+          value = moment(value).toDate();
+        }
+
+        record.set(recordProperty, value);
       }
     });
   };
