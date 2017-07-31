@@ -38,6 +38,7 @@ function createInstallationEventTable(knex) {
     t.timestamp('occurred_at', true).notNullable();
     t.timestamp('created_at', true).notNullable();
     t.index('api_id');
+    t.index('type');
   }).then(() => knex.raw(`create unique index installation_event_api_id_unique on installation_event (lower(api_id));`));
 }
 
