@@ -1,11 +1,11 @@
 const _ = require('lodash');
 const db = require('../../db');
 const Excursion = require('../../models/excursion');
+const params = require('../lib/params');
 const parsing = require('../parsing');
 const policy = require('../policy');
 const trailsPolicy = require('../trails/trails.policy');
 const usersPolicy = require('../users/users.policy');
-const utils = require('../utils');
 
 exports.canCreate = function(req) {
   return policy.authenticated(req);
@@ -63,11 +63,11 @@ exports.serialize = function(req, excursion) {
     updatedAt: excursion.get('updated_at')
   };
 
-  if (utils.includes(req, 'creator')) {
+  if (params.includes(req, 'creator')) {
     result.creator = usersPolicy.serialize(req, excursion.related('creator'));
   }
 
-  if (utils.includes(req, 'trail')) {
+  if (params.includes(req, 'trail')) {
     result.trail = trailsPolicy.serialize(req, excursion.related('trail'));
   }
 

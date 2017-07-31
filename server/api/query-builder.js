@@ -2,7 +2,7 @@ const _ = require('lodash');
 const BPromise = require('bluebird');
 const inflection = require('inflection');
 const pagination = require('./pagination');
-const utils = require('./utils');
+const params = require('./lib/params');
 
 // This corresponds to Knex's query builder methods.
 const JOIN_TYPES = [ 'innerJoin', 'leftOuterJoin', 'rightOuterJoin' ];
@@ -314,7 +314,7 @@ function applyFiltersRecursively(data, filters) {
 
 function applySorting(data) {
 
-  let querySorts = utils.multiValueParam(data.req.query.sort, _.identity, criterion => {
+  let querySorts = params.multiValue(data.req.query.sort, _.identity, criterion => {
     const match = criterion.match(/^(.*?)(?:-(asc|desc))?$/i);
     return {
       property: match[1],

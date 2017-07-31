@@ -1,8 +1,8 @@
 const _ = require('lodash');
+const params = require('../lib/params');
 const parsing = require('../parsing');
 const policy = require('../policy');
 const Trail = require('../../models/trail');
-const utils = require('../utils');
 
 exports.canCreate = function(req) {
   return policy.authenticated(req) && policy.hasRole(req, 'admin');
@@ -43,7 +43,7 @@ exports.serialize = function(req, trail, options) {
     updatedAt: trail.get('updated_at')
   };
 
-  if (utils.includes(req, 'geometry', options)) {
+  if (params.includes(req, 'geometry', options)) {
     result.geometry = trail.get('geom');
   }
 

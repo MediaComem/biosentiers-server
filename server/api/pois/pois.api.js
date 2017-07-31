@@ -1,13 +1,13 @@
 const _ = require('lodash');
 const db = require('../../db');
 const hrefToApiId = require('../../lib/href').hrefToApiId;
+const params = require('../lib/params');
 const policy = require('./pois.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
 const sorting = require('../sorting');
 const Theme = require('../../models/theme');
-const utils = require('../utils');
 
 const EAGER_LOAD = [
   'bird',
@@ -60,7 +60,7 @@ async function createPoiQueryBuilder(req, res) {
 
 function filterByZones(query, req) {
 
-  const hrefs = utils.multiValueParam(req.query.zone, _.isString, hrefToApiId);
+  const hrefs = params.multiValue(req.query.zone, _.isString, hrefToApiId);
   if (!hrefs.length) {
     return;
   }
@@ -70,7 +70,7 @@ function filterByZones(query, req) {
 
 function filterByThemes(query, req, queryBuilder) {
 
-  const names = utils.multiValueParam(req.query.theme, _.isString);
+  const names = params.multiValue(req.query.theme, _.isString);
   if (!names.length) {
     return;
   }

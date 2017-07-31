@@ -6,7 +6,6 @@ const policy = require('./installations.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
-const utils = require('../utils');
 const validate = require('../validate');
 const validations = require('./installations.validations');
 

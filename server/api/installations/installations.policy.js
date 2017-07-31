@@ -1,7 +1,6 @@
 const _ = require('lodash');
 const Installation = require('../../models/installation');
 const policy = require('../policy');
-const utils = require('../utils');
 
 exports.canCreate = function(req) {
   return true;

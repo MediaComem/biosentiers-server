@@ -5,6 +5,7 @@ const fetcher = require('../fetcher');
 const filters = require('../lib/filters');
 const hrefToApiId = require('../../lib/href').hrefToApiId;
 const np = require('../../lib/native-promisify');
+const params = require('../lib/params');
 const policy = require('./excursions.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
@@ -12,7 +13,7 @@ const serialize = require('../serialize');
 const sorting = require('../sorting');
 const Theme = require('../../models/theme');
 const Trail = require('../../models/trail');
-const utils = require('../utils');
+const { updateManyToMany } = require('../../lib/models');
 const validate = require('../validate');
 const Zone = require('../../models/zone');
 
@@ -190,8 +191,8 @@ function fetchTrailByHref(href) {
 function saveExcursion(excursion, req) {
   return excursion.save().then(() => {
     return Promise.all([
-      utils.updateManyToMany(excursion, 'themes', req.body.themes),
-      utils.updateManyToMany(excursion, 'zones', req.body.zoneHrefs)
+      updateManyToMany(excursion, 'themes', req.body.themes),
+      updateManyToMany(excursion, 'zones', req.body.zoneHrefs)
     ]);
   });
 }
@@ -202,7 +203,7 @@ function zoneHrefsToApiIds(hrefs) {
 
 function filterByCreator(query, req, qb) {
 
-  const hrefs = utils.multiValueParam(req.query.creator, _.isString, hrefToApiId);
+  const hrefs = params.multiValue(req.query.creator, _.isString, hrefToApiId);
   if (!hrefs.length) {
     return;
   }

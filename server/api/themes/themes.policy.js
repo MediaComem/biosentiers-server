@@ -1,7 +1,6 @@
 const _ = require('lodash');
 const policy = require('../policy');
 const Theme = require('../../models/theme');
-const utils = require('../utils');
 
 exports.canList = function(req) {
   return policy.authenticated(req);

@@ -2,7 +2,6 @@ const _ = require('lodash');
 const InstallationEvent = require('../../models/installation-event');
 const parsing = require('../parsing');
 const policy = require('../policy');
-const utils = require('../utils');
 
 exports.canCreate = function(req) {
   return true;

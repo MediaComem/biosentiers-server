@@ -1,10 +1,10 @@
 const _ = require('lodash');
+const params = require('../lib/params');
 const policy = require('./themes.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
 const Theme = require('../../models/theme');
-const utils = require('../utils');
 
 // API resource name (used in some API errors)
 exports.resourceName = 'theme';
@@ -23,7 +23,7 @@ exports.list = route(async function(req, res) {
 
 function filterByNames(query, req) {
 
-  const names = utils.multiValueParam(req.query.name, _.isString);
+  const names = params.multiValue(req.query.name, _.isString);
   if (!names.length) {
     return;
   }

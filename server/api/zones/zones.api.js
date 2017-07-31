@@ -2,12 +2,12 @@ const _ = require('lodash');
 const db = require('../../db');
 const fetcher = require('../fetcher');
 const hrefToApiId = require('../../lib/href').hrefToApiId;
+const params = require('../lib/params');
 const policy = require('./zones.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
 const sorting = require('../sorting');
-const utils = require('../utils');
 const Zone = require('../../models/zone');
 
 const EAGER_LOAD = [
@@ -62,7 +62,7 @@ exports.fetchZone = fetcher({
 
 function filterByHref(query, req) {
 
-  const hrefs = utils.multiValueParam(req.query.href, _.isString, hrefToApiId);
+  const hrefs = params.multiValue(req.query.href, _.isString, hrefToApiId);
   if (!hrefs.length) {
     return;
   }
