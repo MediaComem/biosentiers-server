@@ -10,6 +10,7 @@ exports.event = function(data) {
   return spec.createRecord(InstallationEvent, {
     api_id: data.id || exports.id(),
     type: data.type,
+    version: data.version,
     installation_id: data.installation ? data.installation.get('id') : data.installationId,
     properties: data.properties,
     created_at: data.createdAt,

@@ -24,6 +24,7 @@ describe('Installation events API', function() {
 
         data.reqBody = {
           type: 'foo.bar',
+          version: '1.2.3',
           occurredAt: data.oneHourAgo.toISOString(),
           properties: {
             foo: 'bar',
@@ -66,7 +67,8 @@ describe('Installation events API', function() {
 
       const body = {
         type: '',
-        properties: 42
+        properties: 42,
+        occurredAt: 'foo'
       };
 
       return spec
@@ -85,9 +87,17 @@ describe('Installation events API', function() {
           {
             message: 'is required',
             type: 'json',
-            location: '/occurredAt',
+            location: '/version',
             validator: 'required',
             valueSet: false
+          },
+          {
+            message: 'is not a valid ISO-8601 date',
+            type: 'json',
+            location: '/occurredAt',
+            validator: 'iso8601',
+            value: 'foo',
+            valueSet: true
           },
           {
             message: 'must be of type object',
@@ -123,6 +133,7 @@ describe('Installation events API', function() {
         data.eventProps = data.installation.then(installation => {
           return {
             type: 'foo.bar',
+            version: '1.2.3',
             installation: installation,
             properties: {
               baz: 'qux'
@@ -181,6 +192,7 @@ describe('Installation events API', function() {
         data.events = Promise.all(data.installations).then(installations => Promise.all([
           installationEventFixtures.event({
             type: 'foo',
+            version: '1.2.3',
             installation: installations[0],
             properties: { foo: 'bar' },
             occurredAt: moment().subtract(3, 'days').toDate(),
@@ -188,6 +200,7 @@ describe('Installation events API', function() {
           }),
           installationEventFixtures.event({
             type: 'bar',
+            version: '1.2.3',
             installation: installations[1],
             properties: { bar: 'baz' },
             occurredAt: moment().subtract(4, 'days').toDate(),
@@ -195,6 +208,7 @@ describe('Installation events API', function() {
           }),
           installationEventFixtures.event({
             type: 'qux',
+            version: '1.3.0',
             installation: installations[0],
             properties: { baz: 'qux' },
             occurredAt: moment().subtract(2, 'days').toDate(),
@@ -202,6 +216,7 @@ describe('Installation events API', function() {
           }),
           installationEventFixtures.event({
             type: 'baz',
+            version: '1.3.1',
             installation: installations[0],
             properties: { qux: 'corge' },
             occurredAt: moment().subtract(5, 'hours').toDate(),
@@ -209,6 +224,7 @@ describe('Installation events API', function() {
           }),
           installationEventFixtures.event({
             type: 'corge',
+            version: '2.0.0',
             installation: installations[1],
             properties: { corge: 'grault' },
             occurredAt: moment().subtract(5, 'minutes').toDate(),
@@ -223,6 +239,7 @@ describe('Installation events API', function() {
       return _.extend({
         id: event.get('api_id'),
         type: event.get('type'),
+        version: event.get('version'),
         installation: data.installations.find(installation => installation.get('id') === event.get('installation_id')),
         properties: event.get('properties'),
         createdAt: event.get('created_at'),

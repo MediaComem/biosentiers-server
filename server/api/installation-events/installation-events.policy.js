@@ -24,7 +24,7 @@ exports.scope = function(req) {
 };
 
 exports.parse = function(req, installationEvent = new InstallationEvent()) {
-  parsing.parseJsonIntoRecord(req.body, installationEvent, 'type', 'occurredAt');
+  parsing.parseJsonIntoRecord(req.body, installationEvent, 'type', 'version', 'occurredAt');
   installationEvent.updateProperties(req.body.properties);
   return installationEvent;
 };
@@ -33,8 +33,9 @@ exports.serialize = function(req, installationEvent, options) {
   return {
     id: installationEvent.get('api_id'),
     href: installationEvent.get('href'),
-    type: installationEvent.get('type'),
     installationHref: installationEvent.related('installation').get('href'),
+    type: installationEvent.get('type'),
+    version: installationEvent.get('version'),
     properties: installationEvent.get('properties'),
     createdAt: installationEvent.get('created_at'),
     occurredAt: installationEvent.get('occurred_at')

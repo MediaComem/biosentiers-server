@@ -8,6 +8,7 @@ const route = require('../route');
 const serialize = require('../serialize');
 const { setRelated } = require('../../lib/models');
 const validate = require('../validate');
+const validations = require('../lib/validations');
 
 const EAGER_LOAD = [
   'installation'
@@ -66,7 +67,7 @@ function validateInstallationEvent(req, patchMode) {
         this.notBlank()
       ),
       this.validate(
-        this.json('/occurredAt'),
+        this.json('/version'),
         this.required(),
         this.type('string'),
         this.notBlank()
@@ -75,6 +76,12 @@ function validateInstallationEvent(req, patchMode) {
         this.json('/properties'),
         this.while(this.isSet()),
         this.type('object')
+      ),
+      this.validate(
+        this.json('/occurredAt'),
+        this.required(),
+        this.type('string'),
+        validations.iso8601()
       )
     );
   });
