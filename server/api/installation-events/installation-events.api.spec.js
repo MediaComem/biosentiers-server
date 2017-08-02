@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const chance = require('chance').Chance();
+const expect = require('chai').expect;
 const expectRes = require('../../spec/expectations/response');
 const expectInstallationEvent = require('../../spec/expectations/installation-event');
 const geoJsonLength = require('geojson-length');
@@ -107,6 +108,120 @@ describe('Installation events API', function() {
             createdAfter: data.now
           })
         ]));
+    });
+
+    it('should not create events that already exist', async function() {
+
+      const events = await Promise.all([
+        installationEventFixtures.event({
+          type: 'foo.bar',
+          version: '1.2.3',
+          installation: data.installation,
+          occurredAt: moment().subtract(1, 'hour').toDate(),
+          createdAt: moment().subtract(45, 'minutes').toDate()
+        }),
+        installationEventFixtures.event({
+          type: 'baz.qux',
+          version: '2.0.0',
+          installation: data.installation,
+          occurredAt: moment().subtract(3, 'minutes').toDate(),
+          createdAt: moment().subtract(2, 'minutes').toDate()
+        })
+      ])
+
+      data.reqBody = [
+        {
+          type: events[0].get('type'),
+          version: events[0].get('version'),
+          occurredAt: moment(events[0].get('occurred_at')).toISOString(),
+          properties: { foo: 'bar' }
+        },
+        {
+          type: 'bar.baz',
+          version: '1.2.3',
+          occurredAt: moment().subtract(20, 'minutes').toISOString(),
+          properties: { baz: [ 'qux' ] }
+        },
+        {
+          type: events[1].get('type'),
+          version: events[1].get('version'),
+          occurredAt: moment(events[1].get('occurred_at')).toISOString(),
+          properties: { corge: 'grault' }
+        },
+        {
+          type: 'qux:corge',
+          version: '2.0.0',
+          occurredAt: moment().subtract(20, 'seconds').toISOString()
+        }
+      ];
+
+      function getExpectedEvent(index, changes) {
+        return _.extend({}, data.reqBody[index], changes);
+      }
+
+      return spec
+        .testCreate(`/installations/${data.installation.get('api_id')}/events`, data.reqBody)
+        .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
+        .then(expectInstallationEvent.listInBody([
+          getExpectedEvent(1, {
+            installation: data.installation,
+            createdAfter: data.now
+          }),
+          getExpectedEvent(3, {
+            installation: data.installation,
+            properties: {},
+            createdAfter: data.now
+          })
+        ]));
+    });
+
+    it('should not create any events if they all already exist', async function() {
+
+      const events = await Promise.all([
+        installationEventFixtures.event({
+          type: 'foo',
+          version: '2.1.3',
+          properties: { foo: 'bar' },
+          installation: data.installation,
+          occurredAt: moment().subtract(2, 'hours').toDate(),
+          createdAt: moment().subtract(30, 'minutes').toDate()
+        }),
+        installationEventFixtures.event({
+          type: 'bar',
+          version: '3.0.0',
+          installation: data.installation,
+          occurredAt: moment().subtract(40, 'minutes').toDate(),
+          createdAt: moment().subtract(29, 'minutes').toDate()
+        })
+      ])
+
+      data.reqBody = [
+        {
+          type: events[0].get('type'),
+          version: events[0].get('version'),
+          occurredAt: moment(events[0].get('occurred_at')).toISOString(),
+          properties: { foo: 'bar' }
+        },
+        {
+          type: events[1].get('type'),
+          version: events[1].get('version'),
+          occurredAt: moment(events[1].get('occurred_at')).toISOString(),
+          properties: { corge: 'grault' }
+        }
+      ];
+
+      function getExpectedEvent(index, changes) {
+        return _.extend({}, data.reqBody[index], changes);
+      }
+
+      return spec
+        .testApi('POST', `/installations/${data.installation.get('api_id')}/events`, data.reqBody)
+        .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
+        .send(data.reqBody)
+        .then(spec.responseExpectationFactory(res => {
+          expect(res.status).to.equal(200);
+          expect(res.body).to.eql([]);
+        })());
     });
 
     it('should not accept invalid properties', function() {

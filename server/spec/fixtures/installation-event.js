@@ -12,7 +12,7 @@ exports.event = function(data) {
     type: data.type,
     version: data.version,
     installation_id: data.installation ? data.installation.get('id') : data.installationId,
-    properties: data.properties,
+    properties: data.properties || {},
     created_at: data.createdAt,
     occurred_at: data.occurredAt
   });

@@ -1,7 +1,7 @@
 const _ = require('lodash');
-const db = require('../../db');
 const fetcher = require('../fetcher');
 const InstallationEvent = require('../../models/installation-event');
+const moment = require('moment');
 const np = require('../../lib/native-promisify');
 const policy = require('./installation-events.policy');
 const QueryBuilder = require('../query-builder');
@@ -12,6 +12,7 @@ const validate = require('../validate');
 const validations = require('../lib/validations');
 
 const BULK_CREATE_MAX = 100;
+const BULK_CREATE_EXISTING_EVENTS_CHECK_BATCH_SIZE = 100;
 
 const EAGER_LOAD = [
   'installation'
@@ -32,10 +33,14 @@ exports.create = route.transactional(async function(req, res) {
     return event;
   });
 
-  await InstallationEvent.bulkCreate(events);
-  events.forEach(event => setRelated(event, 'installation', req.installation));
+  await omitExistingEvents(events);
 
-  res.status(201).send(await serialize(req, multiple ? events : events[0], policy));
+  if (events.length) {
+    await InstallationEvent.bulkCreate(events);
+    events.forEach(event => setRelated(event, 'installation', req.installation));
+  }
+
+  res.status(events.length ? 201 : 200).send(await serialize(req, multiple ? events : events[0], policy));
 });
 
 exports.list = route(async function(req, res) {
@@ -58,6 +63,58 @@ exports.fetchInstallationEvent = fetcher({
   resourceName: 'installationEvent',
   eagerLoad: EAGER_LOAD
 });
+
+async function omitExistingEvents(events) {
+  if (events.length <= 1) {
+    return events;
+  }
+
+  const installationId = events[0].get('installation_id');
+  const types = _.uniq(_.map(events, event => event.get('type')));
+  const minDate = _.minBy(events, event => event.get('occurred_at')).get('occurred_at');
+  const maxDate = _.maxBy(events, event => event.get('occurred_at')).get('occurred_at');
+
+  let query = new InstallationEvent()
+    .where('installation_id', installationId)
+    .where('type', 'IN', types);
+
+  if (minDate == maxDate) {
+    query = query.where('occurred_at', minDate);
+  } else {
+    query = query
+      .where('occurred_at', '>=', minDate)
+      .where('occurred_at', '<=', maxDate);
+  }
+
+  let count = await query.clone().count();
+  if (!count) {
+    return events;
+  }
+
+  let offset = 0;
+  while (count >= 1) {
+    const existingEvents = await query
+      .clone()
+      .orderBy('id')
+      .query(qb => qb.offset(offset).limit(BULK_CREATE_EXISTING_EVENTS_CHECK_BATCH_SIZE))
+      .fetchAll();
+
+    existingEvents.forEach(existingEvent => {
+      const matchingEvent = events.find(event => {
+        return event.get('type') == existingEvent.get('type') && moment(event.get('occurred_at')).isSame(moment(existingEvent.get('occurred_at')));
+      });
+
+      if (matchingEvent) {
+        _.pull(events, matchingEvent);
+      }
+    });
+
+    count -= BULK_CREATE_EXISTING_EVENTS_CHECK_BATCH_SIZE;
+    offset += BULK_CREATE_EXISTING_EVENTS_CHECK_BATCH_SIZE;
+  }
+
+  return events;
+}
 
 function createEventQueryBuilder(req, res, baseQuery) {
   return new QueryBuilder(req, res, baseQuery)
@@ -84,7 +141,7 @@ function validateInstallationEvent(req) {
 
 function validateManyInstallationEvents() {
   return this.series(
-    validations.array(0, BULK_CREATE_MAX),
+    validations.array(1, BULK_CREATE_MAX),
     this.each((context, event, i) => {
       return this.validate(
         this.json(`/${i}`),

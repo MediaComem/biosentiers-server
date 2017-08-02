@@ -146,11 +146,9 @@ exports.resolve = function(data, inPlace) {
 };
 
 exports.responseExpectationFactory = function(func) {
-  return function() {
-    const args = _.toArray(arguments);
-    return handleResponseAssertionError(function(res) {
-      args.unshift(res);
-      return func.apply(undefined, args);
+  return function(...args) {
+    return handleResponseAssertionError(res => {
+      return func(res, ...args);
     });
   };
 };
