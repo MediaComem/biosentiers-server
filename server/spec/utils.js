@@ -3,6 +3,7 @@ const app = require('../app');
 const config = require('../../config');
 const db = require('../db');
 const expect = require('chai').expect;
+// FIXME: eliminate cyclical dependency between spec/utils.js & spec/expectations/response.js
 const expectations = require('./expectations/response');
 const httpStatuses = require('http-status');
 const moment = require('moment');

@@ -167,7 +167,7 @@ async function authenticateInstallation(req, res) {
   hmac.update(`${nonce};${dateString}`);
   const computedHmac = hmac.digest('hex');
 
-  if (authorization !== computedHmac) {
+  if (authorization !== computedHmac || !computedHmac) {
     throw errors.unauthorized('auth.invalidCredentials', 'The provided authorization token is invalid or has expired');
   }
 

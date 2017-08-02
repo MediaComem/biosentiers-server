@@ -33,6 +33,7 @@ exports.serialize = function(req, installationEvent, options) {
   return {
     id: installationEvent.get('api_id'),
     href: installationEvent.get('href'),
+    type: installationEvent.get('type'),
     installationHref: installationEvent.related('installation').get('href'),
     properties: installationEvent.get('properties'),
     createdAt: installationEvent.get('created_at'),

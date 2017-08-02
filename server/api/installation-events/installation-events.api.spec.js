@@ -43,6 +43,7 @@ describe('Installation events API', function() {
 
       return spec
         .testCreate(`/installations/${data.installation.get('api_id')}/events`, data.reqBody)
+        .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
         .then(expectInstallationEvent.inBody(expected));
     });
 
@@ -57,6 +58,7 @@ describe('Installation events API', function() {
 
       return spec
         .testCreate(`/installations/${data.installation.get('api_id')}/events`, data.reqBody)
+        .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
         .then(expectInstallationEvent.inBody(expected));
     });
 
@@ -69,6 +71,7 @@ describe('Installation events API', function() {
 
       return spec
         .testApi('POST', `/installations/${data.installation.get('api_id')}/events`)
+        .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
         .send(body)
         .then(expectRes.invalid([
           {
@@ -96,6 +99,16 @@ describe('Installation events API', function() {
             valueSet: true
           }
         ]));
+    });
+
+    it('should prevent an installation from creating an event for another installation', function() {
+      return installationFixtures.installation().then(otherInstallation => {
+        return spec
+          .testApi('POST', `/installations/${data.installation.get('api_id')}/events`)
+          .set('Authorization', `Bearer ${otherInstallation.generateJwt()}`)
+          .send(data.reqBody)
+          .then(expectRes.forbidden('You are not authorized to access this resource. Authenticate with a user account that has more privileges.'));
+      });
     });
   });
 
@@ -135,6 +148,22 @@ describe('Installation events API', function() {
           .testRetrieve(`/installation-events/${data.event.get('api_id')}`)
           .set('Authorization', `Bearer ${data.admin.generateJwt()}`)
           .then(expectInstallationEvent.inBody(getExpectedEvent()));
+      });
+
+      it('should allow an installation to retrieve one of its events', function() {
+        return spec
+          .testRetrieve(`/installation-events/${data.event.get('api_id')}`)
+          .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
+          .then(expectInstallationEvent.inBody(getExpectedEvent()));
+      });
+
+      it('should prevent an installation from retrieving an event from another installation', function() {
+        return installationFixtures.installation().then(otherInstallation => {
+          return spec
+            .testApi('GET', `/installation-events/${data.event.get('api_id')}`)
+            .set('Authorization', `Bearer ${otherInstallation.generateJwt()}`)
+            .then(expectRes.notFound(`No installation event was found with ID ${data.event.get('api_id')}.`));
+        });
       });
     });
   });
@@ -214,6 +243,13 @@ describe('Installation events API', function() {
             getExpectedEvent(1)
           ]));
       });
+
+      it('should prevent an installation from listing all events', function() {
+        return spec
+          .testApi('GET', '/installation-events')
+          .set('Authorization', `Bearer ${data.installations[0].generateJwt()}`)
+          .expect(expectRes.unauthorized('The Bearer token supplied in the Authorization header is invalid or has expired.'));
+      });
     });
 
     describe('GET /api/installation/:id/events', function() {
@@ -226,6 +262,23 @@ describe('Installation events API', function() {
             getExpectedEvent(2),
             getExpectedEvent(0)
           ]));
+      });
+
+      it('should allow an installation to retrieve its events', function() {
+        return spec
+          .testRetrieve(`/installations/${data.installations[1].get('api_id')}/events`)
+          .set('Authorization', `Bearer ${data.installations[1].generateJwt()}`)
+          .then(expectInstallationEvent.listInBody([
+            getExpectedEvent(4),
+            getExpectedEvent(1)
+          ]));
+      });
+
+      it('should prevent an installation from retrieving another installation\'s events', function() {
+        return spec
+          .testApi('GET', `/installations/${data.installations[0].get('api_id')}/events`)
+          .set('Authorization', `Bearer ${data.installations[1].generateJwt()}`)
+          .expect(expectRes.forbidden('You are not authorized to access this resource. Authenticate with a user account that has more privileges.'));
       });
     });
   });

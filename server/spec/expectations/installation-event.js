@@ -10,11 +10,12 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   // Check the actual object.
   expect(actual, 'installation-event').to.be.an('object');
 
-  const keys = [ 'id', 'href', 'installationHref', 'properties', 'createdAt', 'occurredAt' ];
+  const keys = [ 'id', 'href', 'installationHref', 'type', 'properties', 'createdAt', 'occurredAt' ];
   expect(actual, 'res.body').to.have.all.keys(keys);
 
   expect(actual.id, 'installation-event.id').to.be.a('string');
   expect(actual.href, 'installation-event.href').to.equal(expected.href || `/api/installation-events/${actual.id}`);
+  expect(actual.type, 'installation-event.type').to.equal(expected.type);
   expect(actual.properties, 'installation-event.properties').to.eql(expected.properties);
 
   let expectedInstallationHref = expected.installationHref;
@@ -44,6 +45,7 @@ module.exports.inDb = async function(apiId, expected) {
   expect(event.get('id'), 'db.installation-event.id').to.be.a('string');
   expect(event.get('api_id'), 'db.installation-event.api_id').to.equal(expected.id);
   expect(event.get('installation_id'), 'db.installation-event.installation_id').to.equal(installation.get('id'));
+  expect(event.get('type'), 'db.installation-event.type').to.equal(expected.type);
   expect(event.get('properties'), 'db.installation-event.properties').to.eql(expected.properties);
   expect(event.get('created_at'), 'db.installation-event.created_at').to.be.sameMoment(expected.createdAt);
   expect(event.get('occurred_at'), 'db.installation-event.occurred_at').to.be.sameMoment(expected.occurredAt);
