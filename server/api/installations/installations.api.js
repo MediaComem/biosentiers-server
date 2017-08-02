@@ -22,6 +22,7 @@ exports.create = route.transactional(async function(req, res) {
 exports.list = route(async function(req, res) {
 
   const installations = await new QueryBuilder(req, res, policy.scope(req))
+    .filter(search)
     .paginate()
     .sorts('createdAt', 'updatedAt')
     .defaultSort('createdAt', 'desc')
@@ -63,4 +64,15 @@ function validateInstallation(req, patchMode) {
       )
     );
   });
+}
+
+function search(query, req) {
+  if (!_.isString(req.query.search)) {
+    return query;
+  }
+
+  const term = `%${req.query.search.toLowerCase()}%`;
+  const clauses = _.map([ 'api_id' ], attr => `LOWER(installation.${attr}) LIKE ?`);
+
+  return query.query(qb => qb.whereRaw(`(${clauses.join(' OR ')})`, Array(clauses.length).fill(term)));
 }
