@@ -23,9 +23,9 @@ exports.scope = function(req) {
   return new InstallationEvent();
 };
 
-exports.parse = function(req, installationEvent = new InstallationEvent()) {
-  parsing.parseJsonIntoRecord(req.body, installationEvent, 'type', 'version', 'occurredAt');
-  installationEvent.updateProperties(req.body.properties);
+exports.parse = function(event, installationEvent = new InstallationEvent()) {
+  parsing.parseJsonIntoRecord(event, installationEvent, 'type', 'version', 'occurredAt');
+  installationEvent.updateProperties(event.properties);
   return installationEvent;
 };
 

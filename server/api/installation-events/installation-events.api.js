@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const db = require('../../db');
 const fetcher = require('../fetcher');
 const InstallationEvent = require('../../models/installation-event');
 const np = require('../../lib/native-promisify');
@@ -10,6 +11,8 @@ const { setRelated } = require('../../lib/models');
 const validate = require('../validate');
 const validations = require('../lib/validations');
 
+const BULK_CREATE_MAX = 100;
+
 const EAGER_LOAD = [
   'installation'
 ];
@@ -20,12 +23,19 @@ exports.resourceName = 'installation event';
 exports.create = route.transactional(async function(req, res) {
   await np(validateInstallationEvent(req));
 
-  const installationEvent = policy.parse(req);
-  installationEvent.set('installation_id', req.installation.get('id'));
-  await installationEvent.save();
-  setRelated(installationEvent, 'installation', req.installation);
+  const multiple = _.isArray(req.body);
+  const rawEvents = multiple ? req.body : [ req.body ];
 
-  res.status(201).send(await serialize(req, installationEvent, policy, { sharedSecret: true }));
+  const events = rawEvents.map(rawEvent => {
+    const event = policy.parse(rawEvent);
+    event.set('installation_id', req.installation.get('id'));
+    return event;
+  });
+
+  await InstallationEvent.bulkCreate(events);
+  events.forEach(event => setRelated(event, 'installation', req.installation));
+
+  res.status(201).send(await serialize(req, multiple ? events : events[0], policy));
 });
 
 exports.list = route(async function(req, res) {
@@ -57,32 +67,59 @@ function createEventQueryBuilder(req, res, baseQuery) {
     .eagerLoad(EAGER_LOAD);
 }
 
-function validateInstallationEvent(req, patchMode) {
+function validateInstallationEvent(req) {
+
+  const options = {
+    types: [ 'array', 'object' ]
+  };
+
   return validate.requestBody(req, function() {
-    return this.parallel(
-      this.validate(
-        this.json('/type'),
-        this.required(),
-        this.type('string'),
-        this.notBlank()
-      ),
-      this.validate(
-        this.json('/version'),
-        this.required(),
-        this.type('string'),
-        this.notBlank()
-      ),
-      this.validate(
-        this.json('/properties'),
-        this.while(this.isSet()),
-        this.type('object')
-      ),
-      this.validate(
-        this.json('/occurredAt'),
-        this.required(),
-        this.type('string'),
-        validations.iso8601()
-      )
+    return this.ifElse(
+      context => _.isArray(context.get('value')),
+      validateManyInstallationEvents.bind(this),
+      validateOneInstallationEvent.bind(this)
     );
-  });
+  }, options);
+}
+
+function validateManyInstallationEvents() {
+  return this.series(
+    validations.array(0, BULK_CREATE_MAX),
+    this.each((context, event, i) => {
+      return this.validate(
+        this.json(`/${i}`),
+        validateOneInstallationEvent.bind(this)
+      );
+    })
+  );
+}
+
+function validateOneInstallationEvent() {
+  return this.parallel(
+    this.validate(
+      this.json('/type'),
+      this.required(),
+      this.type('string'),
+      this.notBlank(),
+      this.string(1, 255)
+    ),
+    this.validate(
+      this.json('/version'),
+      this.required(),
+      this.type('string'),
+      this.notBlank(),
+      this.string(1, 25)
+    ),
+    this.validate(
+      this.json('/properties'),
+      this.while(this.isSet()),
+      this.type('object')
+    ),
+    this.validate(
+      this.json('/occurredAt'),
+      this.required(),
+      this.type('string'),
+      validations.iso8601()
+    )
+  );
 }

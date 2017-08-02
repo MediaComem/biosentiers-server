@@ -28,8 +28,11 @@ exports.requestBody = function(req, ...callbacks) {
     throw new Error('The first argument does not appear to be an Express request object');
   }
 
+  const options = _.isPlainObject(_.last(callbacks)) ? callbacks.pop() : {};
+  const types = options.types || [ 'object' ];
+
   return exports.value(req, 422, function() {
-    return this.validate(this.property('body'), this.type('object'), ...callbacks);
+    return this.validate(this.property('body'), this.type(...types), ...callbacks);
   });
 };
 

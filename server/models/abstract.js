@@ -8,6 +8,7 @@ const uuid = require('uuid');
 const wellKnown = require('wellknown');
 
 const DEFAULT_API_ID_COLUMN = 'api_id';
+const MAX_UNIQUE_ID_GENERATION_ATTEMPTS = 25;
 
 const proto = bookshelf.Model.prototype;
 
@@ -39,27 +40,29 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
   initializeApiId: function() {
     const column = this.getApiIdColumn();
     if (this.apiId && !this.has(column)) {
-      return BPromise.resolve().then(() => this.generateUniqueApiId()).then(apiId => {
-        this.set(column, apiId);
-      });
+      return this.generateUniqueApiId().then(apiId => this.set(column, apiId));
     }
   },
 
   generateApiId: function() {
-    return _.isFunction(this.apiId) ? this.apiId.call(this) : uuid.v4();
+    return this.constructor.generateApiId();
   },
 
-  generateUniqueApiId: function() {
+  generateUniqueApiId: function(attempt = 0) {
+    if (attempt >= MAX_UNIQUE_ID_GENERATION_ATTEMPTS) {
+      throw new Error(`Could not generate a unique API ID after ${attempt} attempts`);
+    }
+
     const apiId = this.generateApiId();
     return new this.constructor()
       .query(qb => qb.clearSelect())
       .where(this.getApiIdColumn(), apiId)
       .fetch()
-      .then(record => record ? this.generateUniqueApiId() : apiId);
+      .then(record => record ? this.generateUniqueApiId(attempt + 1) : apiId);
   },
 
   getApiIdColumn: function() {
-    return this.apiIdColumn || DEFAULT_API_ID_COLUMN;
+    return this.constructor.getApiIdColumn();
   },
 
   parse: function(response) {
@@ -111,6 +114,88 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
     });
   }
 }), {
+  bulkCreate: async function(models, options) {
+    if (!_.isArray(models)) {
+      throw new Error('Models must be an array');
+    } else if (!models.length) {
+      return models;
+    }
+
+    // Initialize API IDs for all models
+    await this.initializeApiIds(models);
+
+    // Trigger "creating" and "saving" hooks
+    await BPromise.all(models.map(model => model.triggerThen('creating saving', model, undefined, options)));
+
+    // Bulk insert
+    const idAttribute = this.prototype.idAttribute || 'id';
+    const ids = await db.knex
+      .insert(models.map(model => model.toJSON({ shallow: true })))
+      .into(this.prototype.tableName)
+      .returning(idAttribute);
+
+    // Set the database IDs
+    await models.map((model, i) => {
+      model.set(idAttribute, ids[i]);
+      // Trigger "created" and "saved" hooks
+      return model.triggerThen('created saved', model, undefined, options);
+    });
+
+    return models;
+  },
+
+  initializeApiIds: async function(models) {
+    if (!this.prototype.apiId) {
+      return models;
+    }
+
+    const column = this.getApiIdColumn();
+    const apiIds = await this.generateUniqueApiIds(models.length);
+    models.forEach((model, i) => model.set(column, apiIds[i]));
+    return models;
+  },
+
+  getApiIdColumn: function() {
+    return this.prototype.apiIdColumn || DEFAULT_API_ID_COLUMN;
+  },
+
+  generateApiId: function() {
+    const apiId = this.prototype.apiId;
+    return _.isFunction(apiId) ? apiId.call(this) : uuid.v4();
+  },
+
+  generateUniqueApiIds: function(n, apiIds = [], attempt = 0) {
+    if (n < 1) {
+      throw new Error(`Number of IDs to generate must be greater than or equal to 1; got ${n}`);
+    } else if (attempt >= MAX_UNIQUE_ID_GENERATION_ATTEMPTS) {
+      throw new Error(`Could not generate ${n} unique API IDs after ${attempt} attempts`);
+    }
+
+    const column = this.getApiIdColumn();
+    const missing = n - apiIds.length;
+
+    const newApiIds = [];
+    while (newApiIds.length < missing) {
+      const newApiId = this.generateApiId();
+      if (!_.includes(apiIds, newApiId) && !_.includes(newApiIds, newApiId)) {
+        newApiIds.push(newApiId);
+      }
+    }
+
+    return new this()
+      .query(qb => qb.clearSelect())
+      .where(column, 'IN', newApiIds)
+      .fetchAll()
+      .then(records => {
+        _.difference(newApiIds, records.pluck(column)).forEach(apiId => apiIds.push(apiId));
+        if (apiIds.length >= n) {
+          return apiIds;
+        } else {
+          return this.generateUniqueApiIds(n, apiIds, attempt + 1);
+        }
+      });
+  },
+
   transaction: function(callback) {
     return bookshelf.transaction(callback);
   }
@@ -164,12 +249,13 @@ function getHref() {
   }
 
   if (hrefBase) {
-    const id = this.get(this.getApiIdColumn());
-    if (!id) {
-      throw new Error('Virtual "href" property requires the model to have an "api_id" property');
+    const apiIdColumn = this.getApiIdColumn();
+    const apiId = this.get(apiIdColumn);
+    if (!apiId) {
+      throw new Error(`Virtual "href" property requires the model to have a "${apiIdColumn}" column`);
     }
 
-    return `${hrefBase}/${id}`;
+    return `${hrefBase}/${apiId}`;
   } else if (hrefBuilder) {
     return hrefBuilder.call(this, this);
   } else {

@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const chance = require('chance').Chance();
 const expectRes = require('../../spec/expectations/response');
 const expectInstallationEvent = require('../../spec/expectations/installation-event');
 const geoJsonLength = require('geojson-length');
@@ -63,6 +64,51 @@ describe('Installation events API', function() {
         .then(expectInstallationEvent.inBody(expected));
     });
 
+    it('should create multiple events', function() {
+      data.reqBody = [
+        {
+          type: 'foo.bar',
+          version: '1.2.3',
+          occurredAt: moment().subtract(1, 'hour').toISOString(),
+          properties: { foo: 'bar' }
+        },
+        {
+          type: 'bar.baz',
+          version: '1.2.3',
+          occurredAt: moment().subtract(20, 'minutes').toISOString(),
+          properties: { baz: [ 'qux' ] }
+        },
+        {
+          type: 'baz.qux',
+          version: '2.0.0',
+          occurredAt: moment().subtract(3, 'seconds').toISOString(),
+          properties: { corge: 'grault' }
+        }
+      ];
+
+      function getExpectedEvent(index, changes) {
+        return _.extend({}, data.reqBody[index], changes);
+      }
+
+      return spec
+        .testCreate(`/installations/${data.installation.get('api_id')}/events`, data.reqBody)
+        .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
+        .then(expectInstallationEvent.listInBody([
+          getExpectedEvent(0, {
+            installation: data.installation,
+            createdAfter: data.now
+          }),
+          getExpectedEvent(1, {
+            installation: data.installation,
+            createdAfter: data.now
+          }),
+          getExpectedEvent(2, {
+            installation: data.installation,
+            createdAfter: data.now
+          })
+        ]));
+    });
+
     it('should not accept invalid properties', function() {
 
       const body = {
@@ -106,6 +152,96 @@ describe('Installation events API', function() {
             types: [ 'object' ],
             validator: 'type',
             value: 42,
+            valueSet: true
+          }
+        ]));
+    });
+
+    it('should not accept multiple events with invalid properties', function() {
+      const tooLongType = chance.string({ length: 256 });
+      const tooLongVersion = '2.0.0-beta.3+2017-01-01T00:00:00.000+02:00';
+
+      data.reqBody = [
+        {
+          type: '  ',
+          version: '1.2.3',
+          occurredAt: moment().subtract(1, 'hour').toISOString(),
+          properties: { foo: 'bar' }
+        },
+        {
+          type: tooLongType,
+          occurredAt: moment().subtract(20, 'minutes').toISOString(),
+          properties: 42
+        },
+        {
+          type: 'baz.qux',
+          version: tooLongVersion,
+          occurredAt: 'bar',
+          properties: { corge: 'grault' }
+        }
+      ];
+
+      return spec
+        .testApi('POST', `/installations/${data.installation.get('api_id')}/events`)
+        .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
+        .send(data.reqBody)
+        .then(expectRes.invalid([
+          {
+            message: 'must not be blank',
+            type: 'json',
+            location: '/0/type',
+            validator: 'notBlank',
+            value: '  ',
+            valueSet: true
+          },
+          {
+            message: `must be a string between 1 and 255 characters long (the supplied string is too long: ${tooLongType.length} characters long)`,
+            type: 'json',
+            location: '/1/type',
+            validator: 'string',
+            validation: 'between',
+            minLength: 1,
+            maxLength: 255,
+            actualLength: tooLongType.length,
+            cause: 'tooLong',
+            value: tooLongType,
+            valueSet: true
+          },
+          {
+            message: 'is required',
+            type: 'json',
+            location: '/1/version',
+            validator: 'required',
+            valueSet: false
+          },
+          {
+            message: 'must be of type object',
+            type: 'json',
+            location: '/1/properties',
+            types: [ 'object' ],
+            validator: 'type',
+            value: 42,
+            valueSet: true
+          },
+          {
+            message: 'is not a valid ISO-8601 date',
+            type: 'json',
+            location: '/2/occurredAt',
+            validator: 'iso8601',
+            value: 'bar',
+            valueSet: true
+          },
+          {
+            message: `must be a string between 1 and 25 characters long (the supplied string is too long: ${tooLongVersion.length} characters long)`,
+            type: 'json',
+            location: '/2/version',
+            validator: 'string',
+            validation: 'between',
+            minLength: 1,
+            maxLength: 25,
+            actualLength: tooLongVersion.length,
+            cause: 'tooLong',
+            value: tooLongVersion,
             valueSet: true
           }
         ]));
