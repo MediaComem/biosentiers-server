@@ -10,6 +10,10 @@ router.post('/',
   auth.authorize(policy.canCreate),
   controller.create);
 
+router.head('/',
+  auth.authorize(policy.canList),
+  controller.head);
+
 router.get('/',
   auth.authorize(policy.canList),
   controller.list);

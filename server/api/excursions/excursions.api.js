@@ -39,26 +39,13 @@ exports.create = route.transactional(async function(req, res) {
   res.status(201).send(await serialize(req, excursion, policy));
 });
 
+exports.head = route(async function(req, res) {
+  await createExcursionQueryBuilder(req, res).fetch({ head: true });
+  res.sendStatus(200);
+});
+
 exports.list = route(async function(req, res) {
-
-  const query = policy.scope(req);
-  const excursions = await new QueryBuilder(req, res, query)
-    .joins('excursion', j => {
-      j.join('creator', { joinTable: 'user_account', key: 'excursion.creator_id', joinKey: 'creator.id' });
-    })
-    .filter(search)
-    .filter(filterByCreator)
-    .filter(filters.date('createdAt'))
-    .filter(filters.date('plannedAt'))
-    .filter(filters.date('updatedAt'))
-    .paginate()
-    .sorts('name', 'participantsCount', 'createdAt', 'plannedAt', 'updatedAt')
-    .sort('creatorLastName', sorting.sortByRelated('creator', 'lastName'))
-    .sort('creatorFirstName', sorting.sortByRelated('creator', 'firstName'))
-    .defaultSort('createdAt', 'desc')
-    .eagerLoad(EAGER_LOAD)
-    .fetch();
-
+  const excursions = await createExcursionQueryBuilder(req, res).fetch();
   res.send(await serialize(req, excursions, policy));
 });
 
@@ -80,6 +67,24 @@ exports.fetchExcursion = fetcher({
   eagerLoad: EAGER_LOAD,
   resourceName: 'excursion'
 });
+
+function createExcursionQueryBuilder(req, res) {
+  return new QueryBuilder(req, res, policy.scope(req))
+    .joins('excursion', j => {
+      j.join('creator', { joinTable: 'user_account', key: 'excursion.creator_id', joinKey: 'creator.id' });
+    })
+    .filter(search)
+    .filter(filterByCreator)
+    .filter(filters.date('createdAt'))
+    .filter(filters.date('plannedAt'))
+    .filter(filters.date('updatedAt'))
+    .paginate()
+    .sorts('name', 'participantsCount', 'createdAt', 'plannedAt', 'updatedAt')
+    .sort('creatorLastName', sorting.sortByRelated('creator', 'lastName'))
+    .sort('creatorFirstName', sorting.sortByRelated('creator', 'firstName'))
+    .defaultSort('createdAt', 'desc')
+    .eagerLoad(EAGER_LOAD);
+}
 
 function validateExcursion(req, patchMode) {
 
