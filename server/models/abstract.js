@@ -48,12 +48,12 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
     return this.constructor.generateApiId();
   },
 
-  generateUniqueApiId: function(attempt = 0) {
+  generateUniqueApiId: async function(attempt = 0) {
     if (attempt >= MAX_UNIQUE_ID_GENERATION_ATTEMPTS) {
       throw new Error(`Could not generate a unique API ID after ${attempt} attempts`);
     }
 
-    const apiId = this.generateApiId();
+    const apiId = await BPromise.resolve(this.generateApiId());
     return new this.constructor()
       .query(qb => qb.clearSelect())
       .where(this.getApiIdColumn(), apiId)
