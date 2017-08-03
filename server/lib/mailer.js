@@ -27,6 +27,10 @@ exports.send = function(options) {
     text: options.text
   };
 
+  if (config.mail.html) {
+    email.html = options.html;
+  }
+
   return sendEmail(email).tap(function() {
     const duration = (new Date().getTime() - start) / 1000;
     logger.info('E-mail "' + email.subject + '" sent to ' + email.to + ' in ' + duration + 's');

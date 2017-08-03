@@ -1,0 +1,8 @@
+Nouveau mot de passe ?
+======================
+
+Vous avez demandé à changer votre mot de passe BioSentiers.
+S’il s’agit d’une erreur, ignorez ce message et la demande ne sera pas prise en compte.
+Pour renouveler votre mot de passe, suivez le lien suivant :
+
+{{ link }}

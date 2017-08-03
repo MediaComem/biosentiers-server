@@ -62,6 +62,7 @@ const config = {
   },
 
   mail: {
+    html: parseConfigBoolean(get('MAIL_HTML'), false),
     enabled: parseConfigBoolean(get('SMTP_ENABLED'), true),
     host: get('SMTP_HOST'),
     port: parseConfigInt(get('SMTP_PORT'), 0),

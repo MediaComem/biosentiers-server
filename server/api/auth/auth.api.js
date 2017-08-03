@@ -4,6 +4,9 @@ const BPromise = require('bluebird');
 const config = require('../../../config');
 const crypto = require('crypto');
 const errors = require('../errors');
+const fs = require('fs');
+const handlebars = require('handlebars');
+const inflection = require('inflection');
 const Installation = require('../../models/installation');
 const installationsPolicy = require('../installations/installations.policy');
 const jwt = require('../../lib/jwt');
@@ -12,6 +15,7 @@ const mailer = require('../../lib/mailer');
 const moment = require('moment');
 const np = require('../../lib/native-promisify');
 const passport = require('passport');
+const path = require('path');
 const policy = require('./auth.policy');
 const qs = require('qs');
 const route = require('../route');
@@ -27,6 +31,16 @@ setUpPassport();
 
 const logger = config.logger('api:auth');
 const passportLocalAuthenticate = BPromise.promisify(passport.authenticate('local'));
+
+const mailTemplates = _.reduce([ 'welcome', 'passwordReset' ], (memo, name) => {
+  const dir = config.path('server', 'mails', inflection.dasherize(inflection.underscore(name)));
+  memo[name] = {
+    txt: handlebars.compile(fs.readFileSync(path.join(dir, 'mail.txt'), { encoding: 'utf8' })),
+    html: handlebars.compile(fs.readFileSync(path.join(dir, 'mail.html'), { encoding: 'utf8' }))
+  };
+
+  return memo;
+}, {});
 
 // API resource name (used in some API errors).
 exports.resourceName = 'auth';
@@ -45,10 +59,15 @@ exports.createInvitation = route(async function(req, res) {
   const invitationLink = await createInvitationLink(req);
 
   if (invitationLink.sent) {
+    const templateOptions = {
+      link: invitationLink.link
+    };
+
     await mailer.send({
       to: invitationLink.email,
       subject: 'Invitation BioSentiers',
-      text: `Bienvenue sur BioSentiers!\n===========================\n\nVeuillez suivre ce lien pour créer votre compte: ${invitationLink.link}`
+      html: mailTemplates.welcome.html(templateOptions),
+      text: mailTemplates.welcome.txt(templateOptions)
     });
   }
 
@@ -75,13 +94,17 @@ exports.retrieveInvitation = route(async function(req, res) {
 
 exports.requestPasswordReset = route.transactional(async function(req, res) {
   const resetPasswordLink = await createPasswordResetLink(req);
-  const userFirstName = resetPasswordLink.user.get('first_name');
 
   if (!req.currentUser) {
+    const templateOptions = {
+      link: resetPasswordLink.link
+    };
+
     await mailer.send({
       to: resetPasswordLink.email,
       subject: 'Changement de mot de passe BioSentiers',
-      text: `Bonjour ${userFirstName}\n===========================\n\nVous avez demandé à changer votre mot de passe BioSentiers. Veuillez suivre ce lien pour le faire: ${resetPasswordLink.link}`
+      html: mailTemplates.passwordReset.html(templateOptions),
+      text: mailTemplates.passwordReset.txt(templateOptions)
     });
   }
 
