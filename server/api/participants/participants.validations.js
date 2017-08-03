@@ -12,8 +12,8 @@ exports.nameAvailable = function(excursion, existingParticipant) {
     let query = new Participant().whereName(name).where('excursion_id', excursion.get('id'));
 
     if (existingParticipant) {
-      query = query.query(function(queryBuilder) {
-        queryBuilder.whereNot('id', existingParticipant.get('id'));
+      query = query.query(function(qb) {
+        qb.whereNot('id', existingParticipant.get('id'));
       });
     }
 

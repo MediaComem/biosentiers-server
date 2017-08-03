@@ -100,7 +100,7 @@ function validateExcursion(req, patchMode) {
         ),
         this.validate(
           this.json('/name'),
-          this.while(this.isSet()),
+          this.while(context => context.get('valueSet') && context.get('value') !== null),
           this.type('string')
         ),
         this.validate(
