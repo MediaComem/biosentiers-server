@@ -68,7 +68,10 @@ describe('Authentication API', function() {
       beforeEach(function() {
         return spec.setUp(data, () => {
           data.installation = installationFixtures.installation({
-            properties: { foo: 'bar' }
+            properties: { foo: 'bar' },
+            createdAt: moment().subtract(2, 'days').toDate(),
+            updatedAt: moment().subtract(15, 'minutes').toDate(),
+            firstStartedAt: moment().subtract(1, 'day').toDate()
           });
 
           data.reqBody = data.installation.then(installation => {
@@ -94,8 +97,10 @@ describe('Authentication API', function() {
           installation: {
             id: data.installation.get('api_id'),
             properties: { foo: 'bar' },
-            createdBefore: data.now,
-            updatedAt: 'createdAt'
+            eventsCount: 0,
+            createdAt: data.installation.get('created_at'),
+            updatedAt: data.installation.get('updated_at'),
+            firstStartedAt: data.installation.get('first_started_at')
           },
           token: {
             authType: 'installation',

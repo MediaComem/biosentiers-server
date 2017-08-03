@@ -21,6 +21,7 @@ describe('Installations API', function() {
         data.admin = userFixtures.admin();
 
         data.reqBody = {
+          firstStartedAt: moment().subtract(1, 'day').toISOString(),
           properties: {
             foo: 'bar'
           }
@@ -32,6 +33,7 @@ describe('Installations API', function() {
 
       const expected = _.extend({
         sharedSecret: true,
+        eventsCount: 0,
         createdAfter: data.now,
         updatedAt: 'createdAt'
       }, data.reqBody);
@@ -48,6 +50,7 @@ describe('Installations API', function() {
 
       const expected = _.extend({
         sharedSecret: true,
+        eventsCount: 0,
         createdAfter: data.now,
         updatedAt: 'createdAt'
       }, data.reqBody);
@@ -63,6 +66,7 @@ describe('Installations API', function() {
 
       const expected = _.extend({
         properties: {},
+        eventsCount: 0,
         sharedSecret: true,
         createdAfter: data.now,
         updatedAt: 'createdAt'
@@ -102,6 +106,13 @@ describe('Installations API', function() {
             validator: 'type',
             value: [],
             valueSet: true
+          },
+          {
+            message: 'is required',
+            type: 'json',
+            location: '/firstStartedAt',
+            validator: 'required',
+            valueSet: false
           }
         ]));
     });
@@ -112,6 +123,7 @@ describe('Installations API', function() {
     beforeEach(function() {
       return spec.setUp(data, () => {
         data.admin = userFixtures.admin();
+        data.twoDaysAgo = moment().subtract(2, 'days');
         data.threeDaysAgo = moment().subtract(3, 'days');
 
         data.installationProps = {
@@ -119,7 +131,10 @@ describe('Installations API', function() {
             foo: 'bar',
             baz: 'qux'
           },
-          createdAt: data.threeDaysAgo.toDate()
+          eventsCount: 3,
+          createdAt: data.threeDaysAgo.toDate(),
+          firstStartedAt: data.twoDaysAgo.toDate(),
+          lastEventAt: moment().subtract(1, 'day').toDate()
         };
 
         data.installation = installationFixtures.installation(data.installationProps);
@@ -129,6 +144,7 @@ describe('Installations API', function() {
     function getExpectedInstallation(changes) {
       return _.extend({
         id: data.installation.get('api_id'),
+        eventsCount: data.installation.get('events_count'),
         updatedAt: data.threeDaysAgo.toDate()
       }, data.installationProps, changes);
     }
@@ -138,6 +154,7 @@ describe('Installations API', function() {
 
         const body = {
           id: data.installation.get('api_id'),
+          firstStartedAt: moment().subtract(1, 'day').toISOString(),
           properties: {
             foo: 'bar'
           }
@@ -226,17 +243,38 @@ describe('Installations API', function() {
       return spec.setUp(data, () => {
         data.admin = userFixtures.admin();
 
-        data.threeDaysAgo = moment().subtract(3, 'days');
-        data.twoDaysAgo = moment().subtract(2, 'days');
-        data.oneDayAgo = moment().subtract(1, 'day');
-
         data.installations = [
-          installationFixtures.installation({ createdAt: data.threeDaysAgo.toDate(), properties: { foo: 'bar' } }),
-          installationFixtures.installation({ createdAt: data.twoDaysAgo.toDate(), properties: { baz: 'qux' } }),
-          installationFixtures.installation({ createdAt: data.oneDayAgo.toDate(), properties: { corge: [ 'grault', 'garply' ] } })
+          installationFixtures.installation({
+            properties: { foo: 'bar' },
+            createdAt: moment().subtract(3, 'days').toDate(),
+            firstStartedAt: moment().subtract(60, 'hours').toDate()
+          }),
+          installationFixtures.installation({
+            properties: { baz: 'qux' },
+            eventsCount: 2,
+            createdAt: moment().subtract(2, 'days').toDate(),
+            firstStartedAt: moment().subtract(1, 'day').toDate(),
+            lastEventAt: moment().subtract(2, 'seconds').toDate()
+          }),
+          installationFixtures.installation({
+            properties: { corge: [ 'grault', 'garply' ] },
+            createdAt: moment().subtract(1, 'day').toDate()
+          })
         ];
       });
     });
+
+    function getExpectedInstallation(index, changes) {
+      const installation = data.installations[index];
+      return _.extend({
+        properties: installation.get('properties'),
+        eventsCount: installation.get('events_count'),
+        createdAt: installation.get('created_at'),
+        updatedAt: installation.get('updated_at'),
+        firstStartedAt: installation.get('first_started_at'),
+        lastEventAt: installation.get('last_event_at')
+      }, changes);
+    }
 
     describe('GET /api/installations', function() {
       it('should retrieve installations by descending creation date', function() {
@@ -244,27 +282,9 @@ describe('Installations API', function() {
           .testRetrieve('/installations')
           .set('Authorization', `Bearer ${data.admin.generateJwt()}`)
           .then(expectInstallation.listInBody([
-            {
-              properties: {
-                corge: [ 'grault', 'garply' ]
-              },
-              createdAt: data.oneDayAgo,
-              updatedAt: data.oneDayAgo,
-            },
-            {
-              properties: {
-                baz: 'qux'
-              },
-              createdAt: data.twoDaysAgo,
-              updatedAt: data.twoDaysAgo,
-            },
-            {
-              properties: {
-                foo: 'bar'
-              },
-              createdAt: data.threeDaysAgo,
-              updatedAt: data.threeDaysAgo,
-            }
+            getExpectedInstallation(2),
+            getExpectedInstallation(1),
+            getExpectedInstallation(0)
           ]));
       });
     });

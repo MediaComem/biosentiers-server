@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const fetcher = require('../fetcher');
+const Installation = require('../../models/installation');
 const InstallationEvent = require('../../models/installation-event');
 const moment = require('moment');
 const np = require('../../lib/native-promisify');
@@ -36,7 +37,11 @@ exports.create = route.transactional(async function(req, res) {
   await omitExistingEvents(events);
 
   if (events.length) {
-    await InstallationEvent.bulkCreate(events);
+    await Promise.all([
+      InstallationEvent.bulkCreate(events),
+      req.installation.updateEventsMetadata(events)
+    ]);
+
     events.forEach(event => setRelated(event, 'installation', req.installation));
   }
 

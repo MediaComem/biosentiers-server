@@ -1,13 +1,14 @@
 const _ = require('lodash');
 const fetcher = require('../fetcher');
 const Installation = require('../../models/installation');
+const installationValidations = require('./installations.validations');
 const np = require('../../lib/native-promisify');
 const policy = require('./installations.policy');
 const QueryBuilder = require('../query-builder');
 const route = require('../route');
 const serialize = require('../serialize');
 const validate = require('../validate');
-const validations = require('./installations.validations');
+const validations = require('../lib/validations');
 
 // API resource name (used in some API errors)
 exports.resourceName = 'installation';
@@ -24,7 +25,7 @@ exports.list = route(async function(req, res) {
   const installations = await new QueryBuilder(req, res, policy.scope(req))
     .filter(search)
     .paginate()
-    .sorts('createdAt', 'updatedAt')
+    .sorts('createdAt', 'updatedAt', 'firstStartedAt')
     .defaultSort('createdAt', 'desc')
     .fetch();
 
@@ -55,12 +56,19 @@ function validateInstallation(req, patchMode) {
         this.while(this.isSet()),
         this.type('string'),
         this.notBlank(),
-        validations.idAvailable()
+        installationValidations.idAvailable()
       )),
       this.validate(
         this.json('/properties'),
         this.while(this.isSet()),
         this.type('object')
+      ),
+      this.validate(
+        this.json('/firstStartedAt'),
+        this.while(!patchMode),
+        this.required(),
+        this.type('string'),
+        validations.iso8601()
       )
     );
   });

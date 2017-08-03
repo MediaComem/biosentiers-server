@@ -15,6 +15,10 @@ const Installation = Abstract.extend({
   hrefBase: '/api/installations',
   timestamps: true,
 
+  defaults: {
+    events_count: 0
+  },
+
   events: function() {
     return this.hasMany('InstallationEvent');
   },
@@ -37,6 +41,19 @@ const Installation = Abstract.extend({
       authType: 'installation',
       sub: this.get('api_id')
     }, options));
+  },
+
+  updateEventsMetadata: function(events) {
+    if (!this.get('id')) {
+      throw new Error('Installation has not been saved');
+    } else if (!_.isArray(events)) {
+      throw new Error('Events must be an array');
+    } else if (!events.length) {
+      return Promise.resolve();
+    }
+
+    const maxDate = _.maxBy(events, event => event.get('occurred_at')).get('occurred_at');
+    return bookshelf.knex.raw(`UPDATE ${this.tableName} SET events_count = events_count + ?, last_event_at = ?`, [ events.length, maxDate ]);
   }
 });
 

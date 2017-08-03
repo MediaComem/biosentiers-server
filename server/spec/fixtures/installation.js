@@ -8,12 +8,16 @@ const uuid = require('uuid');
 
 exports.installation = function(data) {
   data = data || {};
+  const now = new Date();
   return spec.createRecord(Installation, {
     api_id: data.id || exports.id(),
     shared_secret: data.sharedSecret || crypto.randomBytes(256).toString('hex'),
     properties: data.properties || {},
-    created_at: data.createdAt,
-    updated_at: data.updatedAt
+    events_count: data.eventsCount || 0,
+    created_at: data.createdAt || now,
+    updated_at: data.updatedAt,
+    first_started_at: data.firstStartedAt || data.createdAt || now,
+    last_event_at: data.lastEventAt
   });
 };
 

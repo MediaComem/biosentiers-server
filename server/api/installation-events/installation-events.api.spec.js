@@ -2,6 +2,7 @@ const _ = require('lodash');
 const chance = require('chance').Chance();
 const expect = require('chai').expect;
 const expectRes = require('../../spec/expectations/response');
+const expectInstallation = require('../../spec/expectations/installation');
 const expectInstallationEvent = require('../../spec/expectations/installation-event');
 const geoJsonLength = require('geojson-length');
 const installationEventFixtures = require('../../spec/fixtures/installation-event');
@@ -22,7 +23,25 @@ describe('Installation events API', function() {
     beforeEach(function() {
       return spec.setUp(data, () => {
         data.oneHourAgo = moment().subtract(1, 'hour');
-        data.installation = installationFixtures.installation();
+
+        data.installationProps = {
+          eventsCount: 23,
+          lastEventAt: moment().subtract(5, 'days').toDate()
+        };
+
+        data.installation = installationFixtures.installation(data.installationProps);
+
+        data.expectedInstallation = data.installation.then(installation => {
+          return {
+            id: installation.get('api_id'),
+            properties: installation.get('properties'),
+            eventsCount: installation.get('events_count'),
+            createdAt: installation.get('created_at'),
+            updatedAt: installation.get('updated_at'),
+            firstStartedAt: installation.get('first_started_at'),
+            lastEventAt: installation.get('last_event_at')
+          };
+        });
 
         data.reqBody = {
           type: 'foo.bar',
@@ -44,10 +63,15 @@ describe('Installation events API', function() {
         createdAfter: data.now,
       }, data.reqBody);
 
+      // The installation's events count and last event date should also be updated
+      data.expectedInstallation.eventsCount = data.installationProps.eventsCount + 1;
+      data.expectedInstallation.lastEventAt = data.oneHourAgo;
+
       return spec
         .testCreate(`/installations/${data.installation.get('api_id')}/events`, data.reqBody)
         .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
-        .then(expectInstallationEvent.inBody(expected));
+        .then(expectInstallationEvent.inBody(expected))
+        .then(() => expectInstallation.inDb(data.installation.get('api_id'), data.expectedInstallation));
     });
 
     it('should create an event with no properties', function() {
@@ -59,10 +83,15 @@ describe('Installation events API', function() {
         createdAfter: data.now,
       }, data.reqBody);
 
+      // The installation's events count and last event date should also be updated
+      data.expectedInstallation.eventsCount = data.installationProps.eventsCount + 1;
+      data.expectedInstallation.lastEventAt = data.oneHourAgo;
+
       return spec
         .testCreate(`/installations/${data.installation.get('api_id')}/events`, data.reqBody)
         .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
-        .then(expectInstallationEvent.inBody(expected));
+        .then(expectInstallationEvent.inBody(expected))
+        .then(() => expectInstallation.inDb(data.installation.get('api_id'), data.expectedInstallation));
     });
 
     it('should create multiple events', function() {
@@ -87,6 +116,10 @@ describe('Installation events API', function() {
         }
       ];
 
+      // The installation's events count and last event date should also be updated
+      data.expectedInstallation.eventsCount = data.installationProps.eventsCount + data.reqBody.length;
+      data.expectedInstallation.lastEventAt = data.reqBody[2].occurredAt;
+
       function getExpectedEvent(index, changes) {
         return _.extend({}, data.reqBody[index], changes);
       }
@@ -107,7 +140,8 @@ describe('Installation events API', function() {
             installation: data.installation,
             createdAfter: data.now
           })
-        ]));
+        ]))
+        .then(() => expectInstallation.inDb(data.installation.get('api_id'), data.expectedInstallation));
     });
 
     it('should not create events that already exist', async function() {
@@ -155,6 +189,10 @@ describe('Installation events API', function() {
         }
       ];
 
+      // The installation's events count and last event date should also be updated
+      data.expectedInstallation.eventsCount = data.installationProps.eventsCount + 2;
+      data.expectedInstallation.lastEventAt = data.reqBody[3].occurredAt;
+
       function getExpectedEvent(index, changes) {
         return _.extend({}, data.reqBody[index], changes);
       }
@@ -172,7 +210,8 @@ describe('Installation events API', function() {
             properties: {},
             createdAfter: data.now
           })
-        ]));
+        ]))
+        .then(() => expectInstallation.inDb(data.installation.get('api_id'), data.expectedInstallation));
     });
 
     it('should not create any events if they all already exist', async function() {
@@ -221,7 +260,8 @@ describe('Installation events API', function() {
         .then(spec.responseExpectationFactory(res => {
           expect(res.status).to.equal(200);
           expect(res.body).to.eql([]);
-        })());
+        })())
+        .then(() => expectInstallation.inDb(data.installation.get('api_id'), data.expectedInstallation));
     });
 
     it('should not accept invalid properties', function() {

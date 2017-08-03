@@ -10,15 +10,21 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   // Check the actual object.
   expect(actual, 'installation').to.be.an('object');
 
-  const keys = [ 'id', 'href', 'properties', 'createdAt', 'updatedAt' ];
+  const keys = [ 'id', 'href', 'properties', 'eventsCount', 'createdAt', 'updatedAt', 'firstStartedAt' ];
+
   if (expected.sharedSecret) {
     keys.push('sharedSecret');
+  }
+
+  if (expected.lastEventAt) {
+    keys.push('lastEventAt');
   }
 
   expect(actual, 'res.body').to.have.all.keys(keys);
 
   expect(actual.id, 'installation.id').to.be.a('string');
   expect(actual.href, 'installation.href').to.equal(expected.href || `/api/installations/${actual.id}`);
+  expect(actual.eventsCount, 'installation.eventsCount').to.equal(expected.eventsCount);
   expect(actual.properties, 'installation.properties').to.eql(expected.properties);
 
   if (expected.sharedSecret) {
@@ -32,6 +38,8 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
 
   spec.expectTimestamp('installation', actual, expected, 'created');
   spec.expectTimestamp('installation', actual, expected, 'updated');
+  spec.expectTimestamp('installation', actual, expected, 'firstStarted');
+  spec.expectTimestamp('installation', actual, expected, 'lastEvent', { required: false });
 
   // Check that the corresponding installation exists in the database.
   return module.exports.inDb(actual.id, _.extend({}, actual, _.pick(expected, 'sharedSecret')));
@@ -44,8 +52,16 @@ module.exports.inDb = function(apiId, expected) {
     expect(installation.get('id'), 'db.installation.id').to.be.a('string');
     expect(installation.get('api_id'), 'db.installation.api_id').to.equal(expected.id);
     expect(installation.get('properties'), 'db.installation.properties').to.eql(expected.properties);
+    expect(installation.get('events_count'), 'db.installation.events_count').to.equal(expected.eventsCount);
     expect(installation.get('created_at'), 'db.installation.created_at').to.be.sameMoment(expected.createdAt);
     expect(installation.get('updated_at'), 'db.installation.updated_at').to.be.sameMoment(expected.updatedAt);
+    expect(installation.get('first_started_at'), 'db.installation.first_started_at').to.be.sameMoment(expected.firstStartedAt);
+
+    if (expected.lastEventAt) {
+      expect(installation.get('last_event_at'), 'db.installation.last_event_at').to.be.sameMoment(expected.lastEventAt);
+    } else {
+      expect(installation.get('last_event_at'), 'db.installation.last_event_at').to.be.null;
+    }
 
     expect(installation.get('shared_secret'), 'db.installation.shared_secret').to.be.an.instanceof(Buffer);
     expect(installation.get('shared_secret').toString('hex'), 'db.installation.shared_secret').to.match(/^[0-9a-f]{512}$/);
