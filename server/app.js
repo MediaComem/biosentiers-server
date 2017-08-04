@@ -1,5 +1,6 @@
 const bodyParser = require('body-parser');
 const config = require('../config');
+const cors = require('cors');
 const errors = require('./lib/express-errors');
 const express = require('express');
 const path = require('path');
@@ -12,6 +13,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
 app.use(bodyParser.json());
+app.use(cors());
 
 // Log all HTTP requests.
 app.use(require('./lib/express-logger'));
