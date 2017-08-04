@@ -9,6 +9,8 @@
   "watch": [
     "bin/www",
     "config/**/*.js",
-    "server/**/*.js"
+    "server/**/*.js",
+    "server/mails/**/mail.html",
+    "server/mails/**/mail.txt"
   ]
 }
