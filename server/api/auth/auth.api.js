@@ -224,7 +224,7 @@ async function createInvitationLink(req) {
   return _.extend({}, invitation, {
     createdAt: createdAt.toDate(),
     expiresAt: expiresAt.toDate(),
-    link: `${config.baseUrl}/register?${queryString}`,
+    link: `${config.baseUrl}/register/complete?${queryString}`,
     sent: sent
   });
 }
