@@ -63,3 +63,14 @@ exports.iso8601 = function() {
     }
   };
 };
+
+exports.equals = function(value) {
+  return function(context) {
+    if (context.get('value') !== value) {
+      context.addError({
+        validator: 'equals',
+        message: `must be ${JSON.stringify(value)}`
+      });
+    }
+  };
+};

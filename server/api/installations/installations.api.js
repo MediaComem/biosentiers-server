@@ -56,6 +56,7 @@ function validateInstallation(req, patchMode) {
         this.while(this.isSet()),
         this.type('string'),
         this.notBlank(),
+        this.string(1, 36),
         installationValidations.idAvailable()
       )),
       this.validate(

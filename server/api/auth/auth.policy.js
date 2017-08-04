@@ -3,7 +3,7 @@ const policy = require('../policy');
 const usersPolicy = require('../users/users.policy');
 
 exports.canInvite = function(req) {
-  return policy.authenticated(req) && policy.hasRole(req, 'admin');
+  return true;
 };
 
 exports.canBeInvited = function(req) {
@@ -19,7 +19,13 @@ exports.canRetrievePasswordReset = function(req) {
 };
 
 exports.serializeInvitationLink = function(req, link) {
-  return _.pick(link, 'firstName', 'lastName', 'email', 'role', 'link', 'sent', 'createdAt', 'expiresAt');
+
+  const serialized = _.pick(link, 'firstName', 'lastName', 'email', 'role', 'sent', 'createdAt', 'expiresAt');
+  if (policy.hasRole(req, 'admin')) {
+    serialized.link = link.link;
+  }
+
+  return serialized;
 };
 
 exports.serializePasswordResetLink = function(req, link) {
@@ -29,7 +35,7 @@ exports.serializePasswordResetLink = function(req, link) {
     createdAt: link.createdAt
   };
 
-  if (req.currentUser && req.currentUser.hasRole('admin')) {
+  if (policy.hasRole(req, 'admin')) {
     serialized.link = link.link;
     serialized.user = usersPolicy.serialize(req, link.user);
   }

@@ -207,15 +207,24 @@ async function createInvitationLink(req) {
 
   const createdAt = moment();
   const expiresAt = moment(createdAt).add(2, 'days');
-  const invitation = _.pick(req.body, 'email', 'role', 'firstName', 'lastName');
-  const sent = req.body.sent;
 
-  const token = jwt.generateToken(_.extend({}, invitation, {
+  const invitation = _.defaults(_.pick(req.body, 'email', 'role', 'firstName', 'lastName', 'sent'), {
+    role: 'user'
+  });
+
+  const sent = _.get(req.body, 'sent', true);
+
+  const jwtOptions = _.extend({}, invitation, {
     authType: 'invitation',
     iat: createdAt.unix(),
-    exp: expiresAt.unix(),
-    iss: req.currentUser.get('api_id')
-  }));
+    exp: expiresAt.unix()
+  });
+
+  if (req.currentUser) {
+    jwtOptions.iss = req.currentUser.get('api_id');
+  }
+
+  const token = jwt.generateToken(jwtOptions);
 
   const queryString = qs.stringify({
     invitation: token
@@ -274,6 +283,7 @@ async function createPasswordResetLink(req) {
 }
 
 function validateInvitation(req) {
+  const admin = req.currentUser && req.currentUser.get('active') && req.currentUser.hasRole('admin');
   return validate.requestBody(req, function() {
     return this.parallel(
       this.validate(
@@ -285,14 +295,15 @@ function validateInvitation(req) {
       ),
       this.validate(
         this.json('/role'),
-        this.required(),
+        this.while(this.isSet()),
         this.type('string'),
-        this.inclusion({ in: User.roles })
+        admin ? this.inclusion({ in: User.roles }) : validations.equals('user')
       ),
       this.validate(
         this.json('/sent'),
-        this.required(),
-        this.type('boolean')
+        this.while(this.isSet()),
+        this.type('boolean'),
+        admin ? _.noop : validations.equals(true)
       )
     );
   });
