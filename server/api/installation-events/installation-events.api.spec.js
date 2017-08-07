@@ -408,7 +408,10 @@ describe('Installation events API', function() {
           .testApi('POST', `/installations/${data.installation.get('api_id')}/events`)
           .set('Authorization', `Bearer ${otherInstallation.generateJwt()}`)
           .send(data.reqBody)
-          .then(expectRes.forbidden('You are not authorized to access this resource. Authenticate with a user account that has more privileges.'));
+          .then(expectRes.notFound({
+            code: 'record.notFound',
+            message: `No installation was found with ID ${data.installation.get('api_id')}.`
+          }));
       });
     });
   });
@@ -464,7 +467,10 @@ describe('Installation events API', function() {
           return spec
             .testApi('GET', `/installation-events/${data.event.get('api_id')}`)
             .set('Authorization', `Bearer ${otherInstallation.generateJwt()}`)
-            .then(expectRes.notFound(`No installation event was found with ID ${data.event.get('api_id')}.`));
+            .then(expectRes.notFound({
+              code: 'record.notFound',
+              message: `No installation event was found with ID ${data.event.get('api_id')}.`
+            }));
         });
       });
     });
@@ -556,7 +562,10 @@ describe('Installation events API', function() {
         return spec
           .testApi('GET', '/installation-events')
           .set('Authorization', `Bearer ${data.installations[0].generateJwt()}`)
-          .expect(expectRes.unauthorized('The Bearer token supplied in the Authorization header is invalid or has expired.'));
+          .expect(expectRes.unauthorized({
+            code: 'auth.invalidAuthorization',
+            message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+          }));
       });
     });
 
@@ -586,7 +595,10 @@ describe('Installation events API', function() {
         return spec
           .testApi('GET', `/installations/${data.installations[0].get('api_id')}/events`)
           .set('Authorization', `Bearer ${data.installations[1].generateJwt()}`)
-          .expect(expectRes.forbidden('You are not authorized to access this resource. Authenticate with a user account that has more privileges.'));
+          .expect(expectRes.notFound({
+            code: 'record.notFound',
+            message: `No installation was found with ID ${data.installations[0].get('api_id')}.`
+          }));
       });
     });
   });

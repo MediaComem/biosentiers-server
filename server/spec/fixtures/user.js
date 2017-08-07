@@ -7,13 +7,8 @@ const User = require('../../models/user');
 exports.user = function(data) {
   data = data || {};
 
-  const fullName = exports.fullName();
-  if (!fullName.match(/^\w+\s+\w+$/)) {
-    throw new Error(`Expected random name "${fullName}" to contain a first and last name`);
-  }
-
-  const firstName = data.firstName || fullName.replace(/ .*/, '');
-  const lastName = data.lastName || fullName.replace(/^[^ ]+ /, '');
+  const firstName = data.firstName || exports.firstName();
+  const lastName = data.lastName || exports.lastName();
 
   return spec.createRecord(User, {
     first_name: firstName,
@@ -32,9 +27,17 @@ exports.admin = function(data) {
 };
 
 exports.email = generator.unique(function(firstName, lastName) {
-  return `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`;
+  if (firstName && lastName) {
+    return `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`;
+  } else {
+    return `${chance.word()}@example.com`;
+  }
 });
 
-exports.fullName = generator.unique(function() {
-  return chance.name();
+exports.firstName = generator.unique(function() {
+  return chance.first().substring(0, 20);
+});
+
+exports.lastName = generator.unique(function() {
+  return chance.last().substring(0, 20);
 });

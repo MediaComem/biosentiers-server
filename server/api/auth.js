@@ -43,7 +43,7 @@ exports.authenticate = function(options) {
  * @param {Object} options.required - Whether authentication is required (see `authenticate`). Defaults to false.
  */
 exports.authorize = function(policy, resourceName, options) {
-  if (_.isObject(resourceName)) {
+  if (_.isPlainObject(resourceName)) {
     options = resourceName;
     resourceName = null;
   }
@@ -52,7 +52,8 @@ exports.authorize = function(policy, resourceName, options) {
     authenticate: true,
     required: false,
     active: false,
-    resourceName: resourceName
+    resourceId: req => req.params.id,
+    resourceName: resourceName,
   });
 
   let chain = compose();
@@ -73,7 +74,7 @@ exports.authorize = function(policy, resourceName, options) {
       if (authorized) {
         next();
       } else {
-        next(options.resourceName ? errors.recordNotFound(resourceName, req.params.id) : errors.forbidden());
+        next(options.resourceName ? errors.recordNotFound(options.resourceName, options.resourceId(req)) : errors.forbidden());
       }
     }).catch(next);
   });
