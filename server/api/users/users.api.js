@@ -102,25 +102,17 @@ exports.fetchUser = fetcher({
 
 exports.fetchMe = function(req, res, next) {
   BPromise.resolve().then(() => {
-    if (req.jwtToken.authType == 'user') {
-      return new User().where('api_id', req.jwtToken.sub).fetch().then(user => {
-        if (!user) {
-          throw new Error(`Could not fetch user from JWT token "sub" property (${req.jwtToken.sub})`);
-        }
-
-        req.user = user;
-      });
-    } else if (req.jwtToken.authType == 'passwordReset') {
-      return new User().where('email', req.jwtToken.email).fetch().then(user => {
-        if (!user) {
-          throw errors.unauthorized();
-        }
-
-        req.user = user;
-      });
-    } else {
+    if (!_.includes([ 'user', 'passwordReset' ], req.jwtToken.authType)) {
       throw new Error('Cannot fetch "me" user; no valid "user" or "passwordReset" JWT token found');
     }
+
+    return new User().where('api_id', req.jwtToken.sub).fetch().then(user => {
+      if (!user) {
+        throw errors.unauthorized();
+      }
+
+      req.user = user;
+    });
   }).then(next, next);
 };
 

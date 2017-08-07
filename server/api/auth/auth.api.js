@@ -262,6 +262,7 @@ async function createPasswordResetLink(req) {
     email: email,
     authType: 'passwordReset',
     passwordResetCount: passwordResetCount + 1,
+    sub: passwordResetUser.get('api_id'),
     iat: moment(now).unix(),
     exp: moment(now).add(1, 'hour').unix()
   };

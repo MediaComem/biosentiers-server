@@ -30,7 +30,7 @@ exports.canUpdate = function(req) {
     return false;
   } else if (policy.hasRole(req, 'admin')) {
     return true;
-  } else if (req.jwtToken.authType == 'passwordReset') {
+  } else if (req.jwtToken.authType == 'passwordReset' && req.jwtToken.sub == req.user.get('api_id')) {
     return policy.forbidChanges(req, {
       firstName: { value: req.user.get('first_name'), message: 'change the first name of a user' },
       lastName: { value: req.user.get('last_name'), message: 'change the last name of a user' },
