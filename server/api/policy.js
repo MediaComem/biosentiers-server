@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const errors = require('./errors');
+const validate = require('./validate');
 
 exports.authenticated = function(req, options) {
   options = _.defaults({}, options, {
@@ -36,19 +37,6 @@ exports.authenticated = function(req, options) {
   return req.currentUser || req.jwtToken;
 };
 
-exports.forbidChanges = function(req, changes) {
-  _.each(changes, (config, bodyProperty) => exports.forbidChange(req, bodyProperty, config.value, config.message));
-  return true;
-};
-
-exports.forbidChange = function(req, bodyProperty, currentValue, description) {
-  if (_.has(req.body, bodyProperty) && req.body[bodyProperty] !== currentValue) {
-    throw errors.forbiddenChange(description);
-  } else {
-    return true;
-  }
-};
-
 exports.hasRole = function(req, role) {
   if (!req) {
     throw new Error('The request must be given as the first argument');
@@ -63,4 +51,21 @@ exports.hasRole = function(req, role) {
 
 exports.sameRecord = function(r1, r2) {
   return r1 && r2 && r1.constructor === r2.constructor && r1.get('id') && r1.get('id') === r2.get('id');
+};
+
+exports.validateChanges = function(req, callback) {
+  return validate.value(req, 403, function() {
+    return this.validate(this.property('body'), this.if(context => _.isObject(context.get('value')), callback));
+  });
+};
+
+exports.unchanged = function(expectedValue, message) {
+  return function(context) {
+    if (context.get('valueSet') && context.get('value') !== expectedValue) {
+      context.addError({
+        validator: 'auth.unchanged',
+        message: `You are not authorized to ${message || 'set this property'}. Authenticate with a user account that has more privileges.`
+      });
+    }
+  };
 };

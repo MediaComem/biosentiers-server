@@ -29,9 +29,10 @@ exports.requestBody = function(req, ...callbacks) {
   }
 
   const options = _.isPlainObject(_.last(callbacks)) ? callbacks.pop() : {};
+  const status = options.status || 422;
   const types = options.types || [ 'object' ];
 
-  return exports.value(req, 422, function() {
+  return exports.value(req, status, function() {
     return this.validate(this.property('body'), this.type(...types), ...callbacks);
   });
 };

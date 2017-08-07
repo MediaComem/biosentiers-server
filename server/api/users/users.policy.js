@@ -7,10 +7,10 @@ exports.canCreate = function(req) {
   if (!policy.authenticated(req, { authTypes: [ 'user', 'invitation' ] })) {
     return false;
   } else if (req.jwtToken.authType == 'invitation') {
-    return policy.forbidChanges(req, {
-      active: { value: true, message: 'set the status of an invited user' },
-      email: { value: req.jwtToken.email, message: 'set the e-mail of an invited user' },
-      role: { value: req.jwtToken.role, message: 'set the role of an invited user' }
+    return validateChanges(req, {
+      active: true,
+      email: req.jwtToken.email,
+      role: req.jwtToken.role
     });
   } else {
     return policy.hasRole(req, 'admin');
@@ -31,19 +31,9 @@ exports.canUpdate = function(req) {
   } else if (policy.hasRole(req, 'admin')) {
     return true;
   } else if (req.jwtToken.authType == 'passwordReset' && req.jwtToken.sub == req.user.get('api_id')) {
-    return policy.forbidChanges(req, {
-      firstName: { value: req.user.get('first_name'), message: 'change the first name of a user' },
-      lastName: { value: req.user.get('last_name'), message: 'change the last name of a user' },
-      active: { value: req.user.get('active'), message: 'change the status of a user' },
-      email: { value: req.user.get('email'), message: 'change the e-mail of a user' },
-      role: { value: req.user.get('role'), message: 'change the role of a user' }
-    });
+    return validateChanges(req);
   } else if (policy.sameRecord(req.currentUser, req.user)) {
-    return policy.forbidChanges(req, {
-      active: { value: req.currentUser.get('active'), message: 'change the status of a user' },
-      email: { value: req.currentUser.get('email'), message: 'change the e-mail of a user' },
-      role: { value: req.currentUser.get('role'), message: 'change the role of a user' }
-    });
+    return validateChanges(req);
   }
 };
 
@@ -101,3 +91,42 @@ exports.serialize = function(req, user) {
 
   return serialized;
 };
+
+function validateChanges(req, values = {}) {
+  if (!req.currentUser && !req.jwtToken) {
+    throw new Error('Request must be authenticated');
+  }
+
+  return policy.validateChanges(req, function(context) {
+
+    const validations = [
+      context.validate(
+        context.json('/active'),
+        policy.unchanged(_.has(values, 'active') ? values.active : req.user.get('active'), 'set the status of a user')
+      ),
+      context.validate(
+        context.json('/email'),
+        policy.unchanged(_.has(values, 'email') ? values.email : req.user.get('email'), 'set the e-mail of a user')
+      ),
+      context.validate(
+        context.json('/role'),
+        policy.unchanged(_.has(values, 'role') ? values.role : req.user.get('role'), 'set the role of a user')
+      )
+    ];
+
+    if (!policy.sameRecord(req.currentUser, req.user) && req.jwtToken.authType != 'invitation') {
+      validations.unshift(
+        context.validate(
+          context.json('/firstName'),
+          policy.unchanged(_.has(values, 'firstName') ? values.firstName : req.user.get('first_name'), 'set the first name of a user')
+        ),
+        context.validate(
+          context.json('/lastName'),
+          policy.unchanged(_.has(values, 'lastName') ? values.lastName : req.user.get('last_name'), 'set the last name of a user')
+        )
+      );
+    }
+
+    return context.validate(context.parallel(...validations));
+  });
+}

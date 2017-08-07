@@ -282,9 +282,9 @@ describe('Users API', function() {
       });
 
       const changes = [
-        { property: 'active', value: false, errorDescription: 'the status of a user' },
-        { property: 'email', value: 'bar@example.com', errorDescription: 'the e-mail of a user' },
-        { property: 'role', value: 'admin', errorDescription: 'the role of a user' }
+        { property: 'active', value: false, errorDescription: 'set the status of a user' },
+        { property: 'email', value: 'bar@example.com', errorDescription: 'set the e-mail of a user' },
+        { property: 'role', value: 'admin', errorDescription: 'set the role of a user' }
       ];
 
       _.each(changes, function(change) {
@@ -297,7 +297,7 @@ describe('Users API', function() {
             .testApi('PATCH', '/users/' + data.user.get('api_id'))
             .set('Authorization', 'Bearer ' + data.user.generateJwt())
             .send(body)
-            .then(expectRes.forbidden('You are not authorized to change ' + change.errorDescription + '. Authenticate with a user account that has more privileges.'));
+            .then(expectRes.forbidden(`You are not authorized to ${change.errorDescription}. Authenticate with a user account that has more privileges.`));
         });
       });
     });
