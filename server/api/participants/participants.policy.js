@@ -4,27 +4,27 @@ const Participant = require('../../models/participant');
 const policy = require('../policy');
 
 exports.canCreate = function(req) {
-  // TODO: only an admin or the creator of the excursion should be allowed to create participants
+  // FIXME: only an admin or the creator of the excursion should be allowed to create participants
   return policy.authenticated(req);
 };
 
 exports.canList = function(req) {
-  // TODO: only an admin or the creator of the excursion should be allowed to list its participants
+  // FIXME: only an admin or the creator of the excursion should be allowed to list its participants
   return policy.authenticated(req);
 };
 
 exports.canUpdate = function(req) {
-  // TODO: only an admin or the creator of the excursion should be allowed to edit participants
+  // FIXME: only an admin or the creator of the excursion should be allowed to edit participants
   return policy.authenticated(req);
 };
 
 exports.canDelete = function(req) {
-  // TODO: only an admin or the creator of the excursion should be allowed to delete participants
+  // FIXME: only an admin or the creator of the excursion should be allowed to delete participants
   return policy.authenticated(req);
 };
 
 exports.scope = function(req) {
-  // TODO: only the participants of excursions created by the user should be visible to non-admins
+  // FIXME: only the participants of excursions created by the user should be visible to non-admins
   return new Participant();
 };
 
