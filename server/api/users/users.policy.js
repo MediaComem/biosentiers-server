@@ -1,7 +1,7 @@
 const _ = require('lodash');
-const parsing = require('../parsing');
 const policy = require('../policy');
 const User = require('../../models/user');
+const { ensureExpressRequest } = require('../../lib/express');
 
 exports.canCreate = function(req) {
   if (!policy.authenticated(req, { authTypes: [ 'user', 'invitation' ] })) {
@@ -48,11 +48,13 @@ exports.scope = function(req) {
   return scope;
 }
 
-exports.parse = function(req, user = new User(), ...extras) {
-  parsing.parseJsonIntoRecord(req.body, user, 'firstName', 'lastName', ...extras);
+exports.parse = function(req, data, user = new User(), ...extras) {
+  ensureExpressRequest(req);
+
+  user.parseFrom(data, 'firstName', 'lastName', ...extras);
 
   if (req.jwtToken.authType == 'invitation' || policy.hasRole(req, 'admin')) {
-    parsing.parseJsonIntoRecord(req.body, user, 'active', 'email', 'role');
+    user.parseFrom(data, 'active', 'email', 'role');
   }
 
   return user;

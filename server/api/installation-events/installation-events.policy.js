@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const InstallationEvent = require('../../models/installation-event');
-const parsing = require('../parsing');
 const policy = require('../policy');
 
 exports.canCreate = function(req) {
@@ -23,9 +22,9 @@ exports.scope = function(req) {
   return new InstallationEvent();
 };
 
-exports.parse = function(event, installationEvent = new InstallationEvent()) {
-  parsing.parseJsonIntoRecord(event, installationEvent, 'type', 'version', 'occurredAt');
-  installationEvent.updateProperties(event.properties);
+exports.parse = function(data, installationEvent = new InstallationEvent()) {
+  installationEvent.parseFrom(data, 'type', 'version', 'occurredAt');
+  installationEvent.updateProperties(data.properties);
   return installationEvent;
 };
 

@@ -19,7 +19,7 @@ exports.resourceName = 'participant';
 exports.create = route.transactional(async function(req, res) {
   await np(validateParticipant(req));
 
-  const participant = policy.parse(req);
+  const participant = policy.parse(req.body);
   participant.set('excursion_id', req.excursion.get('id'));
 
   await participant.load(EAGER_LOAD);
@@ -42,7 +42,7 @@ exports.list = route(async function(req, res) {
 
 exports.update = route.transactional(async function(req, res) {
   await np(validateParticipant(req, true));
-  policy.parse(req, req.participant);
+  policy.parse(req.body, req.participant);
   await req.participant.save();
   res.send(await serialize(req, req.participant, policy));
 });

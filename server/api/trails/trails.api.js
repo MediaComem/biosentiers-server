@@ -14,7 +14,7 @@ exports.resourceName = 'trail';
 
 exports.create = route.transactional(async function(req, res) {
   await np(validateTrail(req));
-  const trail = policy.parse(req);
+  const trail = policy.parse(req.body);
   await trail.save();
   res.status(201).send(await serialize(req, trail, policy));
 });

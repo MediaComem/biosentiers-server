@@ -32,7 +32,7 @@ exports.create = route.transactional(async function(req, res) {
 
   await np(validateUser(req));
 
-  const user = policy.parse(req, new User(), 'password');
+  const user = policy.parse(req, req.body, new User(), 'password');
   await user.save();
 
   if (req.jwtToken.authType == 'invitation') {
@@ -77,7 +77,7 @@ exports.update = route.transactional(async function(req, res) {
     // Increment the password reset count so that the token is no longer valid
     await user.incrementPasswordResetCount();
   } else {
-    policy.parse(req, user);
+    policy.parse(req, req.body, user);
   }
 
   const password = req.body.password;

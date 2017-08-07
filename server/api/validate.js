@@ -2,6 +2,7 @@ const _ = require('lodash');
 const BPromise = require('bluebird');
 const Collection = require('../db').Collection;
 const valdsl = require('../lib/valdsl');
+const { ensureExpressRequest } = require('../lib/express');
 
 exports.value = function(value, status, ...callbacks) {
   if (!callbacks.length) {
@@ -22,11 +23,7 @@ exports.value = function(value, status, ...callbacks) {
 };
 
 exports.requestBody = function(req, ...callbacks) {
-  if (!req) {
-    throw new Error('The first argument must be the request object');
-  } else if (!req.app) {
-    throw new Error('The first argument does not appear to be an Express request object');
-  }
+  ensureExpressRequest(req);
 
   const options = _.isPlainObject(_.last(callbacks)) ? callbacks.pop() : {};
   const status = options.status || 422;

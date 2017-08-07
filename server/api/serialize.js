@@ -1,12 +1,9 @@
 const _ = require('lodash');
 const BPromise = require('bluebird');
+const { ensureExpressRequest } = require('../lib/express');
 
 module.exports = function(req, data, serializer, options) {
-  if (!req) {
-    throw new Error('The request object must be given as the first argument');
-  } else if (!req.app) {
-    throw new Error('The first argument does not appear to be an Express request object');
-  }
+  ensureExpressRequest(req);
 
   if (_.isFunction(serializer.serialize)) {
     serializer = serializer.serialize;

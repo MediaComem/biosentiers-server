@@ -1,7 +1,6 @@
 const _ = require('lodash');
 const Installation = require('../../models/installation');
 const policy = require('../policy');
-const { parseJsonIntoRecord } = require('../parsing');
 
 exports.canCreate = function(req) {
   return true;
@@ -23,13 +22,13 @@ exports.scope = function(req) {
   return new Installation();
 };
 
-exports.parse = function(req, installation = new Installation()) {
-  if (req.body.id && !installation.has('api_id')) {
-    installation.set('api_id', req.body.id.toLowerCase());
+exports.parse = function(data, installation = new Installation()) {
+  if (data.id && !installation.has('api_id')) {
+    installation.set('api_id', data.id.toLowerCase());
   }
 
-  parseJsonIntoRecord(req.body, installation, 'firstStartedAt');
-  installation.updateProperties(req.body.properties);
+  installation.parseFrom(data, 'firstStartedAt');
+  installation.updateProperties(data.properties);
 
   return installation;
 };

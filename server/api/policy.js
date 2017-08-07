@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const errors = require('./errors');
 const validate = require('./validate');
+const { ensureExpressRequest } = require('../lib/express');
 
 exports.authenticated = function(req, options) {
   options = _.defaults({}, options, {
@@ -38,11 +39,8 @@ exports.authenticated = function(req, options) {
 };
 
 exports.hasRole = function(req, role) {
-  if (!req) {
-    throw new Error('The request must be given as the first argument');
-  } else if (!req.app) {
-    throw new Error('The first argument does not appear to be an Express request object');
-  } else if (!_.isString(role)) {
+  ensureExpressRequest(req);
+  if (!_.isString(role)) {
     throw new Error('Role is required and must be a string');
   }
 

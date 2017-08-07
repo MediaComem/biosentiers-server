@@ -2,7 +2,6 @@ const _ = require('lodash');
 const db = require('../../db');
 const Excursion = require('../../models/excursion');
 const params = require('../lib/params');
-const parsing = require('../parsing');
 const policy = require('../policy');
 const trailsPolicy = require('../trails/trails.policy');
 const usersPolicy = require('../users/users.policy');
@@ -39,9 +38,8 @@ exports.scope = function(req) {
   }
 };
 
-exports.parse = function(req, excursion = new Excursion()) {
-  parsing.parseJsonIntoRecord(req.body, excursion, 'name', 'plannedAt', 'trailId');
-  return excursion;
+exports.parse = function(data, excursion = new Excursion()) {
+  return excursion.parseFrom(data, 'name', 'plannedAt', 'trailId');
 };
 
 exports.serialize = function(req, excursion) {

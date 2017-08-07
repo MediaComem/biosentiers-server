@@ -4,6 +4,7 @@ const BPromise = require('bluebird');
 const db = require('../db');
 const Collection = db.Collection;
 const inflection = require('inflection');
+const moment = require('moment');
 const uuid = require('uuid');
 const wellKnown = require('wellknown');
 
@@ -74,6 +75,12 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
     }
 
     return parsed;
+  },
+
+  parseFrom(source, ...properties) {
+    const parsers = _.map(properties, createPropertiesParser);
+    _.each(parsers, parser => parser(source, this));
+    return this;
   },
 
   format: function(attributes) {
@@ -199,7 +206,47 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
   transaction: function(callback) {
     return bookshelf.transaction(callback);
   }
-});
+});;
+
+function createPropertiesParser(parser) {
+  if (_.isFunction(parser)) {
+    return parser;
+  }
+
+  let propertiesMap;
+  if (_.isPlainObject(parser)) {
+    propertiesMap = parser;
+  } else if (_.isString(parser)) {
+    propertiesMap = {
+      [inflection.underscore(parser)]: parser
+    };
+  } else if (_.isArray(parser)) {
+    propertiesMap = _.reduce(parser, function(memo, property) {
+      memo[inflection.underscore(property)] = property;
+      return memo;
+    }, {});
+  }
+
+  if (!propertiesMap) {
+    throw new Error('Parser must be a string, array, object or function');
+  }
+
+  return function(source, record) {
+    _.each(propertiesMap, function(sourceProperty, recordProperty) {
+      if (_.isFunction(sourceProperty)) {
+        record.set(recordProperty, sourceProperty(source));
+      } else if (_.has(source, sourceProperty)) {
+
+        let value = source[sourceProperty];
+        if (sourceProperty.match(/.At$/)) {
+          value = moment(value).toDate();
+        }
+
+        record.set(recordProperty, value);
+      }
+    });
+  };
+}
 
 function cleanUpProperties(properties) {
   if (_.isPlainObject(properties)) {

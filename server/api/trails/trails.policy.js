@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const params = require('../lib/params');
-const parsing = require('../parsing');
 const policy = require('../policy');
 const Trail = require('../../models/trail');
 
@@ -24,12 +23,10 @@ exports.scope = function(req) {
   return new Trail();
 };
 
-exports.parse = function(req, trail = new Trail()) {
-  parsing.parseJsonIntoRecord(req.body, trail, 'name', {
+exports.parse = function(data, trail = new Trail()) {
+  return trail.parseFrom(data, 'name', {
     geom: 'geometry'
   });
-
-  return trail;
 };
 
 exports.serialize = function(req, trail, options) {

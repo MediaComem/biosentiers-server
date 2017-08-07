@@ -15,7 +15,7 @@ exports.resourceName = 'installation';
 
 exports.create = route.transactional(async function(req, res) {
   await np(validateInstallation(req));
-  const installation = policy.parse(req);
+  const installation = policy.parse(req.body);
   await installation.save();
   res.status(201).send(await serialize(req, installation, policy, { sharedSecret: true }));
 });
@@ -38,7 +38,7 @@ exports.retrieve = route(async function(req, res) {
 
 exports.update = route.transactional(async function(req, res) {
   await np(validateInstallation(req, true));
-  policy.parse(req, req.installation);
+  policy.parse(req.body, req.installation);
   await req.installation.save();
   res.send(await serialize(req, req.installation, policy));
 });
