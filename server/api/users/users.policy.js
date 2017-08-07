@@ -49,7 +49,13 @@ exports.scope = function(req) {
 }
 
 exports.parse = function(req, user = new User(), ...extras) {
-  return parsing.parseJsonIntoRecord(req.body, user, 'active', 'email', 'role', 'firstName', 'lastName', ...extras);
+  parsing.parseJsonIntoRecord(req.body, user, 'firstName', 'lastName', ...extras);
+
+  if (req.jwtToken.authType == 'invitation' || policy.hasRole(req, 'admin')) {
+    parsing.parseJsonIntoRecord(req.body, user, 'active', 'email', 'role');
+  }
+
+  return user;
 };
 
 exports.serialize = function(req, user) {
