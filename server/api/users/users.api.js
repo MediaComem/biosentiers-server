@@ -63,7 +63,7 @@ exports.retrieve = route(async function(req, res) {
 exports.update = route.transactional(async function(req, res) {
 
   const user = req.user;
-  await np(validateUserForUpdate(req));
+  await np(validateUser(req, true));
 
   const passwordChangeRequest = req.jwtToken.authType == 'passwordReset';
   if (passwordChangeRequest) {
@@ -133,20 +133,22 @@ function search(query, req) {
   return query.query(qb => qb.whereRaw(`(${clauses.join(' OR ')})`, Array(clauses.length).fill(term)));
 }
 
-function validateUser(req) {
+function validateUser(req, patchMode) {
   return validate.requestBody(req, function() {
     return this.parallel(
       this.validate(
         this.json('/firstName'),
+        this.if(patchMode, this.while(this.isSet())),
         this.required(),
         this.type('string'),
-        this.notEmpty()
+        this.notBlank()
       ),
       this.validate(
         this.json('/lastName'),
+        this.if(patchMode, this.while(this.isSet())),
         this.required(),
         this.type('string'),
-        this.notEmpty()
+        this.notBlank()
       ),
       this.validate(
         this.json('/active'),
@@ -155,6 +157,7 @@ function validateUser(req) {
       ),
       this.validate(
         this.json('/email'),
+        this.if(patchMode, this.while(this.isSet())),
         this.required(),
         this.type('string'),
         this.notEmpty(),
@@ -163,35 +166,23 @@ function validateUser(req) {
       ),
       this.validate(
         this.json('/password'),
+        this.if(patchMode, this.while(this.isSet())),
         this.required(),
         this.type('string'),
-        this.notEmpty()
+        this.notBlank()
       ),
       this.validate(
         this.json('/role'),
         this.while(this.isSet()),
         this.type('string'),
         this.inclusion({ in: User.roles })
-      )
-    );
-  });
-}
-
-function validateUserForUpdate(req) {
-  return validate.requestBody(req, function() {
-    return this.parallel(
-      this.validate(
-        this.json('/password'),
-        this.while(this.changed()),
-        this.type('string'),
-        this.notEmpty()
       ),
       this.if(
         context => {
           const password = context.get('value').password;
           const previousPassword = context.get('value').previousPassword;
           // Validate previous password if password is set (except when doing a password reset or for admins)
-          return password !== undefined && req.jwtToken.authType != 'passwordReset' && (!req.currentUser.hasRole('admin') || previousPassword);
+          return patchMode && password !== undefined && req.jwtToken.authType != 'passwordReset' && (!req.currentUser.hasRole('admin') || previousPassword);
         },
         this.validate(
           this.json('/previousPassword'),

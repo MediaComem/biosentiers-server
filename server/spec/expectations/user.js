@@ -10,9 +10,15 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   expect(actual, 'user').to.be.an('object');
 
   const keys = [ 'id', 'href', 'firstName', 'lastName', 'email', 'active', 'role', 'createdAt', 'updatedAt' ];
-  _.each([ 'lastActiveAt', 'lastLoginAt', 'loginCount' ], attr => {
+  _.each([ 'loginCount' ], attr => {
     if (_.has(expected, attr)) {
       keys.push(attr);
+    }
+  });
+
+  _.each([ 'lastActive', 'lastLogin' ], attr => {
+    if (spec.hasExpectedTimestamp(expected, attr)) {
+      keys.push(`${attr}At`);
     }
   });
 
@@ -30,11 +36,11 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   expect(actual.active, 'user.active').to.equal(_.get(expected, 'active', true));
   expect(actual.role, 'user.role').to.equal(_.get(expected, 'role', 'user'));
   expect(actual.loginCount, 'user.loginCount').to.equal(expected.loginCount);
-  expect(actual.lastActiveAt, 'user.lastActiveAt').to.equal(expected.lastActiveAt);
-  expect(actual.lastLoginAt, 'user.lastLoginAt').to.equal(expected.lastLoginAt);
 
   spec.expectTimestamp('user', actual, expected, 'created');
   spec.expectTimestamp('user', actual, expected, 'updated');
+  spec.expectTimestamp('user', actual, expected, 'lastActive', { required: false });
+  spec.expectTimestamp('user', actual, expected, 'lastLogin', { required: false });
 
   // Check that the corresponding user exists in the database.
   return module.exports.inDb(actual.id, _.extend({}, actual, _.pick(expected, 'password')));

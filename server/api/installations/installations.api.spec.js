@@ -267,6 +267,7 @@ describe('Installations API', function() {
     function getExpectedInstallation(index, changes) {
       const installation = data.installations[index];
       return _.extend({
+        id: installation.get('api_id'),
         properties: installation.get('properties'),
         eventsCount: installation.get('events_count'),
         createdAt: installation.get('created_at'),

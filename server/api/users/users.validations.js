@@ -55,7 +55,7 @@ exports.previousPasswordMatches = function(user, jwtToken) {
     const passwordResetRequest = jwtToken.authType == 'passwordReset';
 
     // If the previous password is incorrect and this is not a password reset request, add a validation error
-    if (password && !passwordResetRequest && (!previousPassword || !user.hasPassword(previousPassword))) {
+    if (password !== undefined && !passwordResetRequest && (!previousPassword || !user.hasPassword(previousPassword))) {
       context.json('/previousPassword')(context);
 
       context.addError({

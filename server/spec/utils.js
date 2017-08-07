@@ -38,8 +38,9 @@ exports.testUpdate = function(path, body) {
 };
 
 exports.setUp = function(data, beforeResolve) {
+
+  const originalData = data;
   if (!_.isFunction(data)) {
-    const originalData = data;
     data = function() {
       return originalData;
     };
@@ -51,12 +52,16 @@ exports.setUp = function(data, beforeResolve) {
 
   const beforeSetup = moment();
 
-  return BPromise.resolve()
-    .then(exports.cleanDatabase)
-    .then(() => BPromise.all(_.map(beforeResolve, func => func())))
+  let promise = BPromise.resolve()
+  if (!originalData.databaseCleaned) {
+    promise = promise.then(exports.cleanDatabase)
+  }
+
+  return promise.then(() => BPromise.all(_.map(beforeResolve, func => func())))
     .then(() => exports.resolve(data(), true))
     .then(function(resolvedData) {
       _.defaults(resolvedData, {
+        databaseCleaned: true,
         beforeSetup: beforeSetup,
         now: moment()
       });
@@ -151,6 +156,10 @@ exports.responseExpectationFactory = function(func) {
       return func(res, ...args);
     });
   };
+};
+
+exports.hasExpectedTimestamp = function(expected, timestampType) {
+  return _.some([ timestampType, `${timestampType}At`, `${timestampType}After`, `${timestampType}Before` ], property => expected[property]);
 };
 
 exports.expectTimestamp = function(type, actual, expected, timestampType, options) {

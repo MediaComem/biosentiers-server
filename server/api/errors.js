@@ -34,7 +34,7 @@ exports.invalidAuthorization = function() {
 // HTTP 403 Forbidden
 
 exports.forbidden = function(code, message) {
-  return new ApiError(403, code, message || 'You are not authorized to access this resource. Authenticate with a user account that has more privileges.');
+  return new ApiError(403, code || 'auth.forbidden', message || 'You are not authorized to access this resource. Authenticate with a user account that has more privileges.');
 };
 
 // HTTP 404 Not Found

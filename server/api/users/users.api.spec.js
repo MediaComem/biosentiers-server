@@ -6,7 +6,7 @@ const moment = require('moment');
 const spec = require('../../spec/utils');
 const userFixtures = require('../../spec/fixtures/user');
 
-describe('Users API', function() {
+describe.only('Users API', function() {
 
   let data;
   beforeEach(function() {
@@ -27,7 +27,27 @@ describe('Users API', function() {
       };
     });
 
-    describe('for an admin', function() {
+    it('should deny anonymous access', async function() {
+      return spec
+        .testApi('POST', '/users', data.reqBody)
+        .then(expectRes.unauthorized({
+          code: 'auth.missingAuthorization',
+          message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
+        }));
+    });
+
+    it('should deny access to a user', async function() {
+      const user = await userFixtures.user();
+      return spec
+        .testApi('POST', '/users', data.reqBody)
+        .set('Authorization', `Bearer ${user.generateJwt()}`)
+        .then(expectRes.forbidden({
+          code: 'auth.forbidden',
+          message: 'You are not authorized to access this resource. Authenticate with a user account that has more privileges.'
+        }));
+    });
+
+    describe('as an admin', function() {
       beforeEach(function() {
         return spec.setUp(data, () => {
           data.admin = userFixtures.admin();
@@ -39,28 +59,31 @@ describe('Users API', function() {
         const expected = _.defaults({
           active: false,
           role: 'user',
+          loginCount: 0,
           createdAfter: data.now,
           updatedAt: 'createdAt'
         }, data.reqBody);
 
         return spec
           .testCreate('/users', data.reqBody)
-          .set('Authorization', 'Bearer ' + data.admin.generateJwt())
+          .set('Authorization', `Bearer ${data.admin.generateJwt()}`)
           .then(expectUser.inBody(expected));
       });
 
       it('should create an admin user', function() {
+
         data.reqBody.active = true;
         data.reqBody.role = 'admin';
 
         const expected = _.defaults({
+          loginCount: 0,
           createdAfter: data.now,
           updatedAt: 'createdAt'
         }, data.reqBody);
 
         return spec
           .testCreate('/users', data.reqBody)
-          .set('Authorization', 'Bearer ' + data.admin.generateJwt())
+          .set('Authorization', `Bearer ${data.admin.generateJwt()}`)
           .then(expectUser.inBody(expected));
       });
 
@@ -75,14 +98,14 @@ describe('Users API', function() {
 
         return spec
           .testApi('POST', '/users')
-          .set('Authorization', 'Bearer ' + data.admin.generateJwt())
+          .set('Authorization', `Bearer ${data.admin.generateJwt()}`)
           .send(body)
           .then(expectRes.invalid([
             {
-              message: 'must not be empty',
+              message: 'must not be blank',
               type: 'json',
               location: '/firstName',
-              validator: 'notEmpty',
+              validator: 'notBlank',
               value: '',
               valueSet: true
             },
@@ -123,7 +146,7 @@ describe('Users API', function() {
       });
     });
 
-    describe('for an invited user', function() {
+    describe('as an invited user', function() {
       beforeEach(function() {
         return spec.setUp(data);
       });
@@ -137,6 +160,7 @@ describe('Users API', function() {
       }
 
       it('should create a user', async function() {
+
         const invitation = await generateInvitation();
 
         const expected = _.defaults({
@@ -154,6 +178,7 @@ describe('Users API', function() {
       });
 
       it('should create an admin user', async function() {
+
         const invitation = await generateInvitation({
           role: 'admin'
         });
@@ -162,6 +187,7 @@ describe('Users API', function() {
           password: 'letmein',
           active: true,
           role: 'admin',
+          loginCount: 0,
           createdAfter: data.now,
           updatedAt: 'createdAt'
         }, data.reqBody);
@@ -173,6 +199,7 @@ describe('Users API', function() {
       });
 
       it('should create a user with the first and last name in the invitation token by default', async function() {
+
         const firstName = userFixtures.firstName();
         const lastName = userFixtures.lastName();
         const invitation = await generateInvitation({
@@ -199,6 +226,7 @@ describe('Users API', function() {
       });
 
       it('should accept unchanged admin properties', async function() {
+
         const invitation = await generateInvitation();
 
         _.extend(data.reqBody, {
@@ -222,12 +250,13 @@ describe('Users API', function() {
       });
 
       const changes = [
-        { property: 'active', value: false, errorDescription: 'set the status of a user' },
-        { property: 'email', value: 'bar@example.com', errorDescription: 'set the e-mail of a user' },
-        { property: 'role', value: 'admin', errorDescription: 'set the role of a user' }
+        { property: 'active', value: false, description: 'set the status of a user' },
+        { property: 'email', value: 'bar@example.com', description: 'set the e-mail of a user' },
+        { property: 'role', value: 'admin', description: 'set the role of a user' }
       ];
 
       it('should prevent modifying admin properties', async function() {
+
         const invitation = await generateInvitation({
           email: data.reqBody.email,
           role: 'user'
@@ -239,50 +268,34 @@ describe('Users API', function() {
             .testApi('POST', '/users')
             .set('Authorization', `Bearer ${invitation}`)
             .send(data.reqBody)
-            .then(expectRes.forbidden([
-              {
-                message: 'You are not authorized to set the role of a user. Authenticate with a user account that has more privileges.',
+            .then(expectRes.forbidden(changes.map(change => {
+              return {
+                message: `You are not authorized to ${change.description}. Authenticate with a user account that has more privileges.`,
                 type: 'json',
-                location: '/role',
+                location: `/${change.property}`,
                 validator: 'auth.unchanged',
-                value: 'admin',
+                value: change.value,
                 valueSet: true
-              },
-              {
-                message: 'You are not authorized to set the e-mail of a user. Authenticate with a user account that has more privileges.',
-                type: 'json',
-                location: '/email',
-                validator: 'auth.unchanged',
-                value: 'bar@example.com',
-                valueSet: true
-              },
-              {
-                message: 'You are not authorized to set the status of a user. Authenticate with a user account that has more privileges.',
-                type: 'json',
-                location: '/active',
-                validator: 'auth.unchanged',
-                value: false,
-                valueSet: true
-              }
-            ]));
+              };
+            })));
       });
 
       _.each(changes, function(change) {
         it(`should prevent modifying the "${change.property}" property`, async function() {
+
           const invitation = await generateInvitation({
             email: data.reqBody.email,
             role: 'user'
           });
 
-          const body = {};
-          body[change.property] = change.value;
+          const body = { [change.property]: change.value };
 
           return spec
             .testApi('POST', '/users')
             .set('Authorization', `Bearer ${invitation}`)
             .send(body)
             .then(expectRes.forbidden({
-              message: `You are not authorized to ${change.errorDescription}. Authenticate with a user account that has more privileges.`,
+              message: `You are not authorized to ${change.description}. Authenticate with a user account that has more privileges.`,
               type: 'json',
               location: `/${change.property}`,
               validator: 'auth.unchanged',
@@ -294,9 +307,82 @@ describe('Users API', function() {
     });
   });
 
+  describe('GET /users', function() {
+    beforeEach(function() {
+      return spec.setUp(data, () => {
+        data.users = [
+          userFixtures.user({
+            createdAt: moment().subtract(1, 'day').toDate()
+          }),
+          userFixtures.user({
+            createdAt: moment().subtract(3, 'hours').toDate()
+          }),
+          userFixtures.admin({
+            createdAt: moment().subtract(2, 'months').toDate()
+          })
+        ];
+
+        data.user = Promise.all(data.users).then(users => users[0]);
+        data.admin = Promise.all(data.users).then(users => users[2]);
+      });
+    });
+
+    function getExpectedUser(index, changes) {
+      const user = data.users[index];
+      return _.extend({
+        id: user.get('api_id'),
+        firstName: user.get('first_name'),
+        lastName: user.get('last_name'),
+        email: user.get('email'),
+        active: user.get('active'),
+        role: user.get('role'),
+        loginCount: user.get('login_count'),
+        lastActiveAt: user.get('last_active_at'),
+        lastLoginAt: user.get('last_login_at'),
+        createdAt: user.get('created_at'),
+        updatedAt: user.get('updated_at')
+      }, changes);
+    }
+
+    describe('as an admin', function() {
+      it('should retrieve users by descending creation date', function() {
+        return spec
+          .testRetrieve('/users')
+          .set('Authorization', `Bearer ${data.admin.generateJwt()}`)
+          .then(expectUser.listInBody([
+            getExpectedUser(1),
+            getExpectedUser(0),
+            getExpectedUser(2, {
+              lastActiveAfter: data.now
+            })
+          ]));
+      });
+    });
+
+    it('should deny anonymous access', function() {
+      return spec
+        .testApi('GET', '/users')
+        .expect(expectRes.unauthorized({
+          code: 'auth.missingAuthorization',
+          message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
+        }));
+    });
+
+    it('should deny access to a user', function() {
+      return spec
+        .testApi('GET', '/users')
+        .set('Authorization', `Bearer ${data.user.generateJwt()}`)
+        .then(expectRes.forbidden({
+          code: 'auth.forbidden',
+          message: 'You are not authorized to access this resource. Authenticate with a user account that has more privileges.'
+        }));
+    });
+  });
+
   describe('with an existing user', function() {
     beforeEach(function() {
       return spec.setUp(data, () => {
+
         data.threeDaysAgo = moment().subtract(3, 'days');
 
         const firstName = userFixtures.firstName();
@@ -324,19 +410,18 @@ describe('Users API', function() {
     }
 
     describe('GET /api/users/:id', function() {
-
       it('should retrieve a user', function() {
         return spec
-          .testRetrieve('/users/' + data.user.get('api_id'))
-          .set('Authorization', 'Bearer ' + data.user.generateJwt())
+          .testRetrieve(`/users/${data.user.get('api_id')}`)
+          .set('Authorization', `Bearer ${data.user.generateJwt()}`)
           .then(expectUser.inBody(getExpectedExistingUser()));
       });
 
       it('should allow an admin to retrieve another user', function() {
         return userFixtures.admin().then(function(admin) {
           return spec
-            .testRetrieve('/users/' + data.user.get('api_id'))
-            .set('Authorization', 'Bearer ' + admin.generateJwt())
+            .testRetrieve(`/users/${data.user.get('api_id')}`)
+            .set('Authorization', `Bearer ${admin.generateJwt()}`)
             .then(expectUser.inBody(getExpectedExistingUser({ loginCount: 0 })));
         });
       });
@@ -344,7 +429,7 @@ describe('Users API', function() {
       it('should not retrieve a non-existent user', function() {
         return spec
           .testApi('GET', '/users/foo')
-          .set('Authorization', 'Bearer ' + data.user.generateJwt())
+          .set('Authorization', `Bearer ${data.user.generateJwt()}`)
           .expect(expectRes.notFound({
             code: 'record.notFound',
             message: 'No user was found with ID foo.'
@@ -354,8 +439,8 @@ describe('Users API', function() {
       it('should prevent a user from retrieving another user', function() {
         return userFixtures.user().then(function(anotherUser) {
           return spec
-            .testApi('GET', '/users/' + data.user.get('api_id'))
-            .set('Authorization', 'Bearer ' + anotherUser.generateJwt())
+            .testApi('GET', `/users/${data.user.get('api_id')}`)
+            .set('Authorization', `Bearer ${anotherUser.generateJwt()}`)
             .expect(expectRes.notFound({
               code: 'record.notFound',
               message: `No user was found with ID ${data.user.get('api_id')}.`
@@ -363,9 +448,9 @@ describe('Users API', function() {
         });
       });
 
-      it('should prevent an anonymous user from retrieving a user', function() {
+      it('should deny anonymous access', function() {
         return spec
-          .testApi('GET', '/users/' + data.user.get('api_id'))
+          .testApi('GET', `/users/${data.user.get('api_id')}`)
           .expect(expectRes.unauthorized({
             code: 'auth.missingAuthorization',
             message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
@@ -385,23 +470,32 @@ describe('Users API', function() {
       it('should update a user', function() {
 
         const body = {
+          firstName: userFixtures.firstName(),
+          lastName: userFixtures.lastName(),
           password: 'letmein',
           previousPassword: 'changeme'
         };
 
+        const expected = getExpectedPatchedUser(body);
+
         return spec
-          .testUpdate('/users/' + data.user.get('api_id'))
-          .set('Authorization', 'Bearer ' + data.user.generateJwt())
+          .testUpdate(`/users/${data.user.get('api_id')}`)
+          .set('Authorization', `Bearer ${data.user.generateJwt()}`)
           .send(body)
-          .then(expectUser.inBody(getExpectedPatchedUser(body)));
+          .then(expectUser.inBody(expected));
       });
 
       it('should allow an admin to change any property', function() {
 
+        const firstName = userFixtures.firstName();
+        const lastName = userFixtures.lastName();
         const body = {
+          firstName: firstName,
+          lastName: lastName,
           active: false,
-          email: 'foo@example.com',
-          role: 'admin'
+          email: userFixtures.email(firstName, lastName),
+          role: 'admin',
+          password: 'letmein'
         };
 
         const expected = getExpectedPatchedUser(_.defaults({
@@ -410,8 +504,8 @@ describe('Users API', function() {
 
         return userFixtures.admin().then(function(admin) {
           return spec
-            .testUpdate('/users/' + data.user.get('api_id'))
-            .set('Authorization', 'Bearer ' + admin.generateJwt())
+            .testUpdate(`/users/${data.user.get('api_id')}`)
+            .set('Authorization', `Bearer ${admin.generateJwt()}`)
             .send(body)
             .then(expectUser.inBody(expected));
         });
@@ -420,20 +514,46 @@ describe('Users API', function() {
       it('should not accept invalid properties', function() {
 
         const body = {
+          firstName: 42,
+          lastName: '  \t \n ',
           password: '',
           previousPassword: 'foo'
         };
 
-        return spec.testApi('PATCH', '/users/' + data.user.get('api_id'))
-          .set('Authorization', 'Bearer ' + data.user.generateJwt())
+        return spec.testApi('PATCH', `/users/${data.user.get('api_id')}`)
+          .set('Authorization', `Bearer ${data.user.generateJwt()}`)
           .send(body)
           .then(expectRes.invalid([
             {
-              validator: 'notEmpty',
+              validator: 'type',
+              type: 'json',
+              location: '/firstName',
+              message: 'must be of type string',
+              types: [ 'string' ],
+              value: 42,
+              valueSet: true
+            },
+            {
+              validator: 'notBlank',
+              type: 'json',
+              location: '/lastName',
+              message: 'must not be blank',
+              value: '  \t \n ',
+              valueSet: true
+            },
+            {
+              validator: 'notBlank',
               type: 'json',
               location: '/password',
-              message: 'must not be empty',
+              message: 'must not be blank',
               value: '',
+              valueSet: true
+            },
+            {
+              validator: 'user.previousPassword',
+              type: 'json',
+              location: '/previousPassword',
+              value: 'foo',
               valueSet: true
             }
           ]));
@@ -448,8 +568,8 @@ describe('Users API', function() {
 
         return userFixtures.user().then(function(anotherUser) {
           return spec
-            .testApi('PATCH', '/users/' + data.user.get('api_id'))
-            .set('Authorization', 'Bearer ' + anotherUser.generateJwt())
+            .testApi('PATCH', `/users/${data.user.get('api_id')}`)
+            .set('Authorization', `Bearer ${anotherUser.generateJwt()}`)
             .send(body)
             .expect(expectRes.notFound({
               code: 'record.notFound',
@@ -459,23 +579,45 @@ describe('Users API', function() {
       });
 
       const changes = [
-        { property: 'active', value: false, errorDescription: 'set the status of a user' },
-        { property: 'email', value: 'bar@example.com', errorDescription: 'set the e-mail of a user' },
-        { property: 'role', value: 'admin', errorDescription: 'set the role of a user' }
+        { property: 'active', value: false, description: 'set the status of a user' },
+        { property: 'email', value: 'bar@example.com', description: 'set the e-mail of a user' },
+        { property: 'role', value: 'admin', description: 'set the role of a user' }
       ];
 
-      _.each(changes, function(change) {
-        it('should prevent a user from modifying the `' + change.property + '` property', function() {
+      it('should prevent a user from modifying admin properties', function() {
 
-          const body = {};
-          body[change.property] = change.value;
+        const body = _.reduce(changes, (memo, change) => {
+          memo[change.property] = change.value;
+          return memo;
+        }, {});
+
+        return spec
+          .testApi('PATCH', `/users/${data.user.get('api_id')}`)
+          .set('Authorization', `Bearer ${data.user.generateJwt()}`)
+          .send(body)
+          .then(expectRes.forbidden(changes.map(change => {
+            return {
+              message: `You are not authorized to ${change.description}. Authenticate with a user account that has more privileges.`,
+              type: 'json',
+              location: `/${change.property}`,
+              validator: 'auth.unchanged',
+              value: change.value,
+              valueSet: true
+            };
+          })));
+      });
+
+      _.each(changes, function(change) {
+        it(`should prevent a user from modifying the "${change.property}" property`, function() {
+
+          const body = { [change.property]: change.value };
 
           return spec
-            .testApi('PATCH', '/users/' + data.user.get('api_id'))
-            .set('Authorization', 'Bearer ' + data.user.generateJwt())
+            .testApi('PATCH', `/users/${data.user.get('api_id')}`)
+            .set('Authorization', `Bearer ${data.user.generateJwt()}`)
             .send(body)
             .then(expectRes.forbidden({
-              message: `You are not authorized to ${change.errorDescription}. Authenticate with a user account that has more privileges.`,
+              message: `You are not authorized to ${change.description}. Authenticate with a user account that has more privileges.`,
               type: 'json',
               location: `/${change.property}`,
               validator: 'auth.unchanged',
@@ -483,6 +625,22 @@ describe('Users API', function() {
               valueSet: true
             }));
         });
+      });
+
+      it('should deny anonymous access', function() {
+
+        const body = {
+          password: 'letmein',
+          previousPassword: 'changeme'
+        };
+
+        return spec
+          .testApi('PATCH', `/users/${data.user.get('api_id')}`)
+          .send(body)
+          .expect(expectRes.unauthorized({
+            code: 'auth.missingAuthorization',
+            message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
+          }));
       });
     });
   });

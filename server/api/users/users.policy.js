@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const inflection = require('inflection');
 const policy = require('../policy');
 const User = require('../../models/user');
 const { ensureExpressRequest } = require('../../lib/express');
@@ -108,33 +109,25 @@ function validateChanges(req, values = {}) {
   return policy.validateChanges(req, function(context) {
 
     const validations = [
-      context.validate(
-        context.json('/active'),
-        policy.unchanged(_.has(values, 'active') ? values.active : req.user.get('active'), 'set the status of a user')
-      ),
-      context.validate(
-        context.json('/email'),
-        policy.unchanged(_.has(values, 'email') ? values.email : req.user.get('email'), 'set the e-mail of a user')
-      ),
-      context.validate(
-        context.json('/role'),
-        policy.unchanged(_.has(values, 'role') ? values.role : req.user.get('role'), 'set the role of a user')
-      )
+      validateChange(req, context, values, 'active', 'set the status of a user'),
+      validateChange(req, context, values, 'email', 'set the e-mail of a user'),
+      validateChange(req, context, values, 'role', 'set the role of a user')
     ];
 
     if (!policy.sameRecord(req.currentUser, req.user) && req.jwtToken.authType != 'invitation') {
       validations.unshift(
-        context.validate(
-          context.json('/firstName'),
-          policy.unchanged(_.has(values, 'firstName') ? values.firstName : req.user.get('first_name'), 'set the first name of a user')
-        ),
-        context.validate(
-          context.json('/lastName'),
-          policy.unchanged(_.has(values, 'lastName') ? values.lastName : req.user.get('last_name'), 'set the last name of a user')
-        )
+        validateChange(req, context, values, 'firstName', 'set the first name of a user'),
+        validateChange(req, context, values, 'lastName', 'set the last name of a user')
       );
     }
 
     return context.validate(context.parallel(...validations));
   });
+}
+
+function validateChange(req, context, values, property, description) {
+  return context.validate(
+    context.json(`/${property}`),
+    policy.unchanged(_.has(values, property) ? values[property] : req.user.get(inflection.underscore(property)), description)
+  );
 }

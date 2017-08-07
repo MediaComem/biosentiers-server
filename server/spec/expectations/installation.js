@@ -23,6 +23,10 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   expect(actual, 'res.body').to.have.all.keys(keys);
 
   expect(actual.id, 'installation.id').to.be.a('string');
+  if (expected.id) {
+    expect(actual.id, 'installation.id').to.equal(expected.id);
+  }
+
   expect(actual.href, 'installation.href').to.equal(expected.href || `/api/installations/${actual.id}`);
   expect(actual.eventsCount, 'installation.eventsCount').to.equal(expected.eventsCount);
   expect(actual.properties, 'installation.properties').to.eql(expected.properties);

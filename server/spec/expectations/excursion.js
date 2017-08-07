@@ -24,6 +24,10 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   expect(actual, 'res.body').to.have.all.keys(keys);
 
   expect(actual.id, 'excursion.id').to.be.a('string');
+  if (expected.id) {
+    expect(actual.id, 'excursion.id').to.equal(expected.id);
+  }
+
   expect(actual.href, 'excursion.href').to.equal(`/api/excursions/${actual.id}`);
 
   let expectedTrailHref = expected.trailHref;
