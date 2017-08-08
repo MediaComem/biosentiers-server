@@ -6,6 +6,7 @@ const expect = require('chai').expect;
 // FIXME: eliminate cyclical dependency between spec/utils.js & spec/expectations/response.js
 const expectations = require('./expectations/response');
 const httpStatuses = require('http-status');
+const mailer = require('../lib/mailer');
 const moment = require('moment');
 const BPromise = require('bluebird');
 const supertest = require('supertest-as-promised');
@@ -59,8 +60,13 @@ exports.setUp = function(data, beforeResolve) {
   const beforeSetup = moment();
 
   let promise = BPromise.resolve()
+
   if (!originalData.databaseCleaned) {
     promise = promise.then(exports.cleanDatabase)
+  }
+
+  if (!originalData.testMailsCleaned) {
+    promise = promise.then(exports.cleanTestMails);
   }
 
   return promise.then(() => BPromise.all(_.map(beforeResolve, func => func())))
@@ -69,7 +75,8 @@ exports.setUp = function(data, beforeResolve) {
       _.defaults(resolvedData, {
         databaseCleaned: true,
         beforeSetup: beforeSetup,
-        now: moment()
+        now: moment(),
+        testMailsCleaned: true
       });
 
       const duration = moment().diff(resolvedData.beforeSetup) / 1000;
@@ -103,6 +110,10 @@ exports.cleanDatabase = function() {
     const duration = moment().diff(start) / 1000;
     logger.debug('Cleaned database in ' + duration + 's');
   });
+};
+
+exports.cleanTestMails = function() {
+  mailer.testMails.length = 0;
 };
 
 exports.enrichExpectation = function(checkFunc) {

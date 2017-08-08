@@ -93,7 +93,9 @@ if (env == 'development') {
     bcryptCost: parseConfigInt(get('BCRYPT_COST'), 1),
     logLevel: config.logLevel || 'WARN',
     mail: {
-      enabled: false
+      enabled: false,
+      html: true,
+      fromAddress: 'biosentiers@example.com'
     }
   });
 }

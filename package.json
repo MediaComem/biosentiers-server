@@ -26,6 +26,7 @@
     "bluebird": "^3.5.0",
     "body-parser": "^1.17.2",
     "bookshelf": "^0.10.4",
+    "chai-string": "^1.4.0",
     "composable-middleware": "^0.3.0",
     "cors": "^2.8.4",
     "dotenv": "^4.0.0",

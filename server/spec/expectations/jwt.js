@@ -21,7 +21,8 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
     expect(decoded[key], `jwt.${key}`).to.equal(expected[key]);
   });
 
-  expect(decoded, 'jwt').to.have.all.keys(_.keys(expected));
+  const keys = _.reduce(expected, (memo,value,key) => value ? [ ...memo, key ] : memo, []);
+  expect(decoded, 'jwt').to.have.all.keys(keys);
 });
 
 function expectUnixTimestamp(actual, expected) {

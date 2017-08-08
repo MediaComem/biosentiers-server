@@ -3,6 +3,7 @@ const chai = require('chai');
 const moment = require('moment');
 
 chai.use(require('chai-moment'));
+chai.use(require('chai-string'));
 
 chai.use(function(chai, utils) {
   chai.Assertion.addMethod('iso8601', function(comparison, value) {

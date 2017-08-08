@@ -1,9 +1,11 @@
 const _ = require('lodash');
+const config = require('../../../config');
 const crypto = require('crypto');
 const expect = require('chai').expect;
 const expectRes = require('../../spec/expectations/response');
-const expectJwt = require('../../spec/expectations/jwt');
 const expectInstallation = require('../../spec/expectations/installation');
+const expectJwt = require('../../spec/expectations/jwt');
+const expectMails = require('../../spec/expectations/mails');
 const expectUser = require('../../spec/expectations/user');
 const installationFixtures = require('../../spec/fixtures/installation');
 const jwt = require('../../lib/jwt');
@@ -271,10 +273,38 @@ describe('Authentication API', function() {
           }));
       });
 
+      it('should not log in with a date too far in the future', function() {
+
+        const body = generateInstallationAuth(data.installation, {
+          date: moment().add(6, 'minutes').toISOString()
+        });
+
+        return spec
+          .testApi('POST', '/auth', body)
+          .then(expectRes.unauthorized({
+            code: 'auth.invalidCredentials',
+            message: 'The provided authorization is invalid or has expired.'
+          }));
+      });
+
       it('should not log in with the wrong authorization', function() {
 
         const body = generateInstallationAuth(data.installation);
         body.authorization = body.authorization.substring(0, body.authorization.length - 1);
+
+        return spec
+          .testApi('POST', '/auth', body)
+          .then(expectRes.unauthorized({
+            code: 'auth.invalidCredentials',
+            message: 'The provided authorization is invalid or has expired.'
+          }));
+      });
+
+      it('should not log in with an authorization computed with the wrong secret', function() {
+
+        const body = generateInstallationAuth(data.installation, {
+          secret: crypto.randomBytes(256).toString('hex')
+        });
 
         return spec
           .testApi('POST', '/auth', body)
@@ -359,6 +389,84 @@ describe('Authentication API', function() {
     });
   });
 
+  describe('POST /api/invitations', function() {
+    describe('as an admin', function() {
+      beforeEach(function() {
+        return spec.setUp(data, () => {
+          data.admin = userFixtures.admin();
+
+          data.reqBody = {
+            email: userFixtures.email(),
+            role: 'user',
+            sent: true
+          };
+        });
+      });
+
+      function getExpectedInvitation(...changes) {
+        return _.merge({
+          email: data.reqBody.email,
+          firstName: data.reqBody.firstName,
+          lastName: data.reqBody.lastName,
+          role: data.reqBody.role,
+          sent: data.reqBody.sent,
+          createdAfter: data.now,
+          expiresAfter: moment(data.now).add(2, 'days').toDate(),
+          token: getExpectedInvitationToken()
+        }, ...changes);
+      }
+
+      function getExpectedInvitationAsAdmin(...changes) {
+        return getExpectedInvitation({
+          link: getInvitationLinkBaseUrl()
+        }, ...changes);
+      }
+
+      function getExpectedInvitationMail(...changes) {
+        return _.merge({
+          from: `"${config.mail.fromName}" <${config.mail.fromAddress}>`,
+          to: data.reqBody.email,
+          subject: 'Invitation BioSentiers',
+          token: getExpectedInvitationToken()
+        }, ...changes);
+      }
+
+      function getExpectedInvitationToken(...changes) {
+        return _.extend({
+          authType: 'invitation',
+          email: data.reqBody.email,
+          firstName: data.reqBody.firstName,
+          lastName: data.reqBody.lastName,
+          role: data.reqBody.role,
+          sent: data.reqBody.sent,
+          iat: moment(data.now).unix(),
+          exp: moment(data.now).add(2, 'days').unix()
+        }, ...changes);
+      }
+
+      it('should send an e-mail with an invitation link', function() {
+
+        const expected = getExpectedInvitationAsAdmin({
+          token: {
+            iss: data.admin.get('api_id')
+          }
+        });
+
+        const expectedMail = getExpectedInvitationMail({
+          token: {
+            iss: data.admin.get('api_id')
+          }
+        });
+
+        return spec
+          .testCreate('/auth/invitations', data.reqBody)
+          .set('Authorization', `Bearer ${data.admin.generateJwt()}`)
+          .then(expectInvitation.inBody(expected))
+          .then(expectInvitationMailSent(expectedMail));
+      });
+    })
+  });
+
   const expectAuthenticatedUser = spec.enrichExpectation((actual, expected) => {
     expect(actual).to.have.all.keys('token', 'user');
     expectUser(actual.user, expected.user);
@@ -369,6 +477,62 @@ describe('Authentication API', function() {
     expect(actual).to.have.all.keys('token', 'installation');
     expectInstallation(actual.installation, expected.installation);
     expectJwt(actual.token, expected.token);
+  });
+
+  function expectInvitationMailSent(expected) {
+
+    const baseUrl = getInvitationLinkBaseUrl();
+    const linkRegexp = /http\:\/\/localhost[^\s\n"]+/m;
+
+    return function() {
+      expectMails(expected, mail => {
+
+        const textMatch = linkRegexp.exec(mail.text);
+        expect(textMatch[0], 'mail.text.link').to.be.a('string');
+        expectJwt(textMatch[0].substring(baseUrl.length), expected.token);
+
+        const htmlMatch = linkRegexp.exec(mail.html);
+        expect(htmlMatch[0], 'mail.html.link').to.be.a('string');
+        expectJwt(htmlMatch[0].substring(baseUrl.length), expected.token);
+      });
+    };
+  }
+
+  const expectInvitation = spec.enrichExpectation((actual, expected) => {
+
+    const keys = [ 'email', 'role', 'sent', 'createdAt', 'expiresAt' ];
+    _.each([ 'firstName', 'lastName', 'link' ], property => {
+      if (expected[property]) {
+        keys.push(property);
+      }
+    });
+
+    expect(actual, 'invitation').to.have.all.keys(keys);
+
+    expect(actual.email, 'invitation.email').to.equal(expected.email);
+    expect(actual.role, 'invitation.role').to.equal(expected.role);
+    expect(actual.sent, 'invitation.sent').to.equal(expected.sent);
+    spec.expectTimestamp('invitation', actual, expected, 'created');
+    spec.expectTimestamp('invitation', actual, expected, 'expires');
+
+    if (expected.firstName) {
+      expect(actual.firstName, 'invitation.firstName').to.equal(expected.firstName);
+    } else {
+      expect(actual, 'invitation.firstName').not.to.have.property('firstName');
+    }
+
+    if (expected.lastName) {
+      expect(actual.lastName, 'invitation.lastName').to.equal(expected.lastName);
+    } else {
+      expect(actual, 'invitation.lastName').not.to.have.property('lastName');
+    }
+
+    if (expected.link) {
+      expect(actual.link, 'invitation.link').to.startWith(expected.link);
+      expectJwt(actual.link.slice(expected.link.length), expected.token);
+    } else {
+      expect(actual, 'invitation.link').not.to.have.property('link');
+    }
   });
 
   function getExpectedInstallation(installation) {
@@ -393,5 +557,9 @@ describe('Authentication API', function() {
       createdAt: user.get('created_at'),
       updatedAt: user.get('updated_at')
     }, ...changes);
+  }
+
+  function getInvitationLinkBaseUrl() {
+    return `${config.baseUrl}/register/complete?invitation=`;
   }
 });

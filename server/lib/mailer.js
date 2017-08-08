@@ -7,6 +7,9 @@ const smtpTransport = require('nodemailer-smtp-transport');
 const logger = config.logger('mailer');
 const transporter = createTransport();
 
+const testMails = [];
+exports.testMails = testMails;
+
 exports.send = function(options) {
   if (!_.isObject(options)) {
     throw new Error('Mail options must be an object');
@@ -51,6 +54,10 @@ function createTransport() {
 
 function sendEmail(email) {
   if (!config.mail.enabled) {
+    if (config.env == 'test') {
+      testMails.push(email);
+    }
+
     return BPromise.resolve();
   } else if (config.env == 'test') {
     throw new Error('Trying to send an e-mail in test mode');
