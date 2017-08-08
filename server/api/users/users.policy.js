@@ -52,6 +52,7 @@ exports.scope = function(req) {
 exports.parse = function(req, data, user = new User(), ...extras) {
   ensureExpressRequest(req);
 
+  // Password is not parsed by default (unless given in `...extras`)
   user.parseFrom(data, 'firstName', 'lastName', ...extras);
 
   if (req.jwtToken.authType == 'invitation' || policy.hasRole(req, 'admin')) {
@@ -70,8 +71,9 @@ exports.serialize = function(req, user) {
   const admin = req.currentUser && req.currentUser.hasRole('admin');
   const sameUser = req.currentUser && req.currentUser.get('api_id') == user.get('api_id');
   const invitedUser = req.jwtToken && req.jwtToken.authType == 'invitation' && req.jwtToken.email.toLowerCase() == user.get('email').toLowerCase();
+  const passwordReset = req.jwtToken && req.jwtToken.authType == 'passwordReset' && req.jwtToken.sub == user.get('api_id');
 
-  if (admin || sameUser || invitedUser) {
+  if (admin || sameUser || invitedUser || passwordReset) {
     _.extend(serialized, {
       id: user.get('api_id'),
       href: user.get('href'),
@@ -114,7 +116,7 @@ function validateChanges(req, values = {}) {
       validateChange(req, context, values, 'role', 'set the role of a user')
     ];
 
-    if (!policy.sameRecord(req.currentUser, req.user) && req.jwtToken.authType != 'invitation') {
+    if (req.jwtToken.authType == 'passwordReset') {
       validations.unshift(
         validateChange(req, context, values, 'firstName', 'set the first name of a user'),
         validateChange(req, context, values, 'lastName', 'set the last name of a user')

@@ -20,6 +20,7 @@ const User = Abstract.extend({
   defaults: {
     active: false,
     login_count: 0,
+    password_reset_count: 0,
     role: 'user'
   },
 

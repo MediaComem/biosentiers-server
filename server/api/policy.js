@@ -54,7 +54,7 @@ exports.sameRecord = function(r1, r2) {
 exports.validateChanges = function(req, callback) {
   return validate.value(req, 403, function() {
     return this.validate(this.property('body'), this.if(context => _.isObject(context.get('value')), callback));
-  });
+  }).then(() => true);
 };
 
 exports.unchanged = function(expectedValue, message) {

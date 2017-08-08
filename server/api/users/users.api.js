@@ -65,8 +65,7 @@ exports.update = route.transactional(async function(req, res) {
   const user = req.user;
   await np(validateUser(req, true));
 
-  const passwordChangeRequest = req.jwtToken.authType == 'passwordReset';
-  if (passwordChangeRequest) {
+  if (req.jwtToken.authType == 'passwordReset') {
 
     // Make sure the password reset count in the JWT token is the same as the user's
     const passwordResetCount = user.get('password_reset_count');
@@ -80,19 +79,34 @@ exports.update = route.transactional(async function(req, res) {
     policy.parse(req, req.body, user);
   }
 
-  const password = req.body.password;
-  const previousPassword = req.body.previousPassword;
-  if (user.get('password_hash') && password && passwordChangeRequest) {
-    user.set('password', password);
-  } else if (user.get('password_hash') && password && !previousPassword && req.currentUser.hasRole('admin')) {
-    user.set('password', password);
-  } else if (user.get('password_hash') && password && user.hasPassword(previousPassword)) {
-    user.set('password', password);
+  // Change the password if appropriate
+  // (this is a double check in addition to the validation applied at the beginning of the route)
+  if (isValidPasswordResetRequest(req) || isValidAdminPasswordChange(req) || isValidPasswordChange(req)) {
+    user.set('password', req.body.password);
   }
 
   await user.save();
 
   res.send(await serialize(req, user, policy));
+
+  // Password can be changed without the previous password when doing a password reset
+  function isValidPasswordResetRequest(req) {
+    return isPasswordChange(req) && req.jwtToken.authType == 'passwordReset';
+  }
+
+  // Password can be changed without the previous password by an administrator
+  function isValidAdminPasswordChange(req) {
+    return isPasswordChange(req) && !req.body.previousPassword && req.currentUser.hasRole('admin');
+  }
+
+  // Password cannot be changed without the correct previous password by a normal user
+  function isValidPasswordChange(req) {
+    return isPasswordChange(req) && req.user.hasPassword(req.body.previousPassword);
+  }
+
+  function isPasswordChange(req) {
+    return req.user.get('password_hash') && req.body.password;
+  }
 });
 
 exports.fetchUser = fetcher({
@@ -141,14 +155,16 @@ function validateUser(req, patchMode) {
         this.if(patchMode, this.while(this.isSet())),
         this.required(),
         this.type('string'),
-        this.notBlank()
+        this.notBlank(),
+        this.string(1, 20)
       ),
       this.validate(
         this.json('/lastName'),
         this.if(patchMode, this.while(this.isSet())),
         this.required(),
         this.type('string'),
-        this.notBlank()
+        this.notBlank(),
+        this.string(1, 20)
       ),
       this.validate(
         this.json('/active'),

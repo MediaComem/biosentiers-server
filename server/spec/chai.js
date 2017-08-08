@@ -40,7 +40,7 @@ chai.use(function(chai, utils) {
     const remainingErrors = obj.slice();
 
     _.each(expectedErrors, function(expectedError) {
-      const error = _.find(remainingErrors, _.matches(expectedError));
+      const error = _.find(remainingErrors, error => _.isEqual(error, expectedError));
       if (error) {
         remainingErrors.splice(remainingErrors.indexOf(error), 1);
       } else {

@@ -11,7 +11,7 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
 
   const keys = [ 'id', 'href', 'firstName', 'lastName', 'email', 'active', 'role', 'createdAt', 'updatedAt' ];
   _.each([ 'loginCount' ], attr => {
-    if (_.has(expected, attr)) {
+    if (expected[attr] !== undefined) {
       keys.push(attr);
     }
   });
