@@ -187,7 +187,7 @@ async function authenticateInstallation(req, res) {
   const authorization = req.body.authorization;
 
   const hmac = crypto.createHmac(config.installationAuthAlgorithm, installation.get('shared_secret'));
-  hmac.update(`${nonce};${dateString}`);
+  hmac.update(`${installationId};${nonce};${dateString}`);
   const computedHmac = hmac.digest('hex');
 
   if (authorization !== computedHmac || !computedHmac) {
