@@ -53,7 +53,7 @@ const Installation = Abstract.extend({
     }
 
     const maxDate = _.maxBy(events, event => event.get('occurred_at')).get('occurred_at');
-    return bookshelf.knex.raw(`UPDATE ${this.tableName} SET events_count = events_count + ?, last_event_at = ?`, [ events.length, maxDate ]);
+    return bookshelf.knex.raw(`UPDATE ${this.tableName} SET events_count = events_count + ?, last_event_at = ? WHERE id = ?`, [ events.length, maxDate, this.get('id') ]);
   }
 });
 
