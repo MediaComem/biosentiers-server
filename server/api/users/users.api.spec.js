@@ -8,25 +8,32 @@ const moment = require('moment');
 const spec = require('../../spec/utils');
 const userFixtures = require('../../spec/fixtures/user');
 
-describe.only('Users API', function() {
+describe('Users API', function() {
 
   let data;
   beforeEach(function() {
     data = {};
   });
 
+  /**
+   * POST /api/users
+   *
+   * Tests for user creation by an admin or with an invitation JWT.
+   */
   describe('POST /api/users', function() {
     beforeEach(function() {
+      return spec.setUp(data, () => {
 
-      const firstName = userFixtures.firstName();
-      const lastName = userFixtures.lastName();
+        const firstName = userFixtures.firstName();
+        const lastName = userFixtures.lastName();
 
-      data.reqBody = {
-        firstName: firstName,
-        lastName: lastName,
-        email: userFixtures.email(firstName, lastName),
-        password: userFixtures.password()
-      };
+        data.reqBody = {
+          firstName: firstName,
+          lastName: lastName,
+          email: userFixtures.email(firstName, lastName),
+          password: userFixtures.password()
+        };
+      });
     });
 
     it('should deny anonymous access', async function() {
@@ -46,6 +53,17 @@ describe.only('Users API', function() {
         .then(expectRes.forbidden({
           code: 'auth.forbidden',
           message: 'You are not authorized to access this resource. Authenticate with a user account that has more privileges.'
+        }));
+    });
+
+    it('should deny access with a password reset token', async function() {
+      const user = await userFixtures.user();
+      return spec
+        .testApi('POST', '/users', data.reqBody)
+        .set('Authorization', `Bearer ${generatePasswordResetToken(user)}`)
+        .then(expectRes.unauthorized({
+          code: 'auth.invalidAuthorization',
+          message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
         }));
     });
 
@@ -149,21 +167,9 @@ describe.only('Users API', function() {
     });
 
     describe('as an invited user', function() {
-      beforeEach(function() {
-        return spec.setUp(data);
-      });
-
-      function generateInvitation(changes) {
-        return jwt.generateToken(_.extend({
-          authType: 'invitation',
-          email: data.reqBody.email,
-          role: 'user'
-        }, changes));
-      }
-
       it('should create a user', async function() {
 
-        const invitation = await generateInvitation();
+        const invitation = await generateInvitationToken();
 
         const expected = _.defaults({
           active: true,
@@ -180,7 +186,7 @@ describe.only('Users API', function() {
 
       it('should create an admin user', async function() {
 
-        const invitation = await generateInvitation({
+        const invitation = await generateInvitationToken({
           role: 'admin'
         });
 
@@ -202,7 +208,7 @@ describe.only('Users API', function() {
 
         const firstName = userFixtures.firstName();
         const lastName = userFixtures.lastName();
-        const invitation = await generateInvitation({
+        const invitation = await generateInvitationToken({
           firstName: firstName,
           lastName: lastName
         });
@@ -226,7 +232,7 @@ describe.only('Users API', function() {
 
       it('should accept unchanged admin properties', async function() {
 
-        const invitation = await generateInvitation();
+        const invitation = await generateInvitationToken();
 
         _.extend(data.reqBody, {
           active: true,
@@ -249,7 +255,7 @@ describe.only('Users API', function() {
 
       it('should not accept invalid properties', async function() {
 
-        const invitation = await generateInvitation();
+        const invitation = await generateInvitationToken();
 
         const body = {
           firstName: null,
@@ -302,7 +308,7 @@ describe.only('Users API', function() {
 
       it('should prevent modifying admin properties', async function() {
 
-        const invitation = await generateInvitation({
+        const invitation = await generateInvitationToken({
           email: data.reqBody.email,
           role: 'user'
         });
@@ -328,7 +334,7 @@ describe.only('Users API', function() {
       changes.forEach(change => {
         it(`should prevent modifying the "${change.property}" property`, async function() {
 
-          const invitation = await generateInvitation({
+          const invitation = await generateInvitationToken({
             email: data.reqBody.email,
             role: 'user'
           });
@@ -352,6 +358,11 @@ describe.only('Users API', function() {
     });
   });
 
+  /**
+   * GET /users
+   *
+   * Tests for user listing by an admin or for checking whether an e-mail is available.
+   */
   describe('GET /users', function() {
     beforeEach(function() {
       return spec.setUp(data, () => {
@@ -402,6 +413,34 @@ describe.only('Users API', function() {
         .expect(expectRes.unauthorized({
           code: 'auth.missingAuthorization',
           message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
+        }));
+    });
+
+    it('should deny access as an invited user', function() {
+
+      const invitation = generateInvitationToken({
+        email: userFixtures.email()
+      });
+
+      return spec
+        .testApi('GET', '/users')
+        .set('Authorization', `Bearer ${invitation}`)
+        .expect(expectRes.unauthorized({
+          code: 'auth.invalidAuthorization',
+          message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+        }));
+    });
+
+    it('should deny access with a password reset token', function() {
+
+      const passwordResetToken = generatePasswordResetToken(data.users[0]);
+
+      return spec
+        .testApi('GET', '/users')
+        .set('Authorization', `Bearer ${passwordResetToken}`)
+        .expect(expectRes.unauthorized({
+          code: 'auth.invalidAuthorization',
+          message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
         }));
     });
 
@@ -474,7 +513,49 @@ describe.only('Users API', function() {
       });
     });
 
+    /**
+     * GET /api/users/:id
+     *
+     * Tests for retrieving a user.
+     */
     describe('GET /api/users/:id', function() {
+      it('should deny anonymous access', function() {
+        return spec
+          .testApi('GET', `/users/${data.user.get('api_id')}`)
+          .expect(expectRes.unauthorized({
+            code: 'auth.missingAuthorization',
+            message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
+          }));
+      });
+
+      it('should deny access as an invited user', function() {
+
+        const invitation = generateInvitationToken({
+          email: userFixtures.email()
+        });
+
+        return spec
+          .testApi('GET', `/users/${data.user.get('api_id')}`)
+          .set('Authorization', `Bearer ${invitation}`)
+          .expect(expectRes.unauthorized({
+            code: 'auth.invalidAuthorization',
+            message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+          }));
+      });
+
+      it('should deny access with a password reset token', function() {
+
+        const passwordResetToken = generatePasswordResetToken(data.user);
+
+        return spec
+          .testApi('GET', `/users/${data.user.get('api_id')}`)
+          .set('Authorization', `Bearer ${passwordResetToken}`)
+          .expect(expectRes.unauthorized({
+            code: 'auth.invalidAuthorization',
+            message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+          }));
+      });
+
       describe('as a user', function() {
         it('should retrieve the user', function() {
           return spec
@@ -541,17 +622,13 @@ describe.only('Users API', function() {
             }));
         });
       });
-
-      it('should deny anonymous access', function() {
-        return spec
-          .testApi('GET', `/users/${data.user.get('api_id')}`)
-          .expect(expectRes.unauthorized({
-            code: 'auth.missingAuthorization',
-            message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
-          }));
-      });
     });
 
+    /**
+     * PATCH /api/users/:id
+     *
+     * Tests for updating a user, including changing the password (either as an authenticated user or with a password reset token).
+     */
     describe('PATCH /api/users/:id', function() {
       it('should deny anonymous access', function() {
 
@@ -566,6 +643,27 @@ describe.only('Users API', function() {
           .expect(expectRes.unauthorized({
             code: 'auth.missingAuthorization',
             message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
+          }));
+      });
+
+      it('should deny access as an invited user', function() {
+
+        const invitation = generateInvitationToken({
+          email: userFixtures.email()
+        });
+
+        const body = {
+          password: userFixtures.password(),
+          previousPassword: data.password
+        };
+
+        return spec
+          .testApi('PATCH', `/users/${data.user.get('api_id')}`)
+          .set('Authorization', `Bearer ${invitation}`)
+          .send(body)
+          .expect(expectRes.unauthorized({
+            code: 'auth.invalidAuthorization',
+            message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
           }));
       });
 
@@ -613,34 +711,7 @@ describe.only('Users API', function() {
       });
 
       describe('with a password reset token', function() {
-        function generatePasswordResetToken(user) {
-          const now = new Date();
-          return jwt.generateToken({
-            email: user.get('email'),
-            authType: 'passwordReset',
-            passwordResetCount: user.get('password_reset_count'),
-            sub: user.get('api_id'),
-            iat: moment(now).unix(),
-            exp: moment(now).add(1, 'hour').unix()
-          });
-        }
-
-        it('should update the password', function() {
-
-          const passwordResetToken = generatePasswordResetToken(data.user);
-
-          const body = {
-            password: userFixtures.password()
-          };
-
-          const expected = getExpectedUser(data.user, body, getPatches());
-
-          return spec
-            .testUpdate(`/users/${data.user.get('api_id')}`)
-            .set('Authorization', `Bearer ${passwordResetToken}`)
-            .send(body)
-            .then(expectUser.inBody(expected));
-        });
+        shouldResetUserPassword(user => `/users/${user.get('api_id')}`);
 
         it('should not update the password of a non-existent user', async function() {
 
@@ -679,66 +750,6 @@ describe.only('Users API', function() {
               code: 'record.notFound',
               message: `No user was found with ID ${data.user.get('api_id')}.`
             }));
-        });
-
-        const changes = [
-          { property: 'active', value: false, description: 'set the status of a user' },
-          { property: 'email', value: userFixtures.email(), description: 'set the e-mail of a user' },
-          { property: 'role', value: 'admin', description: 'set the role of a user' },
-          { property: 'firstName', value: userFixtures.firstName(), description: 'set the first name of a user' },
-          { property: 'lastName', value: userFixtures.lastName(), description: 'set the last name of a user' }
-        ];
-
-        it('should prevent modifying other attributes than the password', function() {
-
-          const passwordResetToken = generatePasswordResetToken(data.user);
-
-          const body = _.reduce(changes, (memo, change) => {
-            memo[change.property] = change.value;
-            return memo;
-          }, {
-            password: userFixtures.password()
-          });
-
-          return spec
-            .testApi('PATCH', `/users/${data.user.get('api_id')}`)
-            .set('Authorization', `Bearer ${passwordResetToken}`)
-            .send(body)
-            .then(expectRes.forbidden(changes.map(change => {
-              return {
-                message: `You are not authorized to ${change.description}. Authenticate with a user account that has more privileges.`,
-                type: 'json',
-                location: `/${change.property}`,
-                validator: 'auth.unchanged',
-                value: change.value,
-                valueSet: true
-              };
-            })));
-        });
-
-        changes.forEach(change => {
-          it(`should prevent modifying the "${change.property}" property`, function() {
-
-            const passwordResetToken = generatePasswordResetToken(data.user);
-
-            const body = {
-              password: userFixtures.password(),
-              [change.property]: change.value
-            };
-
-            return spec
-              .testApi('PATCH', `/users/${data.user.get('api_id')}`)
-              .set('Authorization', `Bearer ${passwordResetToken}`)
-              .send(body)
-              .then(expectRes.forbidden({
-                message: `You are not authorized to ${change.description}. Authenticate with a user account that has more privileges.`,
-                type: 'json',
-                location: `/${change.property}`,
-                validator: 'auth.unchanged',
-                value: change.value,
-                valueSet: true
-              }));
-          });
         });
       });
 
@@ -836,6 +847,11 @@ describe.only('Users API', function() {
       });
     });
 
+    /**
+     * GET /api/me
+     *
+     * Tests for retrieving the authenticated user.
+     */
     describe('GET /api/me', function() {
       it('should deny anonymous access', function() {
         return spec
@@ -843,6 +859,34 @@ describe.only('Users API', function() {
           .expect(expectRes.unauthorized({
             code: 'auth.missingAuthorization',
             message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
+          }));
+      });
+
+      it('should deny access as an invited user', function() {
+
+        const invitation = generateInvitationToken({
+          email: userFixtures.email()
+        });
+
+        return spec
+          .testApi('GET', '/me')
+          .set('Authorization', `Bearer ${invitation}`)
+          .expect(expectRes.unauthorized({
+            code: 'auth.invalidAuthorization',
+            message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+          }));
+      });
+
+      it('should deny access with a password reset token', function() {
+
+        const passwordResetToken = generatePasswordResetToken(data.user);
+
+        return spec
+          .testApi('GET', '/me')
+          .set('Authorization', `Bearer ${passwordResetToken}`)
+          .expect(expectRes.unauthorized({
+            code: 'auth.invalidAuthorization',
+            message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
           }));
       });
 
@@ -871,6 +915,11 @@ describe.only('Users API', function() {
       });
     });
 
+    /**
+     * PATCH /api/me
+     *
+     * Tests for updating the authenticated user (e.g. profile management).
+     */
     describe('PATCH /api/me', function() {
       it('should deny anonymous access', function() {
 
@@ -889,8 +938,34 @@ describe.only('Users API', function() {
           }));
       });
 
+      it('should deny access as an invited user', function() {
+
+        const invitation = generateInvitationToken({
+          email: userFixtures.email()
+        });
+
+        const body = {
+          firstName: userFixtures.firstName(),
+          lastName: userFixtures.lastName(),
+          password: userFixtures.password(),
+          previousPassword: data.password
+        };
+
+        return spec
+          .testApi('PATCH', '/me')
+          .set('Authorization', `Bearer ${invitation}`)
+          .expect(expectRes.unauthorized({
+            code: 'auth.invalidAuthorization',
+            message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+          }));
+      });
+
       describe('as a user', function() {
         shouldUpdateUser(() => '/me');
+      });
+
+      describe('with a password reset token', function() {
+        shouldResetUserPassword(() => '/me');
       });
 
       describe('as an admin', function() {
@@ -1104,6 +1179,160 @@ describe.only('Users API', function() {
           }));
       });
     });
+  }
+
+  // Shared tests for PATCH /api/users/:id & PATCH /users/me with a password reset token
+  function shouldResetUserPassword(urlFunc) {
+    it('should update the password', function() {
+
+      const passwordResetToken = generatePasswordResetToken(data.user);
+
+      const body = {
+        password: userFixtures.password()
+      };
+
+      const expected = getExpectedUser(data.user, body, getPatches());
+
+      return spec
+        .testUpdate(urlFunc(data.user))
+        .set('Authorization', `Bearer ${passwordResetToken}`)
+        .send(body)
+        .then(expectUser.inBody(expected));
+    });
+
+    it('should not update the password if the password reset count does not match', async function() {
+
+      const passwordResetToken = generatePasswordResetToken(data.user);
+      await data.user.save({ password_reset_count: 1 });
+
+      const body = {
+        password: userFixtures.password()
+      };
+
+      return spec
+        .testApi('PATCH', urlFunc(data.user))
+        .set('Authorization', `Bearer ${passwordResetToken}`)
+        .send(body)
+        .expect(expectRes.unauthorized({
+          code: 'auth.invalidAuthorization',
+          message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+        }));
+    });
+
+    it('should not update the password twice', async function() {
+
+      const passwordResetToken = generatePasswordResetToken(data.user);
+
+      const body = {
+        password: userFixtures.password()
+      };
+
+      const expected = getExpectedUser(data.user, body, getPatches());
+
+      await spec
+        .testUpdate(urlFunc(data.user))
+        .set('Authorization', `Bearer ${passwordResetToken}`)
+        .send(body)
+        .then(expectUser.inBody(expected));
+
+      body.password = userFixtures.password();
+
+      return spec
+        .testApi('PATCH', urlFunc(data.user))
+        .set('Authorization', `Bearer ${passwordResetToken}`)
+        .send(body)
+        .expect(expectRes.unauthorized({
+          code: 'auth.invalidAuthorization',
+          message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+        }));
+    });
+
+    const changes = [
+      { property: 'active', value: false, description: 'set the status of a user' },
+      { property: 'email', value: userFixtures.email(), description: 'set the e-mail of a user' },
+      { property: 'role', value: 'admin', description: 'set the role of a user' },
+      { property: 'firstName', value: userFixtures.firstName(), description: 'set the first name of a user' },
+      { property: 'lastName', value: userFixtures.lastName(), description: 'set the last name of a user' }
+    ];
+
+    it('should prevent modifying other attributes than the password', function() {
+
+      const passwordResetToken = generatePasswordResetToken(data.user);
+
+      const body = _.reduce(changes, (memo, change) => {
+        memo[change.property] = change.value;
+        return memo;
+      }, {
+        password: userFixtures.password()
+      });
+
+      return spec
+        .testApi('PATCH', urlFunc(data.user))
+        .set('Authorization', `Bearer ${passwordResetToken}`)
+        .send(body)
+        .then(expectRes.forbidden(changes.map(change => {
+          return {
+            message: `You are not authorized to ${change.description}. Authenticate with a user account that has more privileges.`,
+            type: 'json',
+            location: `/${change.property}`,
+            validator: 'auth.unchanged',
+            value: change.value,
+            valueSet: true
+          };
+        })));
+    });
+
+    changes.forEach(change => {
+      it(`should prevent modifying the "${change.property}" property`, function() {
+
+        const passwordResetToken = generatePasswordResetToken(data.user);
+
+        const body = {
+          password: userFixtures.password(),
+          [change.property]: change.value
+        };
+
+        return spec
+          .testApi('PATCH', urlFunc(data.user))
+          .set('Authorization', `Bearer ${passwordResetToken}`)
+          .send(body)
+          .then(expectRes.forbidden({
+            message: `You are not authorized to ${change.description}. Authenticate with a user account that has more privileges.`,
+            type: 'json',
+            location: `/${change.property}`,
+            validator: 'auth.unchanged',
+            value: change.value,
+            valueSet: true
+          }));
+      });
+    });
+  }
+
+  function generateInvitationToken(...changes) {
+
+    const claims = _.extend({
+      authType: 'invitation',
+      email: _.get(data, 'reqBody.email'),
+      role: 'user'
+    }, ...changes);
+
+    if (!claims.email) {
+      throw new Error('"email" claim is required');
+    }
+
+    return jwt.generateToken(claims);
+  }
+
+  function generatePasswordResetToken(user, ...changes) {
+    const now = new Date();
+    return jwt.generateToken(_.extend({
+      email: user.get('email'),
+      authType: 'passwordReset',
+      passwordResetCount: user.get('password_reset_count'),
+      sub: user.get('api_id'),
+      iat: moment(now).unix(),
+      exp: moment(now).add(1, 'hour').unix()
+    }, ...changes));
   }
 
   function getPatches(...changes) {
