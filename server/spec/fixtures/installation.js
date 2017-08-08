@@ -24,3 +24,7 @@ exports.installation = function(data) {
 exports.id = generator.unique(function() {
   return uuid.v4();
 });
+
+exports.nonce = generator.unique(function() {
+  return uuid.v4();
+});

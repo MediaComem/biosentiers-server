@@ -46,9 +46,7 @@ const mailTemplates = _.reduce([ 'welcome', 'passwordReset' ], (memo, name) => {
 exports.resourceName = 'auth';
 
 exports.authenticate = route(async function(req, res) {
-  if (!req.body) {
-    throw errors.unauthorized('auth.invalid', 'Authentication request must have a JSON body');
-  } else if (req.body.installation) {
+  if (req.body.installation) {
     return authenticateInstallation(req, res);
   } else {
     return authenticateUser(req, res);
@@ -136,6 +134,7 @@ exports.retrievePasswordResetRequest = route(async function(req, res) {
 });
 
 async function authenticateUser(req, res) {
+  await np(validateAuthentication(req));
 
   const email = _.get(req, 'body.email', '_').toString();
   const user = await new User({ email: email.toLowerCase() }).fetch();
@@ -150,8 +149,8 @@ async function authenticateUser(req, res) {
 
   req.currentUser = user;
 
-  // Save activity asynchronously, no need to wait
-  req.currentUser.saveNewLogin().catch(err => logger.warn('Could not save new user login', err));
+  // Increment login count of user
+  await req.currentUser.saveNewLogin().catch(err => logger.warn('Could not save new user login', err));
 
   res.status(201).json({
     token: user.generateJwt({
@@ -169,7 +168,7 @@ async function authenticateInstallation(req, res) {
     throw errors.unauthorized('auth.invalidInstallation', 'This installation does not exist or is inactive.');
   }
 
-  await validateInstallationAuth(req);
+  await np(validateInstallationAuth(req));
 
   const dateString = req.body.date;
   const date = moment(dateString);
@@ -180,7 +179,7 @@ async function authenticateInstallation(req, res) {
   const minDate = moment().subtract(config.installationAuthThreshold, 'milliseconds');
   const maxDate = moment().add(config.installationAuthThreshold, 'milliseconds');
   if (!date.isBetween(minDate, maxDate)) {
-    throw errors.unauthorized('auth.invalidCredentials', 'The provided authorization token is invalid or has expired');
+    throw errors.unauthorized('auth.invalidCredentials', 'The provided authorization is invalid or has expired.');
   }
 
   const nonce = req.body.nonce;
@@ -191,7 +190,7 @@ async function authenticateInstallation(req, res) {
   const computedHmac = hmac.digest('hex');
 
   if (authorization !== computedHmac || !computedHmac) {
-    throw errors.unauthorized('auth.invalidCredentials', 'The provided authorization token is invalid or has expired');
+    throw errors.unauthorized('auth.invalidCredentials', 'The provided authorization is invalid or has expired.');
   }
 
   res.status(201).send({
@@ -281,6 +280,25 @@ async function createPasswordResetLink(req) {
     user: passwordResetUser,
     link: `${config.baseUrl}/resetPassword?${queryString}`
   };
+}
+
+function validateAuthentication(req) {
+  return validate.requestBody(req, function() {
+    return this.parallel(
+      this.validate(
+        this.json('/email'),
+        this.required(),
+        this.type('string'),
+        this.email()
+      ),
+      this.validate(
+        this.json('/password'),
+        this.required(),
+        this.type('string'),
+        this.notBlank()
+      )
+    )
+  });
 }
 
 function validateInvitation(req) {
