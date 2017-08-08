@@ -12,9 +12,15 @@ const supertest = require('supertest-as-promised');
 
 const logger = config.logger('spec');
 
-exports.testApi = function(method, path) {
+exports.testApi = function(method, path, body) {
   method = (method || 'GET').toLowerCase();
-  return supertest(app)[method]('/api' + path);
+
+  let test = supertest(app)[method](`/api${path}`);
+  if (body) {
+    test = test.send(body);
+  }
+
+  return test;
 };
 
 exports.testCreate = function(path, body) {
