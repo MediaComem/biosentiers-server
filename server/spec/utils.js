@@ -75,26 +75,21 @@ exports.setUp = function(data, beforeResolve) {
 exports.cleanDatabase = function() {
   const start = moment();
 
+  // Sequences of tables to delete in order to avoid foreign key conflicts
   const tablesToDelete = [
-    'installation_event', 'installation',
-    'bird', 'butterfly', 'flower', 'tree',
-    'bird_species', 'bird_family', 'bird_height',
-    'butterfly_species', 'butterfly_family',
-    'flower_species', 'tree_species', 'flora_family',
-    'class', 'division', 'reign',
-    'pois_zones', 'poi', 'owner',
-    'participant',
-    'excursions_themes', 'excursions_zones', 'excursion',
-    'trails_zones',
-    'zone_point', 'zone',
-    'theme', 'trail',
-    'user_account'
+    [ 'bird', 'butterfly', 'excursions_themes', 'excursions_zones', 'flower', 'installation_event', 'participant', 'pois_zones', 'trails_zones', 'tree', 'zone_point' ],
+    [ 'bird_species', 'bird_height', 'butterfly_species', 'excursion', 'flower_species', 'installation', 'poi', 'tree_species', 'zone' ],
+    [ 'bird_family', 'butterfly_family', 'flora_family', 'owner', 'theme', 'trail', 'user_account' ],
+    [ 'class', 'division' ],
+    [ 'reign' ]
   ];
 
   let promise = BPromise.resolve();
-  _.each(tablesToDelete, (table) => {
+  _.each(tablesToDelete, tableList => {
     promise = promise.then(function() {
-      return db.knex.raw(`DELETE from ${table};`);
+      return Promise.all(tableList.map(table => {
+        return db.knex.raw(`DELETE from ${table};`);
+      }));
     })
   });
 
