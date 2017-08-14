@@ -105,15 +105,26 @@ function loadAuthenticatedResource(options) {
       return next(errors.invalidAuthorization());
     }
 
-    // No need to load the user for other auth types.
     if (req.jwtToken.authType == 'user') {
       BPromise.resolve([ req, options ]).spread(loadAuthenticatedUser).then(next, next);
     } else if (req.jwtToken.authType == 'installation') {
       BPromise.resolve([ req, options ]).spread(loadAuthenticatedInstallation).then(next, next);
+    } else if (req.jwtToken.authType == 'invitation') {
+      BPromise.resolve(req).then(ensureInvitationEmailAvailable).then(next, next);
     } else {
       next();
     }
   };
+}
+
+// If a user already exists with the same e-mail, then the invitation
+// has already been used and is no longer valid.
+function ensureInvitationEmailAvailable(req) {
+  return new User().whereEmail(req.jwtToken.email).fetch().then(function(user) {
+    if (user) {
+      throw errors.invalidAuthorization();
+    }
+  });
 }
 
 function loadAuthenticatedUser(req, options) {

@@ -513,6 +513,64 @@ describe('Users API', function() {
       });
     });
 
+    describe('POST /users', function() {
+      describe('as an admin', function() {
+        it('should not create a user with an e-mail that already exists', async function() {
+
+          const admin = await userFixtures.admin();
+
+          const body = {
+            firstName: data.user.get('first_name'),
+            lastName: data.user.get('last_name'),
+            email: data.user.get('email'),
+            password: userFixtures.password()
+          };
+
+          return spec
+            .testApi('POST', '/users', body)
+            .set('Authorization', `Bearer ${admin.generateJwt()}`)
+            .then(expectRes.invalid([
+              {
+                message: 'is already taken',
+                type: 'json',
+                location: '/email',
+                validator: 'user.emailAvailable',
+                value: data.user.get('email'),
+                valueSet: true
+              }
+            ]));
+        });
+      });
+
+      describe('as an invited user', function() {
+        it('should not create a user with an e-mail that already exists', async function() {
+
+          const invitation = generateInvitationToken({
+            firstName: data.user.get('first_name'),
+            lastName: data.user.get('last_name'),
+            email: data.user.get('email')
+          });
+
+          const body = {
+            firstName: data.user.get('first_name'),
+            lastName: data.user.get('last_name'),
+            email: data.user.get('email'),
+            password: userFixtures.password()
+          };
+
+          return spec
+            .testApi('POST', '/users', body)
+            .set('Authorization', `Bearer ${invitation}`)
+            .then(expectRes.unauthorized([
+              {
+                code: 'auth.invalidAuthorization',
+                message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+              }
+            ]));
+        });
+      });
+    });
+
     /**
      * GET /api/users/:id
      *

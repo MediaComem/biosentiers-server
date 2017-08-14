@@ -74,14 +74,6 @@ exports.createInvitation = route(async function(req, res) {
 
 exports.retrieveInvitation = route(async function(req, res) {
 
-  // If a user already exists with the same e-mail, then the invitation
-  // has already been used and is no longer valid.
-  await new User().whereEmail(req.jwtToken.email).fetch().then(function(user) {
-    if (user) {
-      throw errors.invalidAuthorization();
-    }
-  });
-
   // Returns a pseudo-resource containing the invitation's data.
   const invitation = _.extend(_.pick(req.jwtToken, 'email', 'role', 'firstName', 'lastName'), {
     createdAt: new Date(req.jwtToken.iat)
