@@ -4,18 +4,15 @@ const BPromise = require('bluebird');
 const config = require('../../../config');
 const crypto = require('crypto');
 const errors = require('../errors');
-const fs = require('fs');
-const handlebars = require('handlebars');
-const inflection = require('inflection');
 const Installation = require('../../models/installation');
 const installationsPolicy = require('../installations/installations.policy');
 const jwt = require('../../lib/jwt');
 const LocalStrategy = require('passport-local').Strategy;
 const mailer = require('../../lib/mailer');
+const mails = require('../../mails');
 const moment = require('moment');
 const np = require('../../lib/native-promisify');
 const passport = require('passport');
-const path = require('path');
 const policy = require('./auth.policy');
 const qs = require('qs');
 const route = require('../route');
@@ -31,16 +28,6 @@ setUpPassport();
 
 const logger = config.logger('api:auth');
 const passportLocalAuthenticate = BPromise.promisify(passport.authenticate('local'));
-
-const mailTemplates = _.reduce([ 'welcome', 'passwordReset' ], (memo, name) => {
-  const dir = config.path('server', 'mails', inflection.dasherize(inflection.underscore(name)));
-  memo[name] = {
-    txt: handlebars.compile(fs.readFileSync(path.join(dir, 'mail.txt'), { encoding: 'utf8' })),
-    html: handlebars.compile(fs.readFileSync(path.join(dir, 'mail.html'), { encoding: 'utf8' }))
-  };
-
-  return memo;
-}, {});
 
 // API resource name (used in some API errors).
 exports.resourceName = 'auth';
@@ -64,8 +51,8 @@ exports.createInvitation = route(async function(req, res) {
     await mailer.send({
       to: invitationLink.email,
       subject: 'Invitation BioSentiers',
-      html: mailTemplates.welcome.html(templateOptions),
-      text: mailTemplates.welcome.txt(templateOptions)
+      html: mails.welcome.html(templateOptions),
+      text: mails.welcome.txt(templateOptions)
     });
   }
 
@@ -93,8 +80,8 @@ exports.requestPasswordReset = route.transactional(async function(req, res) {
     await mailer.send({
       to: resetPasswordLink.email,
       subject: 'Changement de mot de passe BioSentiers',
-      html: mailTemplates.passwordReset.html(templateOptions),
-      text: mailTemplates.passwordReset.txt(templateOptions)
+      html: mails.passwordReset.html(templateOptions),
+      text: mails.passwordReset.txt(templateOptions)
     });
   }
 

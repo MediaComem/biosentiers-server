@@ -9,6 +9,7 @@ const expectMails = require('../../spec/expectations/mails');
 const expectUser = require('../../spec/expectations/user');
 const installationFixtures = require('../../spec/fixtures/installation');
 const jwt = require('../../lib/jwt');
+const mails = require('../../mails');
 const moment = require('moment');
 const spec = require('../../spec/utils');
 const userFixtures = require('../../spec/fixtures/user');
@@ -389,7 +390,7 @@ describe('Authentication API', function() {
     });
   });
 
-  describe('POST /api/invitations', function() {
+  describe.only('POST /api/invitations', function() {
     describe('as an admin', function() {
       beforeEach(function() {
         return spec.setUp(data, () => {
@@ -453,6 +454,7 @@ describe('Authentication API', function() {
         });
 
         const expectedMail = getExpectedInvitationMail({
+          type: 'welcome',
           token: {
             iss: data.admin.get('api_id')
           }
@@ -483,17 +485,28 @@ describe('Authentication API', function() {
 
     const baseUrl = getInvitationLinkBaseUrl();
     const linkRegexp = /http\:\/\/localhost[^\s\n"]+/m;
+    const type = expected.type;
 
     return function() {
-      expectMails(expected, mail => {
+      expectMails(_.omit(expected, 'type'), mail => {
 
         const textMatch = linkRegexp.exec(mail.text);
         expect(textMatch[0], 'mail.text.link').to.be.a('string');
-        expectJwt(textMatch[0].substring(baseUrl.length), expected.token);
+
+        const textJwt = textMatch[0].substring(baseUrl.length);
+        expectJwt(textJwt, expected.token);
+        expect(mail.text, 'mail.text').to.eql(mails[type].txt({
+          link: `${baseUrl}${textJwt}`
+        }));
 
         const htmlMatch = linkRegexp.exec(mail.html);
         expect(htmlMatch[0], 'mail.html.link').to.be.a('string');
-        expectJwt(htmlMatch[0].substring(baseUrl.length), expected.token);
+
+        const htmlJwt = htmlMatch[0].substring(baseUrl.length);
+        expectJwt(htmlJwt, expected.token);
+        expect(mail.html, 'mail.html').to.eql(mails[type].html({
+          link: `${baseUrl}${htmlJwt}`
+        }));
       });
     };
   }
