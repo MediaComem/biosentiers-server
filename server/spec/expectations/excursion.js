@@ -48,8 +48,8 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
 
   expect(actual.participantsHref, 'excursion.participantsHref').to.equal(`/api/excursions/${actual.id}/participants`);
   expect(actual.name, 'excursion.name').to.equal(expected.name);
-  expect(actual.themes, 'excursion.themes').to.eql(expected.themes || []);
-  expect(actual.zoneHrefs, 'excursion.zoneHrefs').to.eql(expected.zoneHrefs || []);
+  expect(actual.themes.sort(), 'excursion.themes').to.eql(_.get(expected, 'themes', []).sort());
+  expect(actual.zoneHrefs.sort(), 'excursion.zoneHrefs').to.eql(_.get(expected, 'zoneHrefs', []).sort());
 
   spec.expectTimestamp('excursion', actual, expected, 'planned', { required: false });
   spec.expectTimestamp('excursion', actual, expected, 'created');
@@ -71,5 +71,11 @@ module.exports.db = async function(expected) {
   expect(excursion.get('updated_at'), 'db.excursion.updated_at').to.be.sameMoment(expected.updatedAt);
   expectIfElse(excursion.get('planned_at'), 'db.excursion.planned_at', expected.plannedAt, y => y.to.be.sameMoment(expected.plannedAt), n => n.to.be.null);
 
-  // FIXME: check expected themes & zones in database
+  await excursion.load([ 'themes', 'zones']);
+
+  const themeNames = excursion.related('themes').pluck('name').sort();
+  expect(themeNames, 'db.excursion.themes').to.eql(_.get(expected, 'themes', []).sort());
+
+  const zoneHrefs = excursion.related('zones').pluck('href').sort();
+  expect(zoneHrefs, 'db.excursion.zones').to.eql(_.get(expected, 'zoneHrefs', []).sort());
 };
