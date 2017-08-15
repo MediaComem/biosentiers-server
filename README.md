@@ -13,8 +13,10 @@ This repository contains the Node.js Express server application for the BioSenti
   - [Create an admin user](#create-an-admin-user)
   - [Upgrade to the latest version](#upgrade-to-the-latest-version)
   - [Scripts](#scripts)
+- [Testing](#testing)
 - [Production](#production)
   - [Deploy in the Vagrant testing environment](#deploy-in-the-vagrant-testing-environment)
+  - [Deploy in the production environment](#deploy-in-the-production-environment)
 - [Configuration](#configuration)
   - [Server options](#server-options)
   - [Mailer options](#mailer-options)
@@ -28,7 +30,7 @@ This repository contains the Node.js Express server application for the BioSenti
 
 ## Requirements
 
-* [Node.js](https://nodejs.org) 6.x
+* [Node.js](https://nodejs.org) 8.x
 * [PostgreSQL](https://www.postgresql.org) 9.5+
 * [PostGIS](http://postgis.net) 2.2+
 
@@ -113,7 +115,18 @@ How to set up your machine to contribute to the project.
 | `npm run lint`   | Validate all JavaScript code with JSHint                               |
 | `npm run server` | Run the server (for development) with live reload                      |
 | `npm start`      | Run the server (for production)                                        |
-| `npm test`       | Run automated tests                                                    |
+
+
+
+
+
+## Testing
+
+Make sure that the test database configured in `config/local.env.js` exists and has PostGIS enabled.
+
+Run `npm run migrate:test` the first time you want to run the tests and every time you upgrade the project.
+
+Run `npm test` to launch the automated test suite.
 
 
 
@@ -136,7 +149,16 @@ These instructions assume that:
 
 ```bash
 $> deploy vagrant setup
-$> deploy vagrant ref master
+$> deploy vagrant rev master
+```
+
+
+
+### Deploy in the production environment
+
+```bash
+$> deploy production setup
+$> deploy production rev master
 ```
 
 
@@ -169,15 +191,20 @@ The application is configured through environment variables which are listed her
 * `SECRET`- The secret key used to sign authentication tokens (should be at least 100 characters long).
 * `BCRYPT_COST` - Key expansion iteraction count of the [bcrypt algorithm](https://en.wikipedia.org/wiki/Bcrypt)
                   (this is actually a power of 2 of the number of iterations). Defaults to `10`.
+* `INSTALLATION_AUTH_THRESHOLD` - The amount of time (in milliseconds) that local device clocks are allowed to differ from the server's
+                                  for app installation authentication. Defaults to `300000` (5 minutes).
+* `INSTALLATION_AUTH_ALGORITHM` - The hashing algorithm used when calculating the HMAC for app installation authentication.
+                                  Defaults to `sha512`.
 * `LOG_LEVEL` - The minimum severity of messages to logged.
                 Available levels are `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`.
                 If the level is set to `WARN`, for example, only `WARN`, `ERROR` and `FATAL` messages will be logged.
-                Defaults to `TRACE` in the development and test environments, `INFO` in the production environment.
+                Defaults to `TRACE` in the development environment, `INFO` in the production environment and `WARN` in the test environment.
 
 ### Mailer options
 
 E-mails are sent by the server for some workflows, e.g. when users register.
 
+* `MAIL_HTML` - Whether to send HTML as well as plain text e-mails. Defaults to `false`.
 * `SMTP_ENABLED` - Whether to send e-mails. Defaults to `true`.
 * `SMTP_HOST` - The host of the SMTP server.
 * `SMTP_PORT` - The port of the SMTP server.

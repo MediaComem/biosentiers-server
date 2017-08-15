@@ -34,6 +34,8 @@ module.exports = function(env) {
 
   if (env == 'test') {
     vars.PORT = '3003';
+    // This should be a separate database from the ones used for development
+    // or production, as it will be cleared every time you run the tests.
     vars.DATABASE_URL = 'postgres://localhost/biosentiers-test';
   }
 
