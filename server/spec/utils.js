@@ -119,17 +119,35 @@ exports.cleanTestMails = function() {
 exports.enrichExpectation = function(checkFunc) {
 
   checkFunc.inBody = exports.responseExpectationFactory(function(res, ...args) {
-    return BPromise.resolve().then(() => checkFunc(res.body, ...args));
+    return BPromise.resolve().then(() => checkFunc(res.body, ...args)).return(res);
   });
 
   checkFunc.listInBody = exports.responseExpectationFactory(function(res, expected, ...args) {
+    if (!_.isArray(expected)) {
+      throw new Error('Expected must be an array');
+    }
+
     expect(res.body).to.be.an('array');
 
     return BPromise
       .resolve()
       .then(() => BPromise.all(expected.map((exp, i) => checkFunc(res.body[i], exp, ...args))))
-      .then(() => expect(res.body).to.have.lengthOf(expected.length));
+      .then(() => expect(res.body).to.have.lengthOf(expected.length))
+      .return(res);
   });
+
+  checkFunc.inDb = function(...args) {
+    if (!checkFunc.db) {
+      throw new Error('Expectation function has no "db" property');
+    }
+
+    return function(res) {
+      return BPromise
+        .resolve()
+        .then(() => checkFunc.db(...args))
+        .return(res);
+    };
+  };
 
   return checkFunc;
 };
@@ -215,6 +233,20 @@ exports.expectIfElse = function(actual, desc, condition, ifFunc, elseFunc) {
 
   const fulfilled = _.isFunction(condition) ? condition() : condition;
   (fulfilled ? ifFunc : elseFunc)(expect(actual, desc));
+};
+
+exports.checkRecord = async function(model, expected, options) {
+  if (!expected.id) {
+    throw new Error('Record ID is required');
+  }
+
+  const idColumn = _.get(options, 'idColumn', 'api_id');
+  const record = await new model().where(idColumn, expected.id).fetch();
+  if (!record) {
+    throw new Error(`No database record found with ID ${expected.id}`);
+  }
+
+  return record;
 };
 
 function resolvedDataUpdater(data, update) {

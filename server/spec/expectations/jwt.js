@@ -17,11 +17,11 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
     expectUnixTimestamp(decoded[property], expected[property]);
   });
 
-  _.each(_.without(expected, ...timestamps), (value, key) => {
+  _.each(_.omit(expected, ...timestamps), (value, key) => {
     expect(decoded[key], `jwt.${key}`).to.equal(expected[key]);
   });
 
-  const keys = _.reduce(expected, (memo,value,key) => value ? [ ...memo, key ] : memo, []);
+  const keys = _.reduce(expected, (memo,value,key) => value !== undefined && value !== null ? [ ...memo, key ] : memo, []);
   expect(decoded, 'jwt').to.have.all.keys(keys);
 });
 

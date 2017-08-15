@@ -26,21 +26,19 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   spec.expectTimestamp('trail', actual, expected, 'updated');
 
   // Check that the corresponding trail exists in the database.
-  return module.exports.inDb(actual.id, actual);
+  return module.exports.db(actual);
 });
 
-module.exports.inDb = function(apiId, expected) {
+module.exports.db = async function(expected) {
 
-  const query = new Trail({ api_id: apiId }).fetch();
+  const trail = await spec.checkRecord(Trail, expected);
+  expect(trail, 'db.trail').to.be.an.instanceof(Trail);
 
-  return query.then(function(trail) {
-    expect(trail, 'db.trail').to.be.an.instanceof(Trail);
-    expect(trail.get('id'), 'db.trail.id').to.be.a('string');
-    expect(trail.get('api_id'), 'db.trail.api_id').to.equal(expected.id);
-    expect(trail.get('name'), 'db.trail.name').to.equal(expected.name);
-    expect(trail.get('geom'), 'db.trail.geom').to.eql(expected.geometry);
-    expect(trail.get('path_length'), 'db.trail.path_length').to.equal(expected.length);
-    expect(trail.get('created_at'), 'db.trail.created_at').to.be.sameMoment(expected.createdAt);
-    expect(trail.get('updated_at'), 'db.trail.updated_at').to.be.sameMoment(expected.updatedAt);
-  });
+  expect(trail.get('id'), 'db.trail.id').to.be.a('string');
+  expect(trail.get('api_id'), 'db.trail.api_id').to.equal(expected.id);
+  expect(trail.get('name'), 'db.trail.name').to.equal(expected.name);
+  expect(trail.get('geom'), 'db.trail.geom').to.eql(expected.geometry);
+  expect(trail.get('path_length'), 'db.trail.path_length').to.equal(expected.length);
+  expect(trail.get('created_at'), 'db.trail.created_at').to.be.sameMoment(expected.createdAt);
+  expect(trail.get('updated_at'), 'db.trail.updated_at').to.be.sameMoment(expected.updatedAt);
 };

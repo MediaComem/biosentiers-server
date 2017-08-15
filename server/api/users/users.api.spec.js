@@ -6,6 +6,7 @@ const expectUser = require('../../spec/expectations/user');
 const jwt = require('../../lib/jwt');
 const moment = require('moment');
 const spec = require('../../spec/utils');
+const User = require('../../models/user');
 const userFixtures = require('../../spec/fixtures/user');
 
 describe('Users API', function() {
@@ -410,7 +411,7 @@ describe('Users API', function() {
     it('should deny anonymous access otherwise', function() {
       return spec
         .testApi('GET', '/users')
-        .expect(expectRes.unauthorized({
+        .then(expectRes.unauthorized({
           code: 'auth.missingAuthorization',
           message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
         }));
@@ -425,7 +426,7 @@ describe('Users API', function() {
       return spec
         .testApi('GET', '/users')
         .set('Authorization', `Bearer ${invitation}`)
-        .expect(expectRes.unauthorized({
+        .then(expectRes.unauthorized({
           code: 'auth.invalidAuthorization',
           message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
         }));
@@ -438,7 +439,7 @@ describe('Users API', function() {
       return spec
         .testApi('GET', '/users')
         .set('Authorization', `Bearer ${passwordResetToken}`)
-        .expect(expectRes.unauthorized({
+        .then(expectRes.unauthorized({
           code: 'auth.invalidAuthorization',
           message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
         }));
@@ -580,7 +581,7 @@ describe('Users API', function() {
       it('should deny anonymous access', function() {
         return spec
           .testApi('GET', `/users/${data.user.get('api_id')}`)
-          .expect(expectRes.unauthorized({
+          .then(expectRes.unauthorized({
             code: 'auth.missingAuthorization',
             message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
           }));
@@ -595,7 +596,7 @@ describe('Users API', function() {
         return spec
           .testApi('GET', `/users/${data.user.get('api_id')}`)
           .set('Authorization', `Bearer ${invitation}`)
-          .expect(expectRes.unauthorized({
+          .then(expectRes.unauthorized({
             code: 'auth.invalidAuthorization',
             message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
           }));
@@ -608,7 +609,7 @@ describe('Users API', function() {
         return spec
           .testApi('GET', `/users/${data.user.get('api_id')}`)
           .set('Authorization', `Bearer ${passwordResetToken}`)
-          .expect(expectRes.unauthorized({
+          .then(expectRes.unauthorized({
             code: 'auth.invalidAuthorization',
             message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
           }));
@@ -626,7 +627,7 @@ describe('Users API', function() {
           return spec
             .testApi('GET', '/users/foo')
             .set('Authorization', `Bearer ${data.user.generateJwt()}`)
-            .expect(expectRes.notFound({
+            .then(expectRes.notFound({
               code: 'record.notFound',
               message: 'No user was found with ID foo.'
             }));
@@ -637,7 +638,7 @@ describe('Users API', function() {
           return spec
             .testApi('GET', `/users/${data.user.get('api_id')}`)
             .set('Authorization', `Bearer ${anotherUser.generateJwt()}`)
-            .expect(expectRes.notFound({
+            .then(expectRes.notFound({
               code: 'record.notFound',
               message: `No user was found with ID ${data.user.get('api_id')}.`
             }));
@@ -674,7 +675,7 @@ describe('Users API', function() {
           return spec
             .testApi('GET', '/users/foo')
             .set('Authorization', `Bearer ${admin.generateJwt()}`)
-            .expect(expectRes.notFound({
+            .then(expectRes.notFound({
               code: 'record.notFound',
               message: 'No user was found with ID foo.'
             }));
@@ -698,7 +699,7 @@ describe('Users API', function() {
         return spec
           .testApi('PATCH', `/users/${data.user.get('api_id')}`)
           .send(body)
-          .expect(expectRes.unauthorized({
+          .then(expectRes.unauthorized({
             code: 'auth.missingAuthorization',
             message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
           }));
@@ -719,7 +720,7 @@ describe('Users API', function() {
           .testApi('PATCH', `/users/${data.user.get('api_id')}`)
           .set('Authorization', `Bearer ${invitation}`)
           .send(body)
-          .expect(expectRes.unauthorized({
+          .then(expectRes.unauthorized({
             code: 'auth.invalidAuthorization',
             message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
           }));
@@ -741,7 +742,7 @@ describe('Users API', function() {
             .testApi('PATCH', `/users/foo`)
             .set('Authorization', `Bearer ${data.user.generateJwt()}`)
             .send(body)
-            .expect(expectRes.notFound({
+            .then(expectRes.notFound({
               code: 'record.notFound',
               message: 'No user was found with ID foo.'
             }));
@@ -761,13 +762,14 @@ describe('Users API', function() {
             .testApi('PATCH', `/users/${data.user.get('api_id')}`)
             .set('Authorization', `Bearer ${anotherUser.generateJwt()}`)
             .send(body)
-            .expect(expectRes.notFound({
+            .then(expectRes.notFound({
               code: 'record.notFound',
               message: `No user was found with ID ${data.user.get('api_id')}.`
             }));
         });
       });
 
+      // FIXME: check password reset token increment
       describe('with a password reset token', function() {
         shouldResetUserPassword(user => `/users/${user.get('api_id')}`);
 
@@ -783,7 +785,7 @@ describe('Users API', function() {
             .testApi('PATCH', `/users/foo`)
             .set('Authorization', `Bearer ${passwordResetToken}`)
             .send(body)
-            .expect(expectRes.notFound({
+            .then(expectRes.notFound({
               code: 'record.notFound',
               message: `No user was found with ID foo.`
             }));
@@ -804,7 +806,7 @@ describe('Users API', function() {
             .testApi('PATCH', `/users/${data.user.get('api_id')}`)
             .set('Authorization', `Bearer ${passwordResetToken}`)
             .send(body)
-            .expect(expectRes.notFound({
+            .then(expectRes.notFound({
               code: 'record.notFound',
               message: `No user was found with ID ${data.user.get('api_id')}.`
             }));
@@ -897,7 +899,7 @@ describe('Users API', function() {
             .testApi('PATCH', `/users/foo`)
             .set('Authorization', `Bearer ${admin.generateJwt()}`)
             .send(body)
-            .expect(expectRes.notFound({
+            .then(expectRes.notFound({
               code: 'record.notFound',
               message: 'No user was found with ID foo.'
             }));
@@ -914,7 +916,7 @@ describe('Users API', function() {
       it('should deny anonymous access', function() {
         return spec
           .testApi('GET', '/me')
-          .expect(expectRes.unauthorized({
+          .then(expectRes.unauthorized({
             code: 'auth.missingAuthorization',
             message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
           }));
@@ -929,7 +931,7 @@ describe('Users API', function() {
         return spec
           .testApi('GET', '/me')
           .set('Authorization', `Bearer ${invitation}`)
-          .expect(expectRes.unauthorized({
+          .then(expectRes.unauthorized({
             code: 'auth.invalidAuthorization',
             message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
           }));
@@ -942,7 +944,7 @@ describe('Users API', function() {
         return spec
           .testApi('GET', '/me')
           .set('Authorization', `Bearer ${passwordResetToken}`)
-          .expect(expectRes.unauthorized({
+          .then(expectRes.unauthorized({
             code: 'auth.invalidAuthorization',
             message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
           }));
@@ -990,7 +992,7 @@ describe('Users API', function() {
 
         return spec
           .testApi('PATCH', '/me')
-          .expect(expectRes.unauthorized({
+          .then(expectRes.unauthorized({
             code: 'auth.missingAuthorization',
             message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
           }));
@@ -1012,7 +1014,7 @@ describe('Users API', function() {
         return spec
           .testApi('PATCH', '/me')
           .set('Authorization', `Bearer ${invitation}`)
-          .expect(expectRes.unauthorized({
+          .then(expectRes.unauthorized({
             code: 'auth.invalidAuthorization',
             message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
           }));
@@ -1249,7 +1251,9 @@ describe('Users API', function() {
         password: userFixtures.password()
       };
 
-      const expected = getExpectedUser(data.user, body, getPatches());
+      const expected = getExpectedUser(data.user, body, getPatches(), {
+        passwordResetCount: data.user.get('password_reset_count') + 1
+      });
 
       return spec
         .testUpdate(urlFunc(data.user))
@@ -1267,14 +1271,20 @@ describe('Users API', function() {
         password: userFixtures.password()
       };
 
+      const expected = getExpectedUser(data.user, {
+        password: data.password,
+        passwordResetCount: 1
+      });
+
       return spec
         .testApi('PATCH', urlFunc(data.user))
         .set('Authorization', `Bearer ${passwordResetToken}`)
         .send(body)
-        .expect(expectRes.unauthorized({
+        .then(expectRes.unauthorized({
           code: 'auth.invalidAuthorization',
           message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
-        }));
+        }))
+        .then(expectUser.inDb(expected));
     });
 
     it('should not update the password twice', async function() {
@@ -1285,13 +1295,19 @@ describe('Users API', function() {
         password: userFixtures.password()
       };
 
-      const expected = getExpectedUser(data.user, body, getPatches());
+      const expected = getExpectedUser(data.user, body, getPatches(), {
+        passwordResetCount: data.user.get('password_reset_count') + 1
+      });
 
       await spec
         .testUpdate(urlFunc(data.user))
         .set('Authorization', `Bearer ${passwordResetToken}`)
         .send(body)
-        .then(expectUser.inBody(expected));
+        .then(expectUser.inBody(expected))
+        .then(res => {
+          expected.updatedAfter = null;
+          expected.updatedAt = res.body.updatedAt;
+        });
 
       body.password = userFixtures.password();
 
@@ -1299,10 +1315,11 @@ describe('Users API', function() {
         .testApi('PATCH', urlFunc(data.user))
         .set('Authorization', `Bearer ${passwordResetToken}`)
         .send(body)
-        .expect(expectRes.unauthorized({
+        .then(expectRes.unauthorized({
           code: 'auth.invalidAuthorization',
           message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
-        }));
+        }))
+        .then(expectUser.inDb(expected));
     });
 
     const changes = [
@@ -1324,6 +1341,8 @@ describe('Users API', function() {
         password: userFixtures.password()
       });
 
+      const expected = getExpectedUser(data.user);
+
       return spec
         .testApi('PATCH', urlFunc(data.user))
         .set('Authorization', `Bearer ${passwordResetToken}`)
@@ -1337,7 +1356,8 @@ describe('Users API', function() {
             value: change.value,
             valueSet: true
           };
-        })));
+        })))
+        .then(expectUser.inDb(expected));
     });
 
     changes.forEach(change => {
@@ -1350,6 +1370,8 @@ describe('Users API', function() {
           [change.property]: change.value
         };
 
+        const expected = getExpectedUser(data.user);
+
         return spec
           .testApi('PATCH', urlFunc(data.user))
           .set('Authorization', `Bearer ${passwordResetToken}`)
@@ -1361,7 +1383,8 @@ describe('Users API', function() {
             validator: 'auth.unchanged',
             value: change.value,
             valueSet: true
-          }));
+          }))
+          .then(expectUser.inDb(expected));
       });
     });
   }

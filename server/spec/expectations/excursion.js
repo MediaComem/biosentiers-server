@@ -56,19 +56,20 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   spec.expectTimestamp('excursion', actual, expected, 'updated');
 
   // Check that the corresponding excursion exists in the database.
-  return module.exports.inDb(actual.id, actual);
+  return module.exports.db(actual);
 });
 
-module.exports.inDb = function(apiId, expected) {
-  return new Excursion({ api_id: apiId }).fetch().then(function(excursion) {
-    expect(excursion, 'db.excursion').to.be.an.instanceof(Excursion);
-    expect(excursion.get('id'), 'db.excursion.id').to.be.a('string');
-    expect(excursion.get('api_id'), 'db.excursion.api_id').to.equal(expected.id);
-    expect(excursion.get('name'), 'db.excursion.name').to.equal(_.get(expected, 'name', null));
-    expect(excursion.get('created_at'), 'db.excursion.created_at').to.be.sameMoment(expected.createdAt);
-    expect(excursion.get('updated_at'), 'db.excursion.updated_at').to.be.sameMoment(expected.updatedAt);
-    expectIfElse(excursion.get('planned_at'), 'db.excursion.planned_at', expected.plannedAt, y => y.to.be.sameMoment(expected.plannedAt), n => n.to.be.null);
+module.exports.db = async function(expected) {
 
-    // FIXME: check expected themes & zones in database
-  });
+  const excursion = await spec.checkRecord(Excursion, expected);
+  expect(excursion, 'db.excursion').to.be.an.instanceof(Excursion);
+
+  expect(excursion.get('id'), 'db.excursion.id').to.be.a('string');
+  expect(excursion.get('api_id'), 'db.excursion.api_id').to.equal(expected.id);
+  expect(excursion.get('name'), 'db.excursion.name').to.equal(_.get(expected, 'name', null));
+  expect(excursion.get('created_at'), 'db.excursion.created_at').to.be.sameMoment(expected.createdAt);
+  expect(excursion.get('updated_at'), 'db.excursion.updated_at').to.be.sameMoment(expected.updatedAt);
+  expectIfElse(excursion.get('planned_at'), 'db.excursion.planned_at', expected.plannedAt, y => y.to.be.sameMoment(expected.plannedAt), n => n.to.be.null);
+
+  // FIXME: check expected themes & zones in database
 };

@@ -13,7 +13,7 @@ router.post('/invitations',
   controller.createInvitation);
 
 router.get('/invitations',
-  auth.authorize(policy.canBeInvited, { authTypes: [ 'invitation' ] }),
+  auth.authorize(policy.canRetrieveInvitation, { authTypes: [ 'invitation' ] }),
   controller.retrieveInvitation);
 
 router.post('/passwordResets',

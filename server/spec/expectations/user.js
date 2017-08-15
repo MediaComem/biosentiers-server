@@ -43,25 +43,27 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   spec.expectTimestamp('user', actual, expected, 'lastLogin', { required: false });
 
   // Check that the corresponding user exists in the database.
-  return module.exports.inDb(actual.id, _.extend({}, actual, _.pick(expected, 'password')));
+  return module.exports.db(_.extend({}, actual, _.pick(expected, 'password', 'passwordResetCount')));
 });
 
-module.exports.inDb = function(apiId, expected) {
-  return new User({ api_id: apiId }).fetch().then(function(user) {
-    expect(user, 'db.user').to.be.an.instanceof(User);
-    expect(user.get('id'), 'db.user.id').to.be.a('string');
-    expect(user.get('api_id'), 'db.user.api_id').to.equal(expected.id);
-    expect(user.get('first_name'), 'db.user.first_name').to.equal(expected.firstName);
-    expect(user.get('last_name'), 'db.user.last_name').to.equal(expected.lastName);
-    expect(user.get('email'), 'db.user.email').to.equal(expected.email);
-    expect(user.get('active'), 'db.user.active').to.equal(expected.active);
-    expect(user.get('role'), 'db.user.role').to.equal(expected.role);
-    expect(user.get('created_at'), 'db.user.created_at').to.be.sameMoment(expected.createdAt);
-    expect(user.get('updated_at'), 'db.user.updated_at').to.be.sameMoment(expected.updatedAt);
+module.exports.db = async function(expected) {
 
-    if (expected.password) {
-      expect(bcrypt.compareSync(expected.password, user.get('password_hash')), 'db.user.password_hash').to.equal(true);
-      expect(user.hasPassword(expected.password), 'db.user.password_hash').to.equal(true);
-    }
-  });
+  const user = await spec.checkRecord(User, expected);
+  expect(user, 'db.user').to.be.an.instanceof(User);
+
+  expect(user.get('id'), 'db.user.id').to.be.a('string');
+  expect(user.get('api_id'), 'db.user.api_id').to.equal(expected.id);
+  expect(user.get('first_name'), 'db.user.first_name').to.equal(expected.firstName);
+  expect(user.get('last_name'), 'db.user.last_name').to.equal(expected.lastName);
+  expect(user.get('email'), 'db.user.email').to.equal(expected.email);
+  expect(user.get('active'), 'db.user.active').to.equal(expected.active);
+  expect(user.get('role'), 'db.user.role').to.equal(expected.role);
+  expect(user.get('password_reset_count'), 'db.user.password_reset_count').to.equal(expected.passwordResetCount || 0);
+  expect(user.get('created_at'), 'db.user.created_at').to.be.sameMoment(expected.createdAt);
+  expect(user.get('updated_at'), 'db.user.updated_at').to.be.sameMoment(expected.updatedAt);
+
+  if (expected.password) {
+    expect(bcrypt.compareSync(expected.password, user.get('password_hash')), 'db.user.password_hash').to.equal(true);
+    expect(user.hasPassword(expected.password), 'db.user.password_hash').to.equal(true);
+  }
 };

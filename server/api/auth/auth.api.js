@@ -62,8 +62,9 @@ exports.createInvitation = route(async function(req, res) {
 exports.retrieveInvitation = route(async function(req, res) {
 
   // Returns a pseudo-resource containing the invitation's data.
-  const invitation = _.extend(_.pick(req.jwtToken, 'email', 'role', 'firstName', 'lastName'), {
-    createdAt: new Date(req.jwtToken.iat)
+  const invitation = _.extend(_.pick(req.jwtToken, 'email', 'role', 'firstName', 'lastName', 'sent'), {
+    createdAt: new Date(req.jwtToken.iat * 1000),
+    expiresAt: new Date(req.jwtToken.exp * 1000)
   });
 
   return res.json([ invitation ]);
@@ -106,7 +107,7 @@ exports.retrievePasswordResetRequest = route(async function(req, res) {
 
   // Returns a pseudo-resource containing the request's data.
   const passwordReset = _.extend(_.pick(req.jwtToken, 'email'), {
-    createdAt: new Date(req.jwtToken.iat)
+    createdAt: new Date(req.jwtToken.iat * 1000)
   });
 
   return res.json([ passwordReset ]);
@@ -186,11 +187,12 @@ async function createInvitationLink(req) {
   const createdAt = moment();
   const expiresAt = moment(createdAt).add(2, 'days');
 
-  const invitation = _.defaults(_.pick(req.body, 'email', 'role', 'firstName', 'lastName', 'sent'), {
+  const invitation = _.defaults(_.pick(req.body, 'email', 'role', 'firstName', 'lastName'), {
     role: 'user'
   });
 
   const sent = _.get(req.body, 'sent', true);
+  invitation.sent = sent;
 
   const jwtOptions = _.extend({}, invitation, {
     authType: 'invitation',
@@ -209,8 +211,8 @@ async function createInvitationLink(req) {
   });
 
   return _.extend({}, invitation, {
-    createdAt: createdAt.toDate(),
-    expiresAt: expiresAt.toDate(),
+    createdAt: createdAt.startOf('second').toDate(),
+    expiresAt: expiresAt.startOf('second').toDate(),
     link: `${config.baseUrl}/register/complete?${queryString}`,
     sent: sent
   });
@@ -237,8 +239,8 @@ async function createPasswordResetLink(req) {
   await passwordResetUser.incrementPasswordResetCount();
 
   const tokenData = {
-    email: email,
     authType: 'passwordReset',
+    email: email,
     passwordResetCount: passwordResetCount + 1,
     sub: passwordResetUser.get('api_id'),
     iat: moment(now).unix(),

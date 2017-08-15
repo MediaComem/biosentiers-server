@@ -3,10 +3,14 @@ const policy = require('../policy');
 const usersPolicy = require('../users/users.policy');
 
 exports.canInvite = function(req) {
-  return true;
+  if (policy.hasRole(req, 'admin')) {
+    return true;
+  } else {
+    return validateInvitationChanges(req);
+  }
 };
 
-exports.canBeInvited = function(req) {
+exports.canRetrieveInvitation = function(req) {
   return policy.authenticated(req, { authTypes: [ 'invitation' ] });
 };
 
@@ -30,11 +34,7 @@ exports.serializeInvitationLink = function(req, link) {
 
 exports.serializePasswordResetLink = function(req, link) {
 
-  const serialized = {
-    email: link.email,
-    createdAt: link.createdAt
-  };
-
+  const serialized = _.pick(link, 'email', 'createdAt');
   if (policy.hasRole(req, 'admin')) {
     serialized.link = link.link;
     serialized.user = usersPolicy.serialize(req, link.user);
@@ -42,3 +42,19 @@ exports.serializePasswordResetLink = function(req, link) {
 
   return serialized;
 };
+
+function validateInvitationChanges(req) {
+  return policy.validateChanges(req, function(context) {
+    return context.validate(context.parallel(
+      validateChange(context, 'role', 'user', 'set the role of an invitation'),
+      validateChange(context, 'sent', true, 'set the status of an invitation')
+    ));
+  });
+}
+
+function validateChange(context, property, value, description) {
+  return context.validate(
+    context.json(`/${property}`),
+    policy.unchanged(value, description)
+  );
+}

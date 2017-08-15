@@ -35,11 +35,12 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
   spec.expectTimestamp('installation-event', actual, expected, 'occurred');
 
   // Check that the corresponding installation event exists in the database.
-  return module.exports.inDb(actual.id, _.extend({}, actual, _.pick(expected, 'installation', 'installationId')));
+  return module.exports.db(_.extend({}, actual, _.pick(expected, 'installation', 'installationId')));
 });
 
-module.exports.inDb = async function(apiId, expected) {
-  const event = await new InstallationEvent({ api_id: apiId }).fetch();
+module.exports.db = async function(expected) {
+
+  const event = await spec.checkRecord(InstallationEvent, expected);
 
   let installation = expected.installation;
   if (!installation) {

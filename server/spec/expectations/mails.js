@@ -34,3 +34,7 @@ module.exports = function(expected, ...callbacks) {
 
   return results;
 };
+
+module.exports.none = function(result) {
+  return Promise.resolve(module.exports([])).then(() => result);
+};

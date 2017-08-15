@@ -4,14 +4,17 @@ const crypto = require('crypto');
 const expect = require('chai').expect;
 const expectRes = require('../../spec/expectations/response');
 const expectInstallation = require('../../spec/expectations/installation');
+const expectInvitation = require('../../spec/expectations/invitation');
 const expectJwt = require('../../spec/expectations/jwt');
 const expectMails = require('../../spec/expectations/mails');
+const expectPasswordReset = require('../../spec/expectations/password-reset');
 const expectUser = require('../../spec/expectations/user');
 const installationFixtures = require('../../spec/fixtures/installation');
 const jwt = require('../../lib/jwt');
 const mails = require('../../mails');
 const moment = require('moment');
 const spec = require('../../spec/utils');
+const User = require('../../models/user');
 const userFixtures = require('../../spec/fixtures/user');
 
 describe('Authentication API', function() {
@@ -390,58 +393,309 @@ describe('Authentication API', function() {
     });
   });
 
-  describe.only('POST /api/invitations', function() {
-    describe('as an admin', function() {
-      beforeEach(function() {
-        return spec.setUp(data, () => {
-          data.admin = userFixtures.admin();
+  describe('POST /api/invitations', function() {
+    beforeEach(function() {
+      return spec.setUp(data, () => {
+        data.reqBody = {
+          email: userFixtures.email()
+        };
+      });
+    });
 
-          data.reqBody = {
-            email: userFixtures.email(),
-            role: 'user',
-            sent: true
-          };
+    function getExpectedInvitation(...changes) {
+      return _.merge({
+        email: data.reqBody.email,
+        firstName: data.reqBody.firstName,
+        lastName: data.reqBody.lastName,
+        role: data.reqBody.role || 'user',
+        sent: _.get(data.reqBody, 'sent', true),
+        createdAfter: moment(data.now).startOf('second').subtract(1, 'millisecond').toDate(),
+        expiresAfter: moment(data.now).add(2, 'days').startOf('second').subtract(1, 'millisecond').toDate(),
+        token: getExpectedInvitationToken()
+      }, ...changes);
+    }
+
+    function getExpectedInvitationMail(...changes) {
+      return _.merge({
+        from: `"${config.mail.fromName}" <${config.mail.fromAddress}>`,
+        to: data.reqBody.email,
+        subject: 'Invitation BioSentiers',
+        token: getExpectedInvitationToken()
+      }, ...changes);
+    }
+
+    function getExpectedInvitationToken(...changes) {
+      return _.extend({
+        authType: 'invitation',
+        email: data.reqBody.email,
+        firstName: data.reqBody.firstName,
+        lastName: data.reqBody.lastName,
+        role: data.reqBody.role || 'user',
+        sent: _.get(data.reqBody, 'sent', true),
+        iat: moment(data.now).unix(),
+        exp: moment(data.now).add(2, 'days').unix()
+      }, ...changes);
+    }
+
+    describe('as an anonymous user', function() {
+      it('should send an e-mail with an invitation link', function() {
+
+        const expected = getExpectedInvitation();
+
+        const expectedMail = getExpectedInvitationMail({
+          type: 'welcome'
         });
+
+        return spec
+          .testCreate('/auth/invitations', data.reqBody)
+          .then(expectInvitation.inBody(expected))
+          .then(expectInvitationMailSent(expectedMail));
       });
 
-      function getExpectedInvitation(...changes) {
-        return _.merge({
-          email: data.reqBody.email,
-          firstName: data.reqBody.firstName,
-          lastName: data.reqBody.lastName,
-          role: data.reqBody.role,
-          sent: data.reqBody.sent,
-          createdAfter: data.now,
-          expiresAfter: moment(data.now).add(2, 'days').toDate(),
-          token: getExpectedInvitationToken()
-        }, ...changes);
-      }
+      it('should not send an e-mail if a user already has that e-mail address', async function() {
+        await userFixtures.user({
+          email: data.reqBody.email
+        });
+
+        return spec
+          .testApi('POST', '/auth/invitations', data.reqBody)
+          .then(expectMails.none)
+          .then(expectRes.invalid({
+            message: 'is already taken',
+            type: 'json',
+            location: '/email',
+            validator: 'user.emailAvailable',
+            value: data.reqBody.email,
+            valueSet: true
+          }));
+      });
+
+      it('should not accept invalid properties', function() {
+        _.extend(data.reqBody, {
+          email: 'foo'
+        });
+
+        return spec
+          .testApi('POST', '/auth/invitations', data.reqBody)
+          .then(expectMails.none)
+          .then(expectRes.invalid([
+            {
+              message: 'must be a valid e-mail address',
+              type: 'json',
+              location: '/email',
+              validator: 'email',
+              value: 'foo',
+              valueSet: true
+            }
+          ]));
+      });
+
+      it('should not create an invitation for an admin user', function() {
+        data.reqBody.role = 'admin';
+
+        return spec
+          .testApi('POST', '/auth/invitations', data.reqBody)
+          .then(expectMails.none)
+          .then(expectRes.forbidden([
+            {
+              message: 'You are not authorized to set the role of an invitation. Authenticate with a user account that has more privileges.',
+              type: 'json',
+              location: '/role',
+              validator: 'auth.unchanged',
+              value: 'admin',
+              valueSet: true
+            }
+          ]))
+      });
+
+      it('should not create an invitation without sending an e-mail', function() {
+        data.reqBody.sent = false;
+
+        return spec
+          .testApi('POST', '/auth/invitations', data.reqBody)
+          .then(expectMails.none)
+          .then(expectRes.forbidden([
+            {
+              message: 'You are not authorized to set the status of an invitation. Authenticate with a user account that has more privileges.',
+              type: 'json',
+              location: '/sent',
+              validator: 'auth.unchanged',
+              value: false,
+              valueSet: true
+            }
+          ]))
+      });
+
+      it('should not create an invitation with unauthorized values', function() {
+        data.reqBody.role = 'admin';
+        data.reqBody.sent = false;
+
+        return spec
+          .testApi('POST', '/auth/invitations', data.reqBody)
+          .then(expectMails.none)
+          .then(expectRes.forbidden([
+            {
+              message: 'You are not authorized to set the role of an invitation. Authenticate with a user account that has more privileges.',
+              type: 'json',
+              location: '/role',
+              validator: 'auth.unchanged',
+              value: 'admin',
+              valueSet: true
+            },
+            {
+              message: 'You are not authorized to set the status of an invitation. Authenticate with a user account that has more privileges.',
+              type: 'json',
+              location: '/sent',
+              validator: 'auth.unchanged',
+              value: false,
+              valueSet: true
+            }
+          ]))
+      });
+    });
+
+    describe('as a user', function() {
+      beforeEach(async function() {
+        data.user = await userFixtures.user();
+      });
+
+      it('should send an e-mail with an invitation link', function() {
+
+        const expected = getExpectedInvitation({
+          token: {
+            iss: data.user.get('api_id')
+          }
+        });
+
+        const expectedMail = getExpectedInvitationMail({
+          type: 'welcome',
+          token: {
+            iss: data.user.get('api_id')
+          }
+        });
+
+        return spec
+          .testCreate('/auth/invitations', data.reqBody)
+          .set('Authorization', `Bearer ${data.user.generateJwt()}`)
+          .then(expectInvitation.inBody(expected))
+          .then(expectInvitationMailSent(expectedMail));
+      });
+
+      it('should not send an e-mail if a user already has that e-mail address', async function() {
+        await userFixtures.user({
+          email: data.reqBody.email
+        });
+
+        return spec
+          .testApi('POST', '/auth/invitations', data.reqBody)
+          .set('Authorization', `Bearer ${data.user.generateJwt()}`)
+          .then(expectMails.none)
+          .then(expectRes.invalid({
+            message: 'is already taken',
+            type: 'json',
+            location: '/email',
+            validator: 'user.emailAvailable',
+            value: data.reqBody.email,
+            valueSet: true
+          }));
+      });
+
+      it('should not accept invalid properties', function() {
+        _.extend(data.reqBody, {
+          email: 'foo'
+        });
+
+        return spec
+          .testApi('POST', '/auth/invitations', data.reqBody)
+          .set('Authorization', `Bearer ${data.user.generateJwt()}`)
+          .then(expectMails.none)
+          .then(expectRes.invalid([
+            {
+              message: 'must be a valid e-mail address',
+              type: 'json',
+              location: '/email',
+              validator: 'email',
+              value: 'foo',
+              valueSet: true
+            }
+          ]));
+      });
+
+      it('should not create an invitation for an admin user', function() {
+        data.reqBody.role = 'admin';
+
+        return spec
+          .testApi('POST', '/auth/invitations', data.reqBody)
+          .set('Authorization', `Bearer ${data.user.generateJwt()}`)
+          .then(expectMails.none)
+          .then(expectRes.forbidden([
+            {
+              message: 'You are not authorized to set the role of an invitation. Authenticate with a user account that has more privileges.',
+              type: 'json',
+              location: '/role',
+              validator: 'auth.unchanged',
+              value: 'admin',
+              valueSet: true
+            }
+          ]))
+      });
+
+      it('should not create an invitation without sending an e-mail', function() {
+        data.reqBody.sent = false;
+
+        return spec
+          .testApi('POST', '/auth/invitations', data.reqBody)
+          .set('Authorization', `Bearer ${data.user.generateJwt()}`)
+          .then(expectMails.none)
+          .then(expectRes.forbidden([
+            {
+              message: 'You are not authorized to set the status of an invitation. Authenticate with a user account that has more privileges.',
+              type: 'json',
+              location: '/sent',
+              validator: 'auth.unchanged',
+              value: false,
+              valueSet: true
+            }
+          ]))
+      });
+
+      it('should not create an invitation with unauthorized values', function() {
+        data.reqBody.role = 'admin';
+        data.reqBody.sent = false;
+
+        return spec
+          .testApi('POST', '/auth/invitations', data.reqBody)
+          .set('Authorization', `Bearer ${data.user.generateJwt()}`)
+          .then(expectMails.none)
+          .then(expectRes.forbidden([
+            {
+              message: 'You are not authorized to set the role of an invitation. Authenticate with a user account that has more privileges.',
+              type: 'json',
+              location: '/role',
+              validator: 'auth.unchanged',
+              value: 'admin',
+              valueSet: true
+            },
+            {
+              message: 'You are not authorized to set the status of an invitation. Authenticate with a user account that has more privileges.',
+              type: 'json',
+              location: '/sent',
+              validator: 'auth.unchanged',
+              value: false,
+              valueSet: true
+            }
+          ]))
+      });
+    });
+
+    describe('as an admin', function() {
+      beforeEach(async function() {
+        data.admin = await userFixtures.admin();
+      });
 
       function getExpectedInvitationAsAdmin(...changes) {
         return getExpectedInvitation({
           link: getInvitationLinkBaseUrl()
-        }, ...changes);
-      }
-
-      function getExpectedInvitationMail(...changes) {
-        return _.merge({
-          from: `"${config.mail.fromName}" <${config.mail.fromAddress}>`,
-          to: data.reqBody.email,
-          subject: 'Invitation BioSentiers',
-          token: getExpectedInvitationToken()
-        }, ...changes);
-      }
-
-      function getExpectedInvitationToken(...changes) {
-        return _.extend({
-          authType: 'invitation',
-          email: data.reqBody.email,
-          firstName: data.reqBody.firstName,
-          lastName: data.reqBody.lastName,
-          role: data.reqBody.role,
-          sent: data.reqBody.sent,
-          iat: moment(data.now).unix(),
-          exp: moment(data.now).add(2, 'days').unix()
         }, ...changes);
       }
 
@@ -466,18 +720,547 @@ describe('Authentication API', function() {
           .then(expectInvitation.inBody(expected))
           .then(expectInvitationMailSent(expectedMail));
       });
-    })
+
+      it('should create an invitation for an admin user', function() {
+        data.reqBody.role = 'admin';
+
+        const expected = getExpectedInvitationAsAdmin({
+          token: {
+            iss: data.admin.get('api_id')
+          }
+        });
+
+        const expectedMail = getExpectedInvitationMail({
+          type: 'welcome',
+          token: {
+            iss: data.admin.get('api_id')
+          }
+        });
+
+        return spec
+          .testCreate('/auth/invitations', data.reqBody)
+          .set('Authorization', `Bearer ${data.admin.generateJwt()}`)
+          .then(expectInvitation.inBody(expected))
+          .then(expectInvitationMailSent(expectedMail));
+      });
+
+      it('should create an invitation without sending an e-mail', function() {
+        data.reqBody.sent = false;
+
+        const expected = getExpectedInvitationAsAdmin({
+          token: {
+            iss: data.admin.get('api_id')
+          }
+        });
+
+        return spec
+          .testCreate('/auth/invitations', data.reqBody)
+          .set('Authorization', `Bearer ${data.admin.generateJwt()}`)
+          .then(expectInvitation.inBody(expected))
+          .then(expectMails.none);
+      });
+
+      it('should not send an e-mail if a user already has that e-mail address', async function() {
+        await userFixtures.user({
+          email: data.reqBody.email
+        });
+
+        return spec
+          .testApi('POST', '/auth/invitations', data.reqBody)
+          .set('Authorization', `Bearer ${data.admin.generateJwt()}`)
+          .then(expectMails.none)
+          .then(expectRes.invalid({
+            message: 'is already taken',
+            type: 'json',
+            location: '/email',
+            validator: 'user.emailAvailable',
+            value: data.reqBody.email,
+            valueSet: true
+          }));
+      });
+
+      it('should not accept invalid properties', function() {
+        _.extend(data.reqBody, {
+          email: 'foo',
+          role: 'god',
+          sent: 1
+        });
+
+        return spec
+          .testApi('POST', '/auth/invitations', data.reqBody)
+          .set('Authorization', `Bearer ${data.admin.generateJwt()}`)
+          .then(expectMails.none)
+          .then(expectRes.invalid([
+            {
+              message: 'must be a valid e-mail address',
+              type: 'json',
+              location: '/email',
+              validator: 'email',
+              value: 'foo',
+              valueSet: true
+            },
+            {
+              message: 'must be one of user, admin',
+              type: 'json',
+              location: '/role',
+              validator: 'inclusion',
+              allowedValues: [ 'user', 'admin' ],
+              allowedValuesDescription: 'user, admin',
+              value: 'god',
+              valueSet: true
+            },
+            {
+              message: 'must be of type boolean',
+              type: 'json',
+              location: '/sent',
+              validator: 'type',
+              types: [ 'boolean' ],
+              value: 1,
+              valueSet: true
+            }
+          ]));
+      });
+    });
   });
 
-  const expectAuthenticatedUser = spec.enrichExpectation((actual, expected) => {
+  describe('GET /api/invitations', function() {
+    beforeEach(function() {
+      return spec.setUp(data);
+    });
+
+    function getExpectedInvitation(...changes) {
+
+      const now = data.now || new Date();
+
+      return _.extend({
+        role: 'user',
+        sent: true,
+        createdAfter: moment(now).startOf('second').subtract(1, 'millisecond').toDate(),
+        expiresAfter: moment(now).add(2, 'days').startOf('second').subtract(1, 'millisecond').toDate()
+      }, ...changes);
+    }
+
+    it('should deny anonymous access', function() {
+      return spec
+        .testApi('GET', '/auth/invitations')
+        .then(expectRes.unauthorized({
+          code: 'auth.missingAuthorization',
+          message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
+        }));
+    });
+
+    it('should deny access to a user', async function() {
+
+      const user = await userFixtures.user();
+
+      return spec
+        .testApi('GET', '/auth/invitations')
+        .set('Authorization', `Bearer ${user.generateJwt()}`)
+        .then(expectRes.unauthorized({
+          code: 'auth.invalidAuthorization',
+          message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+        }));
+    });
+
+    it('should deny access to an admin', async function() {
+
+      const admin = await userFixtures.admin();
+
+      return spec
+        .testApi('GET', '/auth/invitations')
+        .set('Authorization', `Bearer ${admin.generateJwt()}`)
+        .then(expectRes.unauthorized({
+          code: 'auth.invalidAuthorization',
+          message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+        }));
+    });
+
+    describe('as an invited user', function() {
+      it('should retrieve the authenticated invitation', function() {
+
+        const email = userFixtures.email();
+        const invitation = generateInvitationToken({
+          email: email
+        });
+
+        const expected = getExpectedInvitation({
+          email: email
+        });
+
+        return spec
+          .testRetrieve('/auth/invitations')
+          .set('Authorization', `Bearer ${invitation}`)
+          .then(expectInvitation.listInBody([ expected ]));
+      });
+
+      it('should retrieve an invitation for an admin user', function() {
+
+        const email = userFixtures.email();
+        const invitation = generateInvitationToken({
+          email: email,
+          role: 'admin'
+        });
+
+        const expected = getExpectedInvitation({
+          email: email,
+          role: 'admin'
+        });
+
+        return spec
+          .testRetrieve('/auth/invitations')
+          .set('Authorization', `Bearer ${invitation}`)
+          .then(expectInvitation.listInBody([ expected ]));
+      });
+
+      it('should retrieve an invitation that was not sent', function() {
+
+        const email = userFixtures.email();
+        const invitation = generateInvitationToken({
+          email: email,
+          sent: false
+        });
+
+        const expected = getExpectedInvitation({
+          email: email,
+          sent: false
+        });
+
+        return spec
+          .testRetrieve('/auth/invitations')
+          .set('Authorization', `Bearer ${invitation}`)
+          .then(expectInvitation.listInBody([ expected ]));
+      });
+
+      it('should not retrieve an invitation that has been used', async function() {
+
+        const user = await userFixtures.user();
+        const invitation = generateInvitationToken({
+          email: user.get('email')
+        });
+
+        return spec
+          .testApi('GET', '/auth/invitations')
+          .set('Authorization', `Bearer ${invitation}`)
+          .then(expectRes.unauthorized({
+            code: 'auth.invalidAuthorization',
+            message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+          }));
+      })
+    });
+  });
+
+  describe('POST /auth/passwordResets', function() {
+    beforeEach(function() {
+      return spec.setUp(data, () => {
+        data.user = userFixtures.user();
+        data.reqBody = data.user.then(user => ({
+          email: user.get('email')
+        }));
+      });
+    });
+
+    function getExpectedPasswordResetMail(user, ...changes) {
+      return _.merge({
+        from: `"${config.mail.fromName}" <${config.mail.fromAddress}>`,
+        to: data.reqBody.email,
+        subject: 'Changement de mot de passe BioSentiers',
+        token: getExpectedPasswordResetToken(user)
+      }, ...changes);
+    }
+
+    it('should deny access to a user', async function() {
+
+      const user = await userFixtures.user();
+
+      return spec
+        .testApi('POST', '/auth/passwordResets', data.reqBody)
+        .set('Authorization', `Bearer ${user.generateJwt()}`)
+        .then(expectRes.forbidden({
+          code: 'auth.forbidden',
+          message: 'You are not authorized to access this resource. Authenticate with a user account that has more privileges.'
+        }));
+    });
+
+    describe('as an anonymous user', function() {
+      it('should send a password reset e-mail', function() {
+
+        const expected = getExpectedPasswordReset();
+
+        const expectedMail = getExpectedPasswordResetMail(data.user, {
+          type: 'passwordReset',
+          token: {
+            passwordResetCount: data.user.get('password_reset_count') + 1
+          }
+        });
+
+        const expectedUser = getExpectedUser(data.user, {
+          passwordResetCount: data.user.get('password_reset_count') + 1
+        });
+
+        return spec
+          .testCreate('/auth/passwordResets', data.reqBody)
+          .then(expectPasswordReset.inBody(expected))
+          .then(expectPasswordResetMailSent(expectedMail))
+          .then(expectUser.inDb(expectedUser));
+      });
+
+      it('should send a password reset e-mail for an admin', async function() {
+        await data.user.save({ role: 'admin' });
+
+        const expected = getExpectedPasswordReset();
+
+        const expectedMail = getExpectedPasswordResetMail(data.user, {
+          type: 'passwordReset',
+          token: {
+            passwordResetCount: data.user.get('password_reset_count') + 1
+          }
+        });
+
+        const expectedUser = getExpectedUser(data.user, {
+          passwordResetCount: data.user.get('password_reset_count') + 1
+        });
+
+        return spec
+          .testCreate('/auth/passwordResets', data.reqBody)
+          .then(expectPasswordReset.inBody(expected))
+          .then(expectPasswordResetMailSent(expectedMail))
+          .then(expectUser.inDb(expectedUser));
+      });
+
+      it('should not accept invalid properties', function() {
+
+        data.reqBody = {
+          email: 'foo'
+        };
+
+        const expectedUser = getExpectedUser(data.user);
+
+        return spec
+          .testApi('POST', '/auth/passwordResets', data.reqBody)
+          .then(expectRes.invalid({
+            message: 'must be a valid e-mail address',
+            type: 'json',
+            location: '/email',
+            validator: 'email',
+            value: 'foo',
+            valueSet: true
+          }))
+          .then(expectMails.none)
+          .then(expectUser.inDb(expectedUser));
+      });
+
+      it('should not send a password reset e-mail for a user that does not exist', function() {
+
+        data.reqBody.email = userFixtures.email();
+
+        const expectedUser = getExpectedUser(data.user);
+
+        return spec
+          .testApi('POST', '/auth/passwordResets', data.reqBody)
+          .then(expectRes.invalid({
+            message: 'does not exist',
+            type: 'json',
+            location: '/email',
+            validator: 'user.emailExists',
+            value: data.reqBody.email,
+            valueSet: true
+          }))
+          .then(expectMails.none)
+          .then(expectUser.inDb(expectedUser));
+      });
+    });
+
+    describe('as an admin', function() {
+      it('should create a password reset token without sending an e-mail', async function() {
+
+        const admin = await userFixtures.admin();
+        const expected = getExpectedPasswordResetAsAdmin(data.user, {
+          user: {
+            passwordResetCount: data.user.get('password_reset_count') + 1
+          },
+          token: {
+            iss: admin.get('api_id'),
+            passwordResetCount: data.user.get('password_reset_count') + 1
+          }
+        });
+
+        const expectedMail = getExpectedPasswordResetMail(data.user, {
+          type: 'passwordReset'
+        });
+
+        const expectedUser = getExpectedUser(data.user, {
+          passwordResetCount: data.user.get('password_reset_count') + 1
+        });
+
+        return spec
+          .testCreate('/auth/passwordResets', data.reqBody)
+          .set('Authorization', `Bearer ${admin.generateJwt()}`)
+          .then(expectPasswordReset.inBody(expected))
+          .then(expectMails.none)
+          .then(expectUser.inDb(expectedUser));
+      });
+
+      it('should not accept invalid properties', async function() {
+
+        const admin = await userFixtures.admin();
+        data.reqBody = {
+          email: 'foo'
+        };
+
+        const expectedUser = getExpectedUser(data.user);
+
+        return spec
+          .testApi('POST', '/auth/passwordResets', data.reqBody)
+          .set('Authorization', `Bearer ${admin.generateJwt()}`)
+          .then(expectRes.invalid({
+            message: 'must be a valid e-mail address',
+            type: 'json',
+            location: '/email',
+            validator: 'email',
+            value: 'foo',
+            valueSet: true
+          }))
+          .then(expectMails.none)
+          .then(expectUser.inDb(expectedUser));
+      });
+
+      it('should not send a password reset e-mail for a user that does not exist', async function() {
+
+        const admin = await userFixtures.admin();
+        data.reqBody.email = userFixtures.email();
+
+        const expectedUser = getExpectedUser(data.user);
+
+        return spec
+          .testApi('POST', '/auth/passwordResets', data.reqBody)
+          .set('Authorization', `Bearer ${admin.generateJwt()}`)
+          .then(expectRes.invalid({
+            message: 'does not exist',
+            type: 'json',
+            location: '/email',
+            validator: 'user.emailExists',
+            value: data.reqBody.email,
+            valueSet: true
+          }))
+          .then(expectMails.none)
+          .then(expectUser.inDb(expectedUser));
+      });
+    });
+  });
+
+  describe('GET /auth/passwordResets', function() {
+    it('should deny anonymous access', function() {
+      return spec
+        .testApi('GET', '/auth/passwordResets')
+        .then(expectRes.unauthorized({
+          code: 'auth.missingAuthorization',
+          message: 'Authentication is required to access this resource. Authenticate by providing a Bearer token in the Authorization header.'
+        }));
+    });
+
+    it('should deny access to a user', async function() {
+
+      const user = await userFixtures.user();
+
+      return spec
+        .testApi('GET', '/auth/passwordResets')
+        .set('Authorization', `Bearer ${user.generateJwt()}`)
+        .then(expectRes.unauthorized({
+          code: 'auth.invalidAuthorization',
+          message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+        }));
+    });
+
+    it('should deny access to an admin', async function() {
+
+      const admin = await userFixtures.admin();
+
+      return spec
+        .testApi('GET', '/auth/passwordResets')
+        .set('Authorization', `Bearer ${admin.generateJwt()}`)
+        .then(expectRes.unauthorized({
+          code: 'auth.invalidAuthorization',
+          message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+        }));
+    });
+
+    describe('with a password reset token', function() {
+      beforeEach(function() {
+        return spec.setUp(data, () => {
+          data.user = userFixtures.user();
+        });
+      });
+
+      it('should retrieve the authenticated password reset request', function() {
+
+        const passwordResetToken = generatePasswordResetToken(data.user);
+        const expected = getExpectedPasswordReset({
+          email: data.user.get('email')
+        });
+
+        return spec
+          .testRetrieve('/auth/passwordResets')
+          .set('Authorization', `Bearer ${passwordResetToken}`)
+          .then(expectPasswordReset.listInBody([ expected ]));
+      });
+
+      it('should retrieve a password reset request for an admin', async function() {
+
+        await data.user.save({ role: 'admin' });
+
+        const passwordResetToken = generatePasswordResetToken(data.user);
+        const expected = getExpectedPasswordReset({
+          email: data.user.get('email')
+        });
+
+        return spec
+          .testRetrieve('/auth/passwordResets')
+          .set('Authorization', `Bearer ${passwordResetToken}`)
+          .then(expectPasswordReset.listInBody([ expected ]));
+      });
+
+      it('should not retrieve a password reset request that has been used', function() {
+
+        const passwordResetToken = generatePasswordResetToken(data.user);
+        data.user.save({ password_reset_count: data.user.get('password_reset_count') + 1 });
+
+        return spec
+          .testApi('GET', '/auth/passwordResets')
+          .set('Authorization', `Bearer ${passwordResetToken}`)
+          .then(expectRes.unauthorized({
+            code: 'auth.invalidAuthorization',
+            message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+          }));
+      });
+
+      it('should not retrieve a password reset request with an invalid password reset count', function() {
+
+        const passwordResetToken = generatePasswordResetToken(data.user, {
+          passwordResetToken: 42
+        });
+
+        data.user.save({ password_reset_count: 24 });
+
+        return spec
+          .testApi('GET', '/auth/passwordResets')
+          .set('Authorization', `Bearer ${passwordResetToken}`)
+          .then(expectRes.unauthorized({
+            code: 'auth.invalidAuthorization',
+            message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
+          }));
+      });
+    });
+  });
+
+  const expectAuthenticatedUser = spec.enrichExpectation(async (actual, expected) => {
     expect(actual).to.have.all.keys('token', 'user');
-    expectUser(actual.user, expected.user);
+    await expectUser(actual.user, expected.user);
     expectJwt(actual.token, expected.token);
   });
 
-  const expectAuthenticatedInstallation = spec.enrichExpectation((actual, expected) => {
+  const expectAuthenticatedInstallation = spec.enrichExpectation(async (actual, expected) => {
     expect(actual).to.have.all.keys('token', 'installation');
-    expectInstallation(actual.installation, expected.installation);
+    await expectInstallation(actual.installation, expected.installation);
     expectJwt(actual.token, expected.token);
   });
 
@@ -495,7 +1278,7 @@ describe('Authentication API', function() {
 
         const textJwt = textMatch[0].substring(baseUrl.length);
         expectJwt(textJwt, expected.token);
-        expect(mail.text, 'mail.text').to.eql(mails[type].txt({
+        expect(mail.text, 'mail.text').to.equal(mails[type].txt({
           link: `${baseUrl}${textJwt}`
         }));
 
@@ -504,49 +1287,42 @@ describe('Authentication API', function() {
 
         const htmlJwt = htmlMatch[0].substring(baseUrl.length);
         expectJwt(htmlJwt, expected.token);
-        expect(mail.html, 'mail.html').to.eql(mails[type].html({
+        expect(mail.html, 'mail.html').to.equal(mails[type].html({
           link: `${baseUrl}${htmlJwt}`
         }));
       });
     };
   }
 
-  const expectInvitation = spec.enrichExpectation((actual, expected) => {
+  function expectPasswordResetMailSent(expected) {
 
-    const keys = [ 'email', 'role', 'sent', 'createdAt', 'expiresAt' ];
-    _.each([ 'firstName', 'lastName', 'link' ], property => {
-      if (expected[property]) {
-        keys.push(property);
-      }
-    });
+    const baseUrl = getPasswordResetLinkBaseUrl();
+    const linkRegexp = /http\:\/\/localhost[^\s\n"]+/m;
+    const type = expected.type;
 
-    expect(actual, 'invitation').to.have.all.keys(keys);
+    return function() {
+      expectMails(_.omit(expected, 'type'), mail => {
 
-    expect(actual.email, 'invitation.email').to.equal(expected.email);
-    expect(actual.role, 'invitation.role').to.equal(expected.role);
-    expect(actual.sent, 'invitation.sent').to.equal(expected.sent);
-    spec.expectTimestamp('invitation', actual, expected, 'created');
-    spec.expectTimestamp('invitation', actual, expected, 'expires');
+        const textMatch = linkRegexp.exec(mail.text);
+        expect(textMatch[0], 'mail.text.link').to.be.a('string');
 
-    if (expected.firstName) {
-      expect(actual.firstName, 'invitation.firstName').to.equal(expected.firstName);
-    } else {
-      expect(actual, 'invitation.firstName').not.to.have.property('firstName');
-    }
+        const textJwt = textMatch[0].substring(baseUrl.length);
+        expectJwt(textJwt, expected.token);
+        expect(mail.text, 'mail.text').to.equal(mails[type].txt({
+          link: `${baseUrl}${textJwt}`
+        }));
 
-    if (expected.lastName) {
-      expect(actual.lastName, 'invitation.lastName').to.equal(expected.lastName);
-    } else {
-      expect(actual, 'invitation.lastName').not.to.have.property('lastName');
-    }
+        const htmlMatch = linkRegexp.exec(mail.html);
+        expect(htmlMatch[0], 'mail.html.link').to.be.a('string');
 
-    if (expected.link) {
-      expect(actual.link, 'invitation.link').to.startWith(expected.link);
-      expectJwt(actual.link.slice(expected.link.length), expected.token);
-    } else {
-      expect(actual, 'invitation.link').not.to.have.property('link');
-    }
-  });
+        const htmlJwt = htmlMatch[0].substring(baseUrl.length);
+        expectJwt(htmlJwt, expected.token);
+        expect(mail.html, 'mail.html').to.equal(mails[type].html({
+          link: `${baseUrl}${htmlJwt}`
+        }));
+      });
+    };
+  }
 
   function getExpectedInstallation(installation) {
     return {
@@ -557,6 +1333,32 @@ describe('Authentication API', function() {
       updatedAt: data.installation.get('updated_at'),
       firstStartedAt: data.installation.get('first_started_at')
     };
+  }
+
+  function getExpectedPasswordReset(...changes) {
+    return _.merge({
+      email: _.get(data, 'reqBody.email'),
+      createdAfter: moment(data.now).startOf('second').subtract(1, 'millisecond').toDate()
+    }, ...changes);
+  }
+
+  function getExpectedPasswordResetToken(user, ...changes) {
+    return _.extend({
+      authType: 'passwordReset',
+      email: _.get(data, 'reqBody.email'),
+      passwordResetCount: user.get('password_reset_count'),
+      sub: user.get('api_id'),
+      iat: moment(data.now).unix(),
+      exp: moment(data.now).add(1, 'hour').unix()
+    }, ...changes);
+  }
+
+  function getExpectedPasswordResetAsAdmin(user, ...changes) {
+    return getExpectedPasswordReset({
+      link: getPasswordResetLinkBaseUrl(),
+      token: getExpectedPasswordResetToken(user),
+      user: getExpectedUserAsAdmin(user)
+    }, ...changes);
   }
 
   function getExpectedUser(user, ...changes) {
@@ -572,7 +1374,52 @@ describe('Authentication API', function() {
     }, ...changes);
   }
 
+  function getExpectedUserAsAdmin(user, ...changes) {
+    return getExpectedUser(user, {
+      loginCount: user.get('login_count'),
+      lastLoginAt: user.get('last_login_at'),
+      lastActiveAt: user.get('last_active_at')
+    }, ...changes);
+  }
+
   function getInvitationLinkBaseUrl() {
     return `${config.baseUrl}/register/complete?invitation=`;
+  }
+
+  function getPasswordResetLinkBaseUrl() {
+    return `${config.baseUrl}/resetPassword?otp=`;
+  }
+
+  function generateInvitationToken(...changes) {
+
+    const now = moment();
+
+    const claims = _.extend({
+      authType: 'invitation',
+      role: 'user',
+      iat: now.unix(),
+      exp: moment(now).add(2, 'days').unix(),
+      sent: true
+    }, ...changes);
+
+    if (!claims.email) {
+      throw new Error('"email" claim is required');
+    }
+
+    return jwt.generateToken(claims);
+  }
+
+  function generatePasswordResetToken(user, ...changes) {
+
+    const now = moment();
+
+    return jwt.generateToken(_.extend({
+      authType: 'passwordReset',
+      email: user.get('email'),
+      passwordResetCount: user.get('password_reset_count'),
+      sub: user.get('api_id'),
+      iat: now.unix(),
+      exp: moment(now).add(1, 'hour').unix()
+    }, ...changes));
   }
 });

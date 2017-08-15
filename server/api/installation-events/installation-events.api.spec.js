@@ -71,7 +71,7 @@ describe('Installation events API', function() {
         .testCreate(`/installations/${data.installation.get('api_id')}/events`, data.reqBody)
         .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
         .then(expectInstallationEvent.inBody(expected))
-        .then(() => expectInstallation.inDb(data.installation.get('api_id'), data.expectedInstallation));
+        .then(expectInstallation.inDb(data.expectedInstallation));
     });
 
     it('should create an event with no properties', function() {
@@ -91,7 +91,7 @@ describe('Installation events API', function() {
         .testCreate(`/installations/${data.installation.get('api_id')}/events`, data.reqBody)
         .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
         .then(expectInstallationEvent.inBody(expected))
-        .then(() => expectInstallation.inDb(data.installation.get('api_id'), data.expectedInstallation));
+        .then(expectInstallation.inDb(data.expectedInstallation));
     });
 
     it('should create multiple events', function() {
@@ -141,7 +141,7 @@ describe('Installation events API', function() {
             createdAfter: data.now
           })
         ]))
-        .then(() => expectInstallation.inDb(data.installation.get('api_id'), data.expectedInstallation));
+        .then(expectInstallation.inDb(data.expectedInstallation));
     });
 
     it('should not create events that already exist', async function() {
@@ -211,7 +211,7 @@ describe('Installation events API', function() {
             createdAfter: data.now
           })
         ]))
-        .then(() => expectInstallation.inDb(data.installation.get('api_id'), data.expectedInstallation));
+        .then(expectInstallation.inDb(data.expectedInstallation));
     });
 
     it('should not create any events if they all already exist', async function() {
@@ -261,7 +261,7 @@ describe('Installation events API', function() {
           expect(res.status).to.equal(200);
           expect(res.body).to.eql([]);
         })())
-        .then(() => expectInstallation.inDb(data.installation.get('api_id'), data.expectedInstallation));
+        .then(expectInstallation.inDb(data.expectedInstallation));
     });
 
     it('should not accept invalid properties', function() {
