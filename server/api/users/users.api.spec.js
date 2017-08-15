@@ -769,7 +769,6 @@ describe('Users API', function() {
         });
       });
 
-      // FIXME: check password reset token increment
       describe('with a password reset token', function() {
         shouldResetUserPassword(user => `/users/${user.get('api_id')}`);
 
@@ -800,7 +799,7 @@ describe('Users API', function() {
             password: userFixtures.password()
           };
 
-          const expected = getExpectedUser(data.user, body, getPatches());
+          const expected = getExpectedUser(data.user);
 
           return spec
             .testApi('PATCH', `/users/${data.user.get('api_id')}`)
@@ -809,7 +808,8 @@ describe('Users API', function() {
             .then(expectRes.notFound({
               code: 'record.notFound',
               message: `No user was found with ID ${data.user.get('api_id')}.`
-            }));
+            }))
+            .then(expectUser.inDb(expected));
         });
       });
 
