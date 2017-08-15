@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const BPromise = require('bluebird');
-const expectRes = require('../../spec/expectations/response');
 const expectExcursion = require('../../spec/expectations/excursion');
 const jwt = require('../../lib/jwt');
 const moment = require('moment');

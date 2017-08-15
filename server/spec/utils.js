@@ -3,12 +3,11 @@ const app = require('../app');
 const config = require('../../config');
 const db = require('../db');
 const expect = require('chai').expect;
-// FIXME: eliminate cyclical dependency between spec/utils.js & spec/expectations/response.js
 const expectations = require('./expectations/response');
-const httpStatuses = require('http-status');
 const mailer = require('../lib/mailer');
 const moment = require('moment');
 const BPromise = require('bluebird');
+const responseExpectation = require('./response-expectation');
 const supertest = require('supertest-as-promised');
 
 const logger = config.logger('spec');
@@ -118,11 +117,11 @@ exports.cleanTestMails = function() {
 
 exports.enrichExpectation = function(checkFunc) {
 
-  checkFunc.inBody = exports.responseExpectationFactory(function(res, ...args) {
+  checkFunc.inBody = responseExpectation(function(res, ...args) {
     return BPromise.resolve().then(() => checkFunc(res.body, ...args)).return(res);
   });
 
-  checkFunc.listInBody = exports.responseExpectationFactory(function(res, expected, ...args) {
+  checkFunc.listInBody = responseExpectation(function(res, expected, ...args) {
     if (!_.isArray(expected)) {
       throw new Error('Expected must be an array');
     }
@@ -178,14 +177,6 @@ exports.resolve = function(data, inPlace) {
   } else {
     return BPromise.resolve(data);
   }
-};
-
-exports.responseExpectationFactory = function(func) {
-  return function(...args) {
-    return handleResponseAssertionError(res => {
-      return func(res, ...args);
-    });
-  };
 };
 
 exports.hasExpectedTimestamp = function(expected, timestampType) {
@@ -261,67 +252,4 @@ function resolvedDataUpdater(data, update) {
       return resolved;
     }
   };
-}
-
-function handleResponseAssertionError(func) {
-  return function(res) {
-    try {
-      const result = func(res);
-      return BPromise.resolve(result).catch(function(err) {
-        return BPromise.reject(enrichResponseAssertionError(err, res));
-      }).return(res);
-    } catch(err) {
-      throw enrichResponseAssertionError(err, res);
-    }
-  };
-}
-
-function enrichResponseAssertionError(err, res) {
-  if (err.name != 'AssertionError' || err.stack.match(/^\s*HTTP\/1\.1/)) {
-    return err;
-  }
-
-  let resDesc = 'HTTP/1.1 ' + res.status;
-
-  const code = httpStatuses[res.status];
-  if (code) {
-    resDesc = resDesc + ' ' + code;
-  }
-
-  _.each(res.headers, function(value, key) {
-    resDesc = resDesc + '\n' + key + ': ' + value;
-  });
-
-  if (res.body) {
-    resDesc = resDesc + '\n\n';
-
-    const contentType = res.get('Content-Type');
-    if (contentType.match(/^application\/json/)) {
-      resDesc = resDesc + JSON.stringify(res.body, null, 2);
-    } else {
-      resDesc = resDesc + res.body.toString();
-    }
-  }
-
-  let rest;
-  let message = 'AssertionError: ' + err.message;
-
-  if (err.stack.indexOf(message) === 0) {
-    rest = err.stack.slice(message.length + 1);
-  } else {
-    const firstEol = err.stack.indexOf('\n');
-    message = err.stack.slice(0, firstEol);
-    rest = err.stack.slice(firstEol);
-  }
-
-  let indent = '';
-
-  const indentMatch = rest.match(/^\s+/);
-  if (indentMatch) {
-    indent = Array(indentMatch[0].length + 1).join(' ');
-  }
-
-  err.stack = message + '\n' + resDesc.replace(/^/gm, indent) + '\n\n' + rest;
-
-  return err;
 }

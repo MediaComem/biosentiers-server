@@ -1,9 +1,9 @@
 const _ = require('lodash');
 const chance = require('chance').Chance();
 const expect = require('chai').expect;
-const expectRes = require('../../spec/expectations/response');
 const expectInstallation = require('../../spec/expectations/installation');
 const expectInstallationEvent = require('../../spec/expectations/installation-event');
+const expectRes = require('../../spec/expectations/response');
 const geoJsonLength = require('geojson-length');
 const installationEventFixtures = require('../../spec/fixtures/installation-event');
 const installationFixtures = require('../../spec/fixtures/installation');
@@ -257,10 +257,7 @@ describe('Installation events API', function() {
         .testApi('POST', `/installations/${data.installation.get('api_id')}/events`, data.reqBody)
         .set('Authorization', `Bearer ${data.installation.generateJwt()}`)
         .send(data.reqBody)
-        .then(spec.responseExpectationFactory(res => {
-          expect(res.status).to.equal(200);
-          expect(res.body).to.eql([]);
-        })())
+        .then(expectInstallationEvent.listInBody([]))
         .then(expectInstallation.inDb(data.expectedInstallation));
     });
 

@@ -1,6 +1,6 @@
 const _ = require('lodash');
-const expectRes = require('../../spec/expectations/response');
 const expectInstallation = require('../../spec/expectations/installation');
+const expectRes = require('../../spec/expectations/response');
 const geoJsonLength = require('geojson-length');
 const installationFixtures = require('../../spec/fixtures/installation');
 const jwt = require('../../lib/jwt');
