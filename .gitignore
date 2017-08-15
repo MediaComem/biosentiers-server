@@ -6,5 +6,6 @@
 !/config/sample.env.js
 /data-dump.sql
 /doc/api
+/local
 /node_modules
 /tmp
