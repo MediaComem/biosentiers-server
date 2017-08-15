@@ -100,10 +100,12 @@ if (env == 'development') {
   });
 }
 
+_.merge(config, fixed);
+
 validate();
 
 // Export the configuration.
-module.exports = _.merge(config, fixed);
+module.exports = config;
 
 function createLogger(name) {
 
@@ -202,10 +204,11 @@ function get(varName) {
   }
 }
 
-// FIXME: validate config (e.g. required properties)
 function validate() {
   if (!_.isString(config.jwtSecret) || config.jwtSecret.match(/^\s*$/)) {
     throw new Error('JWT secret is required');
+  } else if (config.env != 'test' && config.bcryptCost < 10) {
+    throw new Error(`BCrypt cost must be greater than or equal to 10 in the ${config.env} environment`);
   }
 
   const hashes = crypto.getHashes();
