@@ -13,7 +13,8 @@ module.exports = function(env) {
     APIDOC_OPEN: 'true',
     APIDOC_HOST: 'localhost',
     APIDOC_PORT: '3001',
-    BROWSER: 'chrome'
+    BROWSER: 'chrome',
+    SECRET: 'changeme'
   };
 
   if (env == 'production') {
