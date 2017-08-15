@@ -18,9 +18,6 @@ const uuid = require('uuid');
  * - Remove table name prefix in column names (e.g. "division_name" renamed to "name" in "division" table)
  * - Add appropriate foreign key constraints
  * - Add unique constraints for the primary name of some tables (e.g. class, division, reign)
- *
- * TODO:
- * - make sure GeometryZM is appropriate where used (bird, flower, tree, zone_point, whereas GeometryZ is used for butterfly & path)
  */
 
 let defaultTrailId;
