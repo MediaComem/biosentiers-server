@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const expect = require('chai').expect;
+const expect = require('../chai').expect;
 const expectJwt = require('./jwt');
 const spec = require('../utils');
 

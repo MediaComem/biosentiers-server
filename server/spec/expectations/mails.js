@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const config = require('../../../config');
-const expect = require('chai').expect;
+const expect = require('../chai').expect;
 const mailer = require('../../lib/mailer');
 
 module.exports = function(expected, ...callbacks) {
