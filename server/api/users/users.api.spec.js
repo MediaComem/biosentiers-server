@@ -81,7 +81,7 @@ describe('Users API', function() {
           active: false,
           role: 'user',
           loginCount: 0,
-          createdJustAfter: data.now,
+          createdJustAfter: data.afterSetup,
           updatedAt: 'createdAt'
         }, data.reqBody);
 
@@ -98,7 +98,7 @@ describe('Users API', function() {
 
         const expected = _.defaults({
           loginCount: 0,
-          createdJustAfter: data.now,
+          createdJustAfter: data.afterSetup,
           updatedAt: 'createdAt'
         }, data.reqBody);
 
@@ -175,7 +175,7 @@ describe('Users API', function() {
         const expected = _.defaults({
           active: true,
           role: 'user',
-          createdJustAfter: data.now,
+          createdJustAfter: data.afterSetup,
           updatedAt: 'createdAt'
         }, data.reqBody);
 
@@ -195,7 +195,7 @@ describe('Users API', function() {
           active: true,
           role: 'admin',
           loginCount: 0,
-          createdJustAfter: data.now,
+          createdJustAfter: data.afterSetup,
           updatedAt: 'createdAt'
         }, data.reqBody);
 
@@ -221,7 +221,7 @@ describe('Users API', function() {
           lastName: lastName,
           active: true,
           role: 'user',
-          createdJustAfter: data.now,
+          createdJustAfter: data.afterSetup,
           updatedAt: 'createdAt'
         }, data.reqBody);
 
@@ -244,7 +244,7 @@ describe('Users API', function() {
         const expected = _.defaults({
           active: true,
           role: 'user',
-          createdJustAfter: data.now,
+          createdJustAfter: data.afterSetup,
           updatedAt: 'createdAt'
         }, data.reqBody);
 
@@ -485,7 +485,7 @@ describe('Users API', function() {
             getExpectedListUser(1),
             getExpectedListUser(0),
             getExpectedListUser(2, {
-              lastActiveJustAfter: data.now
+              lastActiveJustAfter: data.afterSetup
             })
           ]));
       });
@@ -1419,7 +1419,7 @@ describe('Users API', function() {
   function getPatches(...changes) {
     return _.extend({
       updatedAt: null,
-      updatedJustAfter: data.now
+      updatedJustAfter: data.afterSetup
     }, ...changes);
   }
 

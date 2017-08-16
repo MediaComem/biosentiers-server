@@ -75,11 +75,13 @@ exports.setUp = function(data, beforeResolve) {
       _.defaults(resolvedData, {
         databaseCleaned: true,
         beforeSetup: beforeSetup,
-        now: moment(),
         testMailsCleaned: true
       });
 
-      const duration = moment().diff(resolvedData.beforeSetup) / 1000;
+      resolvedData.now = moment();
+      resolvedData.afterSetup = resolvedData.now;
+
+      const duration = moment().diff(beforeSetup) / 1000;
       logger.debug('Completed test setup in ' + duration + 's');
     })
     .return(exports);

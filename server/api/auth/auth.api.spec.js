@@ -48,8 +48,8 @@ describe('Authentication API', function() {
           user: getExpectedUser(data.user),
           token: {
             authType: 'user',
-            exp: moment(data.now).add(2, 'weeks').unix(),
-            iat: data.now.unix(),
+            exp: moment(data.afterSetup).add(2, 'weeks').unix(),
+            iat: data.afterSetup.unix(),
             sub: data.user.get('api_id')
           }
         };
@@ -65,13 +65,13 @@ describe('Authentication API', function() {
         const expected = {
           user: getExpectedUser(data.user, {
             loginCount: 1,
-            lastActiveJustAfter: data.now,
-            lastLoginJustAfter: data.now
+            lastActiveJustAfter: data.afterSetup,
+            lastLoginJustAfter: data.afterSetup
           }),
           token: {
             authType: 'user',
-            exp: moment(data.now).add(2, 'weeks').unix(),
-            iat: data.now.unix(),
+            exp: moment(data.afterSetup).add(2, 'weeks').unix(),
+            iat: data.afterSetup.unix(),
             sub: data.user.get('api_id')
           }
         };
@@ -199,8 +199,8 @@ describe('Authentication API', function() {
           installation: getExpectedInstallation(data.installation),
           token: {
             authType: 'installation',
-            exp: moment(data.now).add(1, 'day').unix(),
-            iat: data.now.unix(),
+            exp: moment(data.afterSetup).add(1, 'day').unix(),
+            iat: data.afterSetup.unix(),
             sub: data.installation.get('api_id')
           }
         };
@@ -409,8 +409,8 @@ describe('Authentication API', function() {
         lastName: data.reqBody.lastName,
         role: data.reqBody.role || 'user',
         sent: _.get(data.reqBody, 'sent', true),
-        createdJustAfter: moment(data.now).startOf('second').subtract(1, 'millisecond').toDate(),
-        expiresJustAfter: moment(data.now).add(2, 'days').startOf('second').subtract(1, 'millisecond').toDate(),
+        createdJustAfter: moment(data.afterSetup).startOf('second').subtract(1, 'millisecond').toDate(),
+        expiresJustAfter: moment(data.afterSetup).add(2, 'days').startOf('second').subtract(1, 'millisecond').toDate(),
         token: getExpectedInvitationToken()
       }, ...changes);
     }
@@ -432,8 +432,8 @@ describe('Authentication API', function() {
         lastName: data.reqBody.lastName,
         role: data.reqBody.role || 'user',
         sent: _.get(data.reqBody, 'sent', true),
-        iat: moment(data.now).unix(),
-        exp: moment(data.now).add(2, 'days').unix()
+        iat: moment(data.afterSetup).unix(),
+        exp: moment(data.afterSetup).add(2, 'days').unix()
       }, ...changes);
     }
 
@@ -830,7 +830,7 @@ describe('Authentication API', function() {
 
     function getExpectedInvitation(...changes) {
 
-      const now = data.now || new Date();
+      const now = data.afterSetup || new Date();
 
       return _.extend({
         role: 'user',
@@ -1338,7 +1338,7 @@ describe('Authentication API', function() {
   function getExpectedPasswordReset(...changes) {
     return _.merge({
       email: _.get(data, 'reqBody.email'),
-      createdJustAfter: moment(data.now).startOf('second').subtract(1, 'millisecond').toDate()
+      createdJustAfter: moment(data.afterSetup).startOf('second').subtract(1, 'millisecond').toDate()
     }, ...changes);
   }
 
@@ -1348,8 +1348,8 @@ describe('Authentication API', function() {
       email: _.get(data, 'reqBody.email'),
       passwordResetCount: user.get('password_reset_count'),
       sub: user.get('api_id'),
-      iat: moment(data.now).unix(),
-      exp: moment(data.now).add(1, 'hour').unix()
+      iat: moment(data.afterSetup).unix(),
+      exp: moment(data.afterSetup).add(1, 'hour').unix()
     }, ...changes);
   }
 

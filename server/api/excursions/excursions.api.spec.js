@@ -47,7 +47,7 @@ describe('Excursions API', function() {
 
       const expected = _.extend({
         creatorId: data.user.get('api_id'),
-        createdJustAfter: data.now,
+        createdJustAfter: data.afterSetup,
         updatedAt: 'createdAt'
       }, data.reqBody);
 

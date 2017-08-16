@@ -34,7 +34,7 @@ describe('Installations API', function() {
       const expected = _.extend({
         sharedSecret: true,
         eventsCount: 0,
-        createdJustAfter: data.now,
+        createdJustAfter: data.afterSetup,
         updatedAt: 'createdAt'
       }, data.reqBody);
 
@@ -51,7 +51,7 @@ describe('Installations API', function() {
       const expected = _.extend({
         sharedSecret: true,
         eventsCount: 0,
-        createdJustAfter: data.now,
+        createdJustAfter: data.afterSetup,
         updatedAt: 'createdAt'
       }, data.reqBody);
 
@@ -68,7 +68,7 @@ describe('Installations API', function() {
         properties: {},
         eventsCount: 0,
         sharedSecret: true,
-        createdJustAfter: data.now,
+        createdJustAfter: data.afterSetup,
         updatedAt: 'createdAt'
       }, data.reqBody);
 
@@ -202,7 +202,7 @@ describe('Installations API', function() {
             corge: [ 'grault', 'waldo' ]
           },
           updatedAt: undefined,
-          updatedJustAfter: data.now
+          updatedJustAfter: data.afterSetup
         }));
 
         return spec
