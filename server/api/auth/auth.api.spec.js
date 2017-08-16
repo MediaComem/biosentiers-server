@@ -1219,10 +1219,10 @@ describe('Authentication API', function() {
           .then(expectPasswordReset.listInBody([ expected ]));
       });
 
-      it('should not retrieve a password reset request that has been used', function() {
+      it('should not retrieve a password reset request that has been used', async function() {
 
         const passwordResetToken = generatePasswordResetToken(data.user);
-        data.user.save({ password_reset_count: data.user.get('password_reset_count') + 1 });
+        await data.user.save({ password_reset_count: data.user.get('password_reset_count') + 1 });
 
         return spec
           .testApi('GET', '/auth/passwordResets')
@@ -1233,13 +1233,13 @@ describe('Authentication API', function() {
           }));
       });
 
-      it('should not retrieve a password reset request with an invalid password reset count', function() {
+      it('should not retrieve a password reset request with an invalid password reset count', async function() {
 
         const passwordResetToken = generatePasswordResetToken(data.user, {
           passwordResetToken: 42
         });
 
-        data.user.save({ password_reset_count: 24 });
+        await data.user.save({ password_reset_count: 24 });
 
         return spec
           .testApi('GET', '/auth/passwordResets')
