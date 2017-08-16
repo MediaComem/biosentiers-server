@@ -6,7 +6,6 @@ const config = require('../../config');
 const errors = require('../api/errors');
 const Installation = require('../models/installation');
 const jwt = require('express-jwt');
-const p = require('bluebird');
 const User = require('../models/user');
 
 const logger = config.logger('auth');
@@ -65,18 +64,17 @@ exports.authorize = function(policy, resourceName, options) {
 
   // Perform authorization
   return chain.use(function(req, res, next) {
+
+    // Save user activity asynchronously (no need to wait before processing the request)
     if (req.currentUser) {
-      // Save user last activity date asynchronously, no need to wait
       req.currentUser.saveNewActivity().catch(err => logger.warn('Could not save new user activity', err));
     }
 
-    p.resolve().then(_.partial(policy, req)).then(function(authorized) {
-      if (authorized) {
-        next();
-      } else {
-        next(options.resourceName ? errors.recordNotFound(options.resourceName, options.resourceId(req)) : errors.forbidden());
+    BPromise.resolve().then(_.partial(policy, req)).then(function(authorized) {
+      if (!authorized) {
+        throw options.resourceName ? errors.recordNotFound(options.resourceName, options.resourceId(req)) : errors.forbidden();
       }
-    }).catch(next);
+    }).then(next, next);
   });
 };
 

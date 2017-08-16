@@ -11,6 +11,7 @@ const responseExpectation = require('./response-expectation');
 const supertest = require('supertest-as-promised');
 
 const logger = config.logger('spec');
+const timestampComparisons = [ 'at', 'gt', 'gte', 'lt', 'lte', 'justAfter', 'justBefore' ];
 
 exports.testApi = function(method, path, body) {
   method = (method || 'GET').toLowerCase();
@@ -180,7 +181,7 @@ exports.resolve = function(data, inPlace) {
 };
 
 exports.hasExpectedTimestamp = function(expected, timestampType) {
-  return _.some([ timestampType, `${timestampType}At`, `${timestampType}After`, `${timestampType}Before` ], property => expected[property]);
+  return _.some(timestampComparisons, comparison => hasExpectedTimestampComparison(expected, timestampType, comparison));
 };
 
 exports.expectTimestamp = function(type, actual, expected, timestampType, options) {
@@ -190,28 +191,37 @@ exports.expectTimestamp = function(type, actual, expected, timestampType, option
     throw new Error('Timestamp type must be a string identifying the timestamp (e.g. "created" or "updated")');
   }
 
-  const name = timestampType + 'At';
-  const afterName = timestampType + 'After';
-  const beforeName = timestampType + 'Before';
-  const desc = `${type}.${name}`;
-
-  options = _.extend({}, options);
+  const property = `${timestampType}At`;
+  const desc = `${type}.${property}`;
   const required = _.get(options, 'required', true);
+  const comparisons = timestampComparisons.filter(comparison => hasExpectedTimestampComparison(expected, timestampType, comparison));
 
-  if (_.isString(expected[name]) && expected[name].match(/At$/)) {
-    expect(actual[name], desc).to.equal(actual[expected[name]]);
-  } else if (expected[name]) {
-    expect(actual[name], desc).to.be.iso8601(expected[name]);
-  } else if (expected[afterName]) {
-    expect(actual[name], desc).to.be.iso8601('justAfter', expected[afterName]);
-  } else if (expected[beforeName]) {
-    expect(actual[name], desc).to.be.iso8601('justBefore', expected[beforeName]);
-  } else if (!required) {
-    expect(actual, desc).not.to.have.property(name);
-  } else {
-    throw new Error(`Expectation for ${name} requires either "${name}", "${afterName}" or "${beforeName}" to be specified`);
+  comparisons.forEach(comparison => {
+    const comparisonProperty = getExpectedTimestampComparisonProperty(timestampType, comparison);
+    if (_.isString(comparisonProperty) && comparisonProperty.match(/At$/) && _.isString(expected[comparisonProperty]) && expected[comparisonProperty].match(/At$/)) {
+      expect(actual[property], desc).to.be.iso8601('at', actual[expected[comparisonProperty]]);
+    } else {
+      expect(actual[property], desc).to.be.iso8601(comparison, expected[comparisonProperty]);
+    }
+  });
+
+  if (!comparisons.length) {
+    if (!required) {
+      expect(actual, desc).not.to.have.property(property);
+    } else {
+      const descriptions = timestampComparisons.map(comparison => getExpectedTimestampComparisonProperty(timestampType, comparison)).join(', ');
+      throw new Error(`Timestamp expectation ${desc} requires at least one of ${descriptions} to be specified`);
+    }
   }
 };
+
+function hasExpectedTimestampComparison(expected, timestampType, comparison) {
+  return expected[getExpectedTimestampComparisonProperty(timestampType, comparison)];
+}
+
+function getExpectedTimestampComparisonProperty(timestampType, comparison) {
+  return `${timestampType}${comparison.charAt(0).toUpperCase()}${comparison.slice(1)}`;
+}
 
 exports.expectIfElse = function(actual, desc, condition, ifFunc, elseFunc) {
   if (!_.isString(desc)) {

@@ -16,11 +16,20 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
     }
   });
 
-  _.each([ 'lastActive', 'lastLogin' ], attr => {
+  _.each([ 'lastLogin' ], attr => {
     if (spec.hasExpectedTimestamp(expected, attr)) {
       keys.push(`${attr}At`);
     }
   });
+
+  // As the "lastActiveAt" property is saved asynchronously without waiting for request completion,
+  // it is difficult to predict its value, hence why it is handled separately here.
+  //
+  // The property will be assumed to be in the response only if an exact "lastActiveAt" expectation
+  // is given. Otherwise it may or may not be there.
+  if (expected.lastActiveAt || actual.lastActiveAt) {
+    keys.push('lastActiveAt');
+  }
 
   expect(actual, 'res.body').to.have.all.keys(keys);
 
@@ -39,8 +48,16 @@ module.exports = spec.enrichExpectation(function(actual, expected) {
 
   spec.expectTimestamp('user', actual, expected, 'created');
   spec.expectTimestamp('user', actual, expected, 'updated');
-  spec.expectTimestamp('user', actual, expected, 'lastActive', { required: false });
   spec.expectTimestamp('user', actual, expected, 'lastLogin', { required: false });
+
+  if (!spec.hasExpectedTimestamp(expected, 'lastActive')) {
+    // If there is no "lastActive" expectation, ensure that "lastActiveAt" is not present.
+    expect(actual, 'user.lastActiveAt').not.to.have.property('lastActiveAt');
+  } else if (expected.lastActiveAt || actual.lastActiveAt) {
+    // Otherwise, check "lastActiveAt" only if there is an exact "lastActiveAt" expectation
+    // or if it is present. Otherwise, ignore it if it is missing.
+    spec.expectTimestamp('user', actual, expected, 'lastActive');
+  }
 
   // Check that the corresponding user exists in the database.
   return module.exports.db(_.extend({}, actual, _.pick(expected, 'password', 'passwordResetCount')));

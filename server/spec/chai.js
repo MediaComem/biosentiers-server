@@ -2,31 +2,55 @@ const _ = require('lodash');
 const chai = require('chai');
 const moment = require('moment');
 
+const timestampComparisons = [ 'at', 'gt', 'gte', 'lt', 'lte', 'justAfter', 'justBefore' ];
+
 chai.use(require('chai-moment'));
 chai.use(require('chai-string'));
 
 chai.use(function(chai, utils) {
   chai.Assertion.addMethod('iso8601', function(comparison, value) {
-    if (comparison && value === undefined) {
+    if (comparison && !_.includes(timestampComparisons, comparison) && value === undefined) {
       value = comparison;
       comparison = 'at';
     }
 
     const obj = utils.flag(this, 'object');
-    new chai.Assertion(obj).to.be.a('string');
+    new chai.Assertion(obj, `expected ${value} to be a valid ISO-8601 date string`).to.be.a('string');
 
-    this.assert(moment(obj, moment.ISO_8601).isValid(), 'expected #{this} to be a valid ISO-8601 date string', 'expected #{this} not to be a valid ISO-8601 date string');
+    const actualDate = moment(obj, moment.ISO_8601);
+    this.assert(actualDate.isValid(), 'expected #{this} to be a valid ISO-8601 date string', 'expected #{this} not to be a valid ISO-8601 date string');
+
+    const expectedDate = moment(value, moment.ISO_8601);
+    if (!expectedDate.isValid()) {
+      throw new Error(`Expected date "${value}" is not a valid ISO-8601 string`);
+    }
 
     if (comparison == 'at') {
-      new chai.Assertion(obj).to.be.sameMoment(value);
+      const message = `expected ${actualDate.format()} to be ${expectedDate.format()}`;
+      new chai.Assertion(actualDate.valueOf(), message).to.equal(expectedDate.valueOf());
+    } else if (comparison == 'gt') {
+      const message = `expected ${actualDate.format()} to be greater than ${expectedDate.format()}`;
+      new chai.Assertion(actualDate.valueOf(), message).to.be.gt(expectedDate.valueOf());
+    } else if (comparison == 'gte') {
+      const message = `expected ${actualDate.format()} to be greater than or equal to ${expectedDate.format()}`;
+      new chai.Assertion(actualDate.valueOf(), message).to.be.gte(expectedDate.valueOf());
+    } else if (comparison == 'lt') {
+      const message = `expected ${actualDate.format()} to be less than ${expectedDate.format()}`;
+      new chai.Assertion(actualDate.valueOf(), message).to.be.lt(expectedDate.valueOf());
+    } else if (comparison == 'lte') {
+      const message = `expected ${actualDate.format()} to be less than or equal to ${expectedDate.format()}`;
+      new chai.Assertion(actualDate.valueOf(), message).to.be.lte(expectedDate.valueOf());
     } else if (comparison == 'justAfter') {
-      new chai.Assertion(obj).to.be.afterMoment(value);
-      new chai.Assertion(obj).to.be.beforeMoment(moment(value).add(2, 'seconds'));
+      const message = `expected ${actualDate.format()} to be after ${expectedDate.format()} and before ${moment(expectedDate).add(2, 'seconds').format()}`;
+      new chai.Assertion(actualDate.valueOf(), message).to.be.gt(expectedDate.valueOf());
+      new chai.Assertion(actualDate.valueOf(), message).to.be.lt(moment(expectedDate).add(2, 'seconds').valueOf());
     } else if (comparison == 'justBefore') {
-      new chai.Assertion(obj).to.be.beforeMoment(value);
-      new chai.Assertion(obj).to.be.afterMoment(moment(value).subtract(2, 'seconds'));
+      const message = `expected ${actualDate.format()} to be after ${moment(expectedDate).subtract(2, 'seconds').format()} and before ${expectedDate.format()}`;
+      new chai.Assertion(actualDate.valueOf()).to.be.lt(expectedDate.valueOf());
+      new chai.Assertion(actualDate.valueOf()).to.be.gt(moment(expectedDate).subtract(2, 'seconds').valueOf());
     } else if (comparison) {
-      throw new Error('ISO-8601 comparison must be either "at", "justAfter" or "justBefore", got ' + JSON.stringify(comparison));
+      const descriptions = timestampComparisons.map(comparison => `"${comparison}"`).join(', ');
+      throw new Error(`ISO-8601 comparison must be one of ${descriptions}, got ${JSON.stringify(comparison)}`);
     }
   });
 });

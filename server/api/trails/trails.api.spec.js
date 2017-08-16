@@ -43,7 +43,7 @@ describe('Trails API', function() {
 
       const expected = _.extend({
         length: Math.round(geoJsonLength(data.reqBody.geometry)),
-        createdAfter: data.now,
+        createdJustAfter: data.now,
         updatedAt: 'createdAt'
       }, data.reqBody);
 

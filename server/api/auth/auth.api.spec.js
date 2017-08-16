@@ -65,8 +65,8 @@ describe('Authentication API', function() {
         const expected = {
           user: getExpectedUser(data.user, {
             loginCount: 1,
-            lastActiveAfter: data.now,
-            lastLoginAfter: data.now
+            lastActiveJustAfter: data.now,
+            lastLoginJustAfter: data.now
           }),
           token: {
             authType: 'user',
@@ -409,8 +409,8 @@ describe('Authentication API', function() {
         lastName: data.reqBody.lastName,
         role: data.reqBody.role || 'user',
         sent: _.get(data.reqBody, 'sent', true),
-        createdAfter: moment(data.now).startOf('second').subtract(1, 'millisecond').toDate(),
-        expiresAfter: moment(data.now).add(2, 'days').startOf('second').subtract(1, 'millisecond').toDate(),
+        createdJustAfter: moment(data.now).startOf('second').subtract(1, 'millisecond').toDate(),
+        expiresJustAfter: moment(data.now).add(2, 'days').startOf('second').subtract(1, 'millisecond').toDate(),
         token: getExpectedInvitationToken()
       }, ...changes);
     }
@@ -835,8 +835,8 @@ describe('Authentication API', function() {
       return _.extend({
         role: 'user',
         sent: true,
-        createdAfter: moment(now).startOf('second').subtract(1, 'millisecond').toDate(),
-        expiresAfter: moment(now).add(2, 'days').startOf('second').subtract(1, 'millisecond').toDate()
+        createdJustAfter: moment(now).startOf('second').subtract(1, 'millisecond').toDate(),
+        expiresJustAfter: moment(now).add(2, 'days').startOf('second').subtract(1, 'millisecond').toDate()
       }, ...changes);
     }
 
@@ -1338,7 +1338,7 @@ describe('Authentication API', function() {
   function getExpectedPasswordReset(...changes) {
     return _.merge({
       email: _.get(data, 'reqBody.email'),
-      createdAfter: moment(data.now).startOf('second').subtract(1, 'millisecond').toDate()
+      createdJustAfter: moment(data.now).startOf('second').subtract(1, 'millisecond').toDate()
     }, ...changes);
   }
 

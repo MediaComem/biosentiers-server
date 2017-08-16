@@ -60,7 +60,7 @@ describe('Installation events API', function() {
 
       const expected = _.extend({
         installation: data.installation,
-        createdAfter: data.now,
+        createdJustAfter: data.now,
       }, data.reqBody);
 
       // The installation's events count and last event date should also be updated
@@ -80,7 +80,7 @@ describe('Installation events API', function() {
       const expected = _.extend({
         installation: data.installation,
         properties: {},
-        createdAfter: data.now,
+        createdJustAfter: data.now,
       }, data.reqBody);
 
       // The installation's events count and last event date should also be updated
@@ -130,15 +130,15 @@ describe('Installation events API', function() {
         .then(expectInstallationEvent.listInBody([
           getExpectedEvent(0, {
             installation: data.installation,
-            createdAfter: data.now
+            createdJustAfter: data.now
           }),
           getExpectedEvent(1, {
             installation: data.installation,
-            createdAfter: data.now
+            createdJustAfter: data.now
           }),
           getExpectedEvent(2, {
             installation: data.installation,
-            createdAfter: data.now
+            createdJustAfter: data.now
           })
         ]))
         .then(expectInstallation.inDb(data.expectedInstallation));
@@ -203,12 +203,12 @@ describe('Installation events API', function() {
         .then(expectInstallationEvent.listInBody([
           getExpectedEvent(1, {
             installation: data.installation,
-            createdAfter: data.now
+            createdJustAfter: data.now
           }),
           getExpectedEvent(3, {
             installation: data.installation,
             properties: {},
-            createdAfter: data.now
+            createdJustAfter: data.now
           })
         ]))
         .then(expectInstallation.inDb(data.expectedInstallation));
