@@ -14,11 +14,11 @@
     "lint:watch": "onchange bin/www knexfile.js config/**/*.js lib/**/*.js migrations/**/*.js server/**/*.js -e doc/**/*.js -- npm run lint",
     "migrate": "knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
-    "migrate:test": "NODE_ENV=test knex migrate:latest",
-    "migrate:test:rollback": "NODE_ENV=test knex migrate:rollback",
+    "migrate:test": "cross-env NODE_ENV=test knex migrate:latest",
+    "migrate:test:rollback": "cross-env NODE_ENV=test knex migrate:rollback",
     "server": "nodemon",
     "start": "node ./bin/www",
-    "test": "NODE_ENV=test mocha server/**/*.spec.js"
+    "test": "cross-env NODE_ENV=test mocha server/**/*.spec.js"
   },
   "dependencies": {
     "base64-regex": "^2.0.0",
@@ -61,6 +61,7 @@
     "chai-moment": "^0.1.0",
     "chance": "^1.0.10",
     "concurrently": "^3.3.0",
+    "cross-env": "^5.0.5",
     "doctoc": "^1.2.0",
     "http-status": "^1.0.1",
     "jshint": "^2.9.3",

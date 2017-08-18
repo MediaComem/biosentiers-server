@@ -13,6 +13,10 @@ const supertest = require('supertest-as-promised');
 const logger = config.logger('spec');
 const timestampComparisons = [ 'at', 'gt', 'gte', 'lt', 'lte', 'justAfter', 'justBefore' ];
 
+if (config.env != 'test') {
+  throw new Error('$NODE_ENV must be "test"');
+}
+
 exports.testApi = function(method, path, body) {
   method = (method || 'GET').toLowerCase();
 
