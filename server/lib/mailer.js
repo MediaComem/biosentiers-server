@@ -41,15 +41,21 @@ exports.send = function(options) {
 };
 
 function createTransport() {
-  return nodemailer.createTransport(smtpTransport({
+
+  const smtpOptions = {
     host: config.mail.host,
     port: config.mail.port,
-    secure: config.mail.secure,
-    auth: {
+    secure: config.mail.secure
+  };
+
+  if (config.mail.username || config.mail.password) {
+    smtpOptions.auth = {
       user: config.mail.username,
       pass: config.mail.password
-    }
-  }));
+    };
+  }
+
+  return nodemailer.createTransport(smtpTransport(smtpOptions));
 }
 
 function sendEmail(email) {
