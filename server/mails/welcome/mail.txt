@@ -2,7 +2,7 @@ Bienvenue sur BioSentiers !
 ===========================
 
 Partez à la découverte de la biodiversité.
-Découvrez des espèces animales et végétales et collectez des informations sur eux.
+Découvrez des espèces animales et végétales et collectez des informations sur elles.
 Pour cela, inscrivez-vous en suivant le lien ci-dessous:
 
 {{{ link }}}
