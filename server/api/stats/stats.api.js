@@ -16,19 +16,17 @@ exports.retrieve = route(async function(req, res) {
 
   const stats = {
     database: {
-      size: data.sizes.database
-    },
-    tables: tables.reduce((memo, table) => {
+      size: data.sizes.database,
+      tables: tables.reduce((memo, table) => {
 
-      memo[table] = _.extend(data.sizes.tables[table], {
-        rows: data.counts[table]
-      });
+        memo[table] = _.extend(data.sizes.tables[table], {
+          rows: data.counts[table]
+        });
 
-      return memo;
-    }, {})
+        return memo;
+      }, {})
+    }
   };
-
-  console.log(stats);
 
   res.send(await serialize(req, stats, policy));
 });
