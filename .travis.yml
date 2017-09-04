@@ -8,5 +8,4 @@ before_script:
   - psql -U postgres -c 'create extension postgis;' biosentiers
   - npm run migrate:test
 env:
-  - NODE_ENV=test
-  - SECRET=travis
+  - NODE_ENV=test SECRET=travis
