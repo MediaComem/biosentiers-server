@@ -15,4 +15,4 @@ before_script:
   - psql -U postgres -c 'create extension postgis;' biosentiers
   - npm run migrate:test
 after_success:
-  - npm run coverage
+  - npm run test:coverage
