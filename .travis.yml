@@ -4,7 +4,9 @@ node_js:
 services:
   - postgresql
 before_script:
-  - psql -c 'create database biosentiers;' -U postgres
+  - psql -U postgres -c 'create database biosentiers;'
+  - psql -U postgres -c 'create extension postgis;' biosentiers
   - npm run migrate:test
 env:
   - NODE_ENV=test
+  - SECRET=travis
