@@ -9,4 +9,8 @@ router.get('/',
   auth.authorize(policy.canRetrieve),
   controller.retrieve);
 
+router.get('/activity',
+  auth.authorize(policy.canRetrieveActivity),
+  controller.retrieveActivity);
+
 module.exports = router;
