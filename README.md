@@ -3,7 +3,7 @@
 This repository contains the Node.js Express server application for the BioSentiers project.
 
 [![Build Status](https://travis-ci.org/MediaComem/biosentiers-backend.svg?branch=master)](https://travis-ci.org/MediaComem/biosentiers-backend)
-[![Coverage Status](https://coveralls.io/repos/github/MediaComem/biosentiers-backend/badge.svg?branch=travis)](https://coveralls.io/github/MediaComem/biosentiers-backend?branch=travis)
+[![Coverage Status](https://coveralls.io/repos/github/MediaComem/biosentiers-backend/badge.svg?branch=master)](https://coveralls.io/github/MediaComem/biosentiers-backend?branch=master)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.txt)
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
