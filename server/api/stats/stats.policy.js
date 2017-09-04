@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const moment = require('moment-timezone');
+const moment = require('moment');
 const policy = require('../policy');
 
 exports.canRetrieve = function(req) {
