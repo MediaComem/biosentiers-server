@@ -1,9 +1,11 @@
 /*.log
 /.env*
 /.idea
+/.nyc_output
 /.screenrc
 /config/*.env.js
 !/config/sample.env.js
+/coverage
 /data-dump.sql
 /doc/api
 /local
