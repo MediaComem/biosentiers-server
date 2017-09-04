@@ -1,0 +1,10 @@
+language: node_js
+node_js:
+  - 8.2.0
+services:
+  - postgresql
+before_script:
+  - psql -c 'create database biosentiers;' -U postgres
+  - npm run migrate:test
+env:
+  - NODE_ENV=test
