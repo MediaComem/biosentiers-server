@@ -1,3 +1,4 @@
+--ignore-dir=.nyc_output
 --ignore-dir=build
 --ignore-dir=doc/api
 --ignore-dir=node_modules
