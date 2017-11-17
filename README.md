@@ -57,7 +57,7 @@ How to set up your machine to contribute to the project.
 
 * Clone this repository:
 
-        git clone https://github.com/MediaComem/biosentiers-server.git
+        git clone https://github.com/MediaComem/biosentiers-backend.git
 
 * Install the application's dependencies:
 
