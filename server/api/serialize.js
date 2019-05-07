@@ -28,12 +28,12 @@ function filterData(req, data, options) {
 
   if (only) {
     only = _.isArray(only) ? only : [ only ];
-    data = _.pick(data, ...only);
+    data = _.pick(data, ...only.map(String));
   }
 
   if (except) {
     except = _.isArray(except) ? except : [ except ];
-    data = _.omit(data, ...except);
+    data = _.omit(data, ...except.map(String));
   }
 
   return data;

@@ -17,6 +17,7 @@ router.use('/excursions', require('./excursions/excursions.routes'));
 router.use('/installations', require('./installations/installations.routes'));
 router.use('/installation-events', require('./installation-events/installation-events.routes'));
 router.use('/me', require('./users/users.me.routes'));
+router.use('/species', require('./species/species.routes'));
 router.use('/stats', require('./stats/stats.routes'));
 router.use('/themes', require('./themes/themes.routes'));
 router.use('/trails', require('./trails/trails.routes'));
