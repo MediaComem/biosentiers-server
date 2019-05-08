@@ -9,6 +9,8 @@ const trailFixtures = require('../../spec/fixtures/trail');
 const userFixtures = require('../../spec/fixtures/user');
 const zoneFixtures = require('../../spec/fixtures/zone');
 
+spec.setUpMocha();
+
 describe('Excursions API', function() {
 
   let data;

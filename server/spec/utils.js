@@ -10,6 +10,7 @@ const BPromise = require('bluebird');
 const responseExpectation = require('./response-expectation');
 const supertest = require('supertest-as-promised');
 
+let databaseConnectionClosed = false;
 const logger = config.logger('spec');
 const timestampComparisons = [ 'at', 'gt', 'gte', 'lt', 'lte', 'justAfter', 'justBefore' ];
 
@@ -89,6 +90,15 @@ exports.setUp = function(data, beforeResolve) {
       logger.debug('Completed test setup in ' + duration + 's');
     })
     .return(exports);
+};
+
+exports.setUpMocha = function() {
+  after(() => {
+    if (!databaseConnectionClosed) {
+      db.disconnect();
+      databaseConnectionClosed = true;
+    }
+  });
 };
 
 exports.cleanDatabase = function() {

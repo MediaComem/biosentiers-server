@@ -7,6 +7,8 @@ const spec = require('../../spec/utils');
 const trailFixtures = require('../../spec/fixtures/trail');
 const userFixtures = require('../../spec/fixtures/user');
 
+spec.setUpMocha();
+
 describe('Trails API', function() {
 
   let data;

@@ -12,6 +12,8 @@ const moment = require('moment');
 const spec = require('../../spec/utils');
 const userFixtures = require('../../spec/fixtures/user');
 
+spec.setUpMocha();
+
 describe('Installation events API', function() {
 
   let data;

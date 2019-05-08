@@ -9,6 +9,8 @@ const spec = require('../../spec/utils');
 const User = require('../../models/user');
 const userFixtures = require('../../spec/fixtures/user');
 
+spec.setUpMocha();
+
 describe('Users API', function() {
 
   let data;
