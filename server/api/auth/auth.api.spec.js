@@ -507,7 +507,7 @@ describe('Authentication API', function() {
               value: 'admin',
               valueSet: true
             }
-          ]))
+          ]));
       });
 
       it('should not create an invitation without sending an e-mail', function() {
@@ -525,7 +525,7 @@ describe('Authentication API', function() {
               value: false,
               valueSet: true
             }
-          ]))
+          ]));
       });
 
       it('should not create an invitation with unauthorized values', function() {
@@ -552,7 +552,7 @@ describe('Authentication API', function() {
               value: false,
               valueSet: true
             }
-          ]))
+          ]));
       });
     });
 
@@ -639,7 +639,7 @@ describe('Authentication API', function() {
               value: 'admin',
               valueSet: true
             }
-          ]))
+          ]));
       });
 
       it('should not create an invitation without sending an e-mail', function() {
@@ -658,7 +658,7 @@ describe('Authentication API', function() {
               value: false,
               valueSet: true
             }
-          ]))
+          ]));
       });
 
       it('should not create an invitation with unauthorized values', function() {
@@ -686,7 +686,7 @@ describe('Authentication API', function() {
               value: false,
               valueSet: true
             }
-          ]))
+          ]));
       });
     });
 
@@ -947,7 +947,7 @@ describe('Authentication API', function() {
             code: 'auth.invalidAuthorization',
             message: 'The Bearer token supplied in the Authorization header is invalid or has expired.'
           }));
-      })
+      });
     });
   });
 

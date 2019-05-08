@@ -206,7 +206,7 @@ const Abstract = bookshelf.Model.extend(_.extend(protoProps, {
   transaction: function(callback) {
     return bookshelf.transaction(callback);
   }
-});;
+});
 
 function createPropertiesParser(parser) {
   if (_.isFunction(parser)) {
@@ -340,7 +340,7 @@ function mtiParentOf(target, mtiOptions, foreignKey, foreignKeyTarget, ...args) 
       const filterForeignKeyTable = db.model(target).prototype.tableName;
       const filterForeignKeyTarget = foreignKeyTarget || `${filterForeignKeyTable}.id`;
 
-      qb.clearWhere().whereIn(filterForeignKeyTarget, _(records).filter(predicate).map(filterForeignKey).value())
+      qb.clearWhere().whereIn(filterForeignKeyTarget, _(records).filter(predicate).map(filterForeignKey).value());
     };
   } else if (_.isFunction(mtiOptions)) {
     filterOptions.query = mtiOptions;
@@ -372,7 +372,7 @@ function getGeomProperty(record) {
   } else if (record.geometry === true) {
     return 'geom';
   } else if (record.geometry !== undefined) {
-    throw new Error(`Model "geometry" property must be a string or boolean, got ${JSON.stringify(record.geometry)} (${typeof(record.geometry)})`)
+    throw new Error(`Model "geometry" property must be a string or boolean, got ${JSON.stringify(record.geometry)} (${typeof(record.geometry)})`);
   }
 }
 

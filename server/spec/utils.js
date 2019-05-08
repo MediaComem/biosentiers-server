@@ -64,10 +64,10 @@ exports.setUp = function(data, beforeResolve) {
 
   const beforeSetup = moment();
 
-  let promise = BPromise.resolve()
+  let promise = BPromise.resolve();
 
   if (!originalData.databaseCleaned) {
-    promise = promise.then(exports.cleanDatabase)
+    promise = promise.then(exports.cleanDatabase);
   }
 
   if (!originalData.testMailsCleaned) {
@@ -119,7 +119,7 @@ exports.cleanDatabase = function() {
       return Promise.all(tableList.map(table => {
         return db.knex.raw(`DELETE from ${table};`);
       }));
-    })
+    });
   });
 
   return promise.then(function() {
