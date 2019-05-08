@@ -36,7 +36,7 @@ exports.lastName = generator.unique(function() {
 
 exports.email = generator.unique(function(firstName, lastName) {
   if (firstName && lastName) {
-    return `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`;
+    return `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`.replace(/\s+/g, '-');
   } else {
     return `${chance.word()}@example.com`;
   }
