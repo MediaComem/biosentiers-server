@@ -71,6 +71,6 @@ module.exports.db = async function(expected) {
   expect(installation.get('shared_secret'), 'db.installation.shared_secret').to.be.an.instanceof(Buffer);
   expect(installation.get('shared_secret').toString('hex'), 'db.installation.shared_secret').to.match(/^[0-9a-f]{512}$/);
   if (expected.sharedSecret !== undefined && expected.sharedSecret !== true && expected.sharedSecret !== false) {
-    expect(installation.get('shared_secret').toString('hex'), 'db.installation.shared_secret').to.equal(new Buffer(expected.sharedSecret, 'base64').toString('hex'));
+    expect(installation.get('shared_secret').toString('hex'), 'db.installation.shared_secret').to.equal(Buffer.from(expected.sharedSecret, 'base64').toString('hex'));
   }
 };

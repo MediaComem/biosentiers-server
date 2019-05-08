@@ -47,7 +47,7 @@ exports.serialize = function(req, installation, options) {
   };
 
   if (_.get(options, 'sharedSecret')) {
-    serialized.sharedSecret = new Buffer(installation.get('shared_secret'), 'hex').toString('base64');
+    serialized.sharedSecret = Buffer.from(installation.get('shared_secret'), 'hex').toString('base64');
   }
 
   return serialized;

@@ -34,7 +34,7 @@ This repository contains the Node.js Express server application for the BioSenti
 
 ## Requirements
 
-* [Node.js](https://nodejs.org) 8.x
+* [Node.js](https://nodejs.org) 8+
 * [PostgreSQL](https://www.postgresql.org) 9.5+
 * [PostGIS](http://postgis.net) 2.2+
 
