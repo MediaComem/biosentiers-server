@@ -5,9 +5,9 @@ const ButterflySpecies = require('../../models/butterfly-species');
 const FlowerSpecies = require('../../models/flower-species');
 const TreeSpecies = require('../../models/tree-species');
 const QueryBuilder = require('../query-builder');
+const { buildSpecies } = require('../lib/data');
 const route = require('../route');
 const serialize = require('../serialize');
-const { cleanUp, getCommonName } = require('../lib/data');
 const policy = require('./species.policy');
 
 // API resource name (used in some API errors)
@@ -16,10 +16,11 @@ exports.resourceName = 'species';
 exports.list = route(async function(req, res) {
 
   const [ birdSpecies, butterflySpecies, flowerSpecies, treeSpecies ] = await Promise.all([
-    listBirdSpecies(),
-    listButterflySpecies(),
-    listFlowerSpecies(),
-    listTreeSpecies()
+    listSpecies(BirdSpecies, [ 'height', 'family.taxonomyClass.reign' ], req.query, 'bird'),
+    listSpecies(ButterflySpecies, [ 'family.taxonomyClass.reign' ], req.query, 'butterfly'),
+    // TODO: store common_name lang list in constant
+    listSpecies(FlowerSpecies, [ 'family.division.reign' ], req.query, 'flower', [ 'fr', 'de', 'it', 'la' ]),
+    listSpecies(TreeSpecies, [ 'family.division.reign' ], req.query, 'tree', [ 'fr', 'de', 'it', 'la' ])
   ]);
 
   const species = _.reduce({
@@ -27,138 +28,64 @@ exports.list = route(async function(req, res) {
     butterfly: butterflySpecies,
     flower: flowerSpecies,
     tree: treeSpecies
-  }, (memo, col, theme) => [ ...memo, ...col.models.map(model => buildSpecies(theme, model)) ], []);
+  }, (memo, col, theme) => [ ...memo, ...col.models.map(model => buildSpecies(theme, model)) ], [])
+    .sort((a, b) => a.scientificName.localeCompare(b.scientificName));
 
   res.send(await serialize(req, species, policy, _.pick(req.query, 'except', 'only')));
 });
 
-async function listBirdSpecies() {
-
-  const birdSpecies = await new BirdSpecies().fetchAll();
-  await birdSpecies.load([ 'height', 'family.taxonomyClass.reign' ]);
-
-  return birdSpecies;
-}
-
-async function listButterflySpecies() {
-
-  const butterflySpecies = await new ButterflySpecies().fetchAll();
-  await butterflySpecies.load([ 'family.taxonomyClass.reign' ]);
-
-  return butterflySpecies;
-}
-
-async function listFlowerSpecies() {
-
-  const flowerSpecies = await new FlowerSpecies().fetchAll();
-  await flowerSpecies.load([ 'family.division.reign' ]);
-
-  return flowerSpecies;
-}
-
-async function listTreeSpecies() {
-
-  const treeSpecies = await new TreeSpecies().fetchAll();
-  await treeSpecies.load([ 'family.division.reign' ]);
-
-  return treeSpecies;
-}
-
-function buildSpecies(theme, species) {
-
-  const result = {
-    id: species.get('api_id'),
-    characteristics: {
-      habitat: species.get('habitat_characteristics')
-    },
-    periodStart: species.get('period_start'),
-    periodEnd: species.get('period_end'),
-    scientificName: species.get('scientific_name'),
-    taxonomy: {
-      family: species.related('family').get('name')
-    },
-    theme: theme,
-    website: species.get('website')
-  };
-
-  switch (theme) {
-    case 'bird':
-      // TODO: check what the "calender" field is
-      _.merge(result, {
-        behavior: species.get('behavior'),
-        characteristics: {
-          nesting: species.get('nesting_characteristics'),
-          physical: species.get('physical_characteristics'),
-          sound: species.get('sound_characteristics')
-        },
-        comment: species.get('comment'),
-        commonName: getCommonName(species),
-        food: species.get('food'),
-        height: species.related('height').get('description'),
-        picture: {
-          large: species.get('picture_large'),
-          medium: species.get('picture_medium'),
-          small: species.get('picture_small')
-        },
-        size: species.get('size'),
-        taxonomy: {
-          class: species.related('family').related('taxonomyClass').get('name'),
-          reign: species.related('family').related('taxonomyClass').related('reign').get('name')
-        },
-        weight: species.get('weight'),
-        wingspan: species.get('wingspan')
-      });
-      break;
-    case 'butterfly':
-      _.merge(result, {
-        characteristics: {
-          physical: {
-            adult: species.get('physical_characteristics_adult'),
-            child: species.get('physical_characteristics_child')
-          }
-        },
-        comment: species.get('comment'),
-        commonName: getCommonName(species),
-        taxonomy: {
-          class: species.related('family').related('taxonomyClass').get('name'),
-          reign: species.related('family').related('taxonomyClass').related('reign').get('name')
-        },
-        wingspan: species.get('wingspan')
-      });
-      break;
-    case 'flower':
-      // TODO: check what obs_code_fh_2007 & obs_code_fh_2012 are
-      _.merge(result, {
-        anecdote: species.get('anecdote'),
-        characteristics: {
-          physical: species.get('physical_characteristics')
-        },
-        commonName: getCommonName(species, 'fr', 'de', 'it', 'la'),
-        height: species.get('height'),
-        taxonomy: {
-          division: species.related('family').related('division').get('name'),
-          reign: species.related('family').related('division').related('reign').get('name')
-        }
-      });
-      break;
-    case 'tree':
-      // TODO: check what obs_code_fh_2007 & obs_code_fh_2012 are
-      _.merge(result, {
-        anecdote: species.get('anecdote'),
-        characteristics: {
-          physical: species.get('physical_characteristics')
-        },
-        commonName: getCommonName(species, 'fr', 'de', 'it', 'la'),
-        height: species.get('height'),
-        taxonomy: {
-          division: species.related('family').related('division').get('name'),
-          reign: species.related('family').related('division').related('reign').get('name')
-        }
-      });
-      break;
-    default:
-      throw new Error(`Unsupported theme ${theme}`);
+function buildCommonNameSearchConditions(langs) {
+  if (!langs.length) {
+    return [ 'LOWER(common_name) LIKE ?' ];
   }
 
-  return cleanUp(result);
+  return langs.map(lang => `LOWER(common_name_${lang}) LIKE ?`);
+}
+
+function createSpeciesQueryBuilderHandler(query, theme, langs = []) {
+  return qb => {
+
+    const conditions = [];
+    const values = [];
+
+    const nameSearchConditions = [];
+    const nameSearchValues = [];
+
+    if (typeof query.commonNameSearch === 'string') {
+      const newConditions = buildCommonNameSearchConditions(langs);
+      nameSearchConditions.push(...newConditions);
+      nameSearchValues.push(...newConditions.map(() => `%${query.commonNameSearch.toLowerCase()}%`));
+    }
+
+    if (typeof query.scientificNameSearch === 'string') {
+      nameSearchConditions.push('LOWER(scientific_name) LIKE ?');
+      nameSearchValues.push(`%${query.scientificNameSearch.toLowerCase()}%`);
+    }
+
+    if (nameSearchConditions.length) {
+      conditions.push(`(${nameSearchConditions.join(' OR ')})`);
+      values.push(...nameSearchValues);
+    }
+
+    if (_.isString(query.theme) || _.isArray(query.theme)) {
+      const themes = _.isArray(query.theme) ? query.theme : [ query.theme ];
+      if (!_.includes(themes, theme)) {
+        conditions.unshift('0 = 1');
+      }
+    }
+
+    if (conditions.length) {
+      qb.whereRaw(conditions.join(' AND '), values);
+    }
+
+    return qb;
+  };
+}
+
+async function listSpecies(model, relations, query, theme, langs = []) {
+
+  const collection = await new model().where(createSpeciesQueryBuilderHandler(query, theme, langs)).fetchAll();
+  await collection.load(relations);
+
+  return collection;
 }
