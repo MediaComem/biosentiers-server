@@ -1,8 +1,9 @@
 const _ = require('lodash');
 const BPromise = require('bluebird');
-const config = require('../../config');
 const nodemailer = require('nodemailer');
 const smtpTransport = require('nodemailer-smtp-transport');
+
+const config = require('../../config');
 
 const logger = config.logger('mailer');
 const transporter = createTransport();
@@ -52,6 +53,13 @@ function createTransport() {
     smtpOptions.auth = {
       user: config.mail.username,
       pass: config.mail.password
+    };
+  }
+
+  if (config.mail.allowInvalidCert) {
+    // See https://nodemailer.com/smtp/#3-allow-self-signed-certificates
+    smtpOptions.tls = {
+      rejectUnauthorized: false
     };
   }
 

@@ -219,6 +219,7 @@ E-mails are sent by the server for some workflows, e.g. when users register.
 * `SMTP_PASSWORD` - The user's password.
 * `SMTP_FROM_NAME` - The name of the sender. Defaults to `BioSentiers`.
 * `SMTP_FROM_ADDRESS` - The sender's address.
+* `SMTP_ALLOW_INVALID_CERT` - Whether to accept a connection to an SMTP server with a self-signed TLS certificate. Defaults to `false`.
 
 
 

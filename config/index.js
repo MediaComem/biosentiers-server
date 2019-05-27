@@ -70,7 +70,8 @@ const config = {
     username: get('SMTP_USERNAME'),
     password: get('SMTP_PASSWORD'),
     fromName: get('SMTP_FROM_NAME') || 'BioSentiers',
-    fromAddress: get('SMTP_FROM_ADDRESS')
+    fromAddress: get('SMTP_FROM_ADDRESS'),
+    allowInvalidCert: parseConfigBoolean(get('SMTP_ALLOW_INVALID_CERT'), false)
   }
 };
 
