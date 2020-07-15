@@ -40,7 +40,7 @@
     "jsonwebtoken": "^8.5.1",
     "knex": "~0.14.0",
     "knex-postgis": "^0.8.0",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.19",
     "log4js": "^4.1.1",
     "moment": "^2.24.0",
     "nodemailer": "^6.1.1",
