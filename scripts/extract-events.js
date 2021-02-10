@@ -81,6 +81,11 @@ function eventsToGeoJsonFeatureCollection(events) {
 
 function eventToGeoJsonFeature(event) {
 
+  const properties = {
+    ..._.omit(event, 'properties'),
+    ..._.omit(event.properties, 'position')
+  };
+
   let geometry = null;
   if (event.type === 'location') {
     const position = event.properties.position;
@@ -94,12 +99,16 @@ function eventToGeoJsonFeature(event) {
       type: 'Point',
       coordinates: _.compact([position.longitude, position.latitude, position.altitude])
     };
+
+    if (position.accuracy) {
+      properties.position_accuracy = position.accuracy;
+    }
   }
 
   return {
     type: 'Feature',
     geometry,
-    properties: event
+    properties
   };
 }
 
